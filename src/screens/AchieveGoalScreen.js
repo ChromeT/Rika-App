@@ -1,0 +1,262 @@
+import React, { useState, useContext } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, TextInput } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
+import { Video, ResizeMode } from 'expo-av';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { ThemeContext } from '../context/ThemeContext';
+import { DataContext } from '../context/DataContext';
+import { AuthContext } from '../context/AuthContext';
+import { uploadMultipleToCloudinary } from '../utils/cloudinaryUpload';
+
+const formatMoney = (v) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v || 0);
+
+export const AchieveGoalScreen = () => {
+  const navigation = useNavigation();
+  const route = useRoute();
+  const { goalId } = route.params;
+  const { theme } = useContext(ThemeContext);
+  const { goals, transactions, updateGoal } = useContext(DataContext);
+  const { user } = useContext(AuthContext);
+
+  const goal = goals.find(g => g.id === goalId);
+  
+  const [mediaList, setMediaList] = useState([]);
+  const [caption, setCaption] = useState('');
+  const [actualAmount, setActualAmount] = useState('');
+  const [selectedTxIds, setSelectedTxIds] = useState([]);
+  const [imageUrl, setImageUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
+
+  const toggleTx = (id) => {
+    setSelectedTxIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const pickMedia = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsMultipleSelection: true,
+        quality: 0.5,
+      });
+      if (result.assets) {
+        const newMedia = result.assets.map(asset => ({
+          uri: asset.uri,
+          type: asset.type === 'video' ? 'video' : 'image',
+          caption: '',
+        }));
+        setMediaList(prev => [...prev, ...newMedia]);
+      }
+    } catch (e) {
+      console.log('Image picker error:', e);
+      Alert.alert('Error', 'Tidak dapat memilih media. Coba masukkan URL di bawah.');
+    }
+  };
+
+  const updateCaption = (index, text) => {
+    setMediaList(prev => prev.map((m, i) => i === index ? { ...m, caption: text } : m));
+  };
+
+  const removeMedia = (index) => {
+    setMediaList(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUrlSubmit = () => {
+    if (imageUrl.trim()) {
+      setMediaList(prev => [...prev, { uri: imageUrl.trim(), type: 'image', caption: '' }]);
+      setImageUrl('');
+    }
+  };
+
+  const handleSave = async () => {
+    if (!goal) return;
+
+    let finalMediaList = mediaList;
+
+    // Upload media to Cloudinary if any
+    if (mediaList.length > 0) {
+      setUploading(true);
+      try {
+        const uploaded = await uploadMultipleToCloudinary(mediaList);
+        if (uploaded.length === 0) {
+          setUploading(false);
+          Alert.alert('Upload gagal', 'Tidak ada media yang berhasil diupload. Cek koneksi internet Anda.');
+          return;
+        }
+        finalMediaList = uploaded;
+      } catch (e) {
+        setUploading(false);
+        console.error('Upload error:', e);
+        Alert.alert('Upload gagal', 'Terjadi kesalahan saat mengupload media: ' + e.message);
+        return;
+      }
+      setUploading(false);
+    }
+
+    const updateData = {
+      achieved: true,
+      achievedAt: new Date().toISOString(),
+      memoryCaption: caption,
+      actualAmount: Number(actualAmount) || 0,
+      relatedTransactionIds: selectedTxIds,
+      media: finalMediaList,
+    };
+
+    try {
+      await updateGoal(goal.id, updateData);
+      Alert.alert('Berhasil', 'Goal telah ditandai sebagai tercapai!', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
+    } catch (e) {
+      console.error('Save goal error:', e);
+      Alert.alert('Gagal', 'Tidak dapat menyimpan perubahan goal');
+    }
+  };
+
+  if (!goal) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: theme.onSurfaceVariant }}>Goal tidak ditemukan</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {/* Header */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '22' }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+          <MaterialIcons name="close" size={24} color={theme.onSurface} />
+        </TouchableOpacity>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.onSurface, flex: 1 }}>Tandai Tercapai</Text>
+        <TouchableOpacity onPress={handleSave} style={{ backgroundColor: theme.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 }}>
+          <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Simpan</Text>
+        </TouchableOpacity>
+      </View>
+
+      {uploading && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}>
+          <ActivityIndicator size="large" color="#fff" />
+          <Text style={{ color: '#fff', marginTop: 12, fontSize: 14 }}>Mengupload media...</Text>
+        </View>
+      )}
+
+      <ScrollView contentContainerStyle={{ padding: 16 }}>
+        <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 4 }}>🎉 {goal.name}</Text>
+        <Text style={{ color: theme.onSurfaceVariant, marginBottom: 20 }}>Pilih media dan transaksi terkait</Text>
+
+        {/* Media List with Captions */}
+        <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 12 }}>FOTO / VIDEO KENANGAN</Text>
+        {mediaList.map((m, i) => (
+          <View key={i} style={{ marginBottom: 12, backgroundColor: theme.surfaceContainerLow, borderRadius: 16, overflow: 'hidden' }}>
+            {m.type === 'video' ? (
+              <View style={{ width: '100%', height: 120, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+                <Video
+                  source={{ uri: m.uri }}
+                  style={{ width: '100%', height: 120 }}
+                  resizeMode={ResizeMode.COVER}
+                  shouldPlay={false}
+                  isLooping={false}
+                />
+                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                  <MaterialIcons name="play-circle-filled" size={48} color="rgba(255,255,255,0.9)" />
+                </View>
+              </View>
+            ) : (
+              <Image source={{ uri: m.uri }} style={{ width: '100%', height: 120 }} />
+            )}
+            <TouchableOpacity onPress={() => removeMedia(i)} style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 14, padding: 4 }}>
+              <MaterialIcons name="close" size={16} color="#fff" />
+            </TouchableOpacity>
+            <TextInput
+              style={{ padding: 10, color: theme.onSurface, fontSize: 13 }}
+              placeholder={m.type === 'video' ? "Keterangan video ini... (opsional)" : "Keterangan gambar ini... (opsional)"}
+              placeholderTextColor={theme.onSurfaceVariant + '80'}
+              value={m.caption}
+              onChangeText={(t) => updateCaption(i, t)}
+            />
+          </View>
+        ))}
+
+        <TouchableOpacity onPress={pickMedia} style={{ height: 56, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: theme.primary + '66', justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+          <MaterialIcons name="add-photo-alternate" size={20} color={theme.primary} />
+          <Text style={{ color: theme.primary, fontWeight: '700', fontSize: 13 }}>+ Tambah Foto/Video ({mediaList.length})</Text>
+        </TouchableOpacity>
+
+        {/* URL Input */}
+        <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>ATAU MASUKKAN LINK GAMBAR</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+          <View style={{ flex: 1, backgroundColor: theme.surfaceContainerLow, borderRadius: 12, padding: 12, marginRight: 8 }}>
+            <TextInput 
+              placeholder="https://..."
+              placeholderTextColor={theme.onSurfaceVariant}
+              value={imageUrl}
+              onChangeText={setImageUrl}
+              style={{ color: theme.onSurface, fontSize: 14 }}
+              autoCapitalize="none"
+              keyboardType="url"
+            />
+          </View>
+          <TouchableOpacity onPress={handleUrlSubmit} style={{ backgroundColor: theme.primaryContainer, padding: 12, borderRadius: 12 }}>
+            <MaterialIcons name="check" size={20} color={theme.onPrimaryContainer} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Caption */}
+        <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>CERITA (OPSIONAL)</Text>
+        <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 16, padding: 16, marginBottom: 20, height: 80 }}>
+          <TextInput 
+            placeholder="Ceritakan momen ini..."
+            placeholderTextColor={theme.onSurfaceVariant}
+            value={caption}
+            onChangeText={setCaption}
+            multiline
+            style={{ color: theme.onSurface, fontSize: 14, height: '100%' }}
+          />
+        </View>
+
+        {/* Actual Amount */}
+        <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>NOMINAL RIIL (RP)</Text>
+        <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 16, padding: 16, marginBottom: 20 }}>
+          <TextInput 
+            placeholder="0"
+            placeholderTextColor={theme.onSurfaceVariant}
+            value={actualAmount}
+            onChangeText={setActualAmount}
+            keyboardType="numeric"
+            style={{ color: theme.onSurface, fontSize: 18, fontWeight: 'bold' }}
+          />
+        </View>
+
+        {/* Transaction Picker */}
+        <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>TRANSAKSI TERKAIT (OPSIONAL)</Text>
+        <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, marginBottom: 12 }}>Pilih transaksi yang relevan dengan goal ini</Text>
+        
+        {transactions.slice(0, 10).map(tx => {
+          const isSelected = selectedTxIds.includes(tx.id);
+          const total = (tx.myContrib || 0) + (tx.partnerContrib || 0);
+          return (
+            <TouchableOpacity key={tx.id} onPress={() => toggleTx(tx.id)}
+              style={{ flexDirection: 'row', alignItems: 'center', padding: 12, marginBottom: 8, borderRadius: 12,
+                backgroundColor: isSelected ? theme.primary + '1A' : theme.surfaceContainerLow,
+                borderWidth: 1.5, borderColor: isSelected ? theme.primary : theme.outlineVariant + '22' }}>
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: theme.primaryContainer + '33', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                <MaterialIcons name={tx.icon || 'receipt'} size={16} color={theme.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.onSurface }}>{tx.name}</Text>
+                <Text style={{ fontSize: 10, color: theme.onSurfaceVariant }}>{tx.category} • {new Date(tx.date).toLocaleDateString('id-ID')}</Text>
+              </View>
+              <Text style={{ fontSize: 12, fontWeight: '900', color: tx.type === 'income' ? theme.primary : theme.error }}>
+                {tx.type === 'income' ? '+' : '-'}Rp {formatMoney(total)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+};
+
+export default AchieveGoalScreen;

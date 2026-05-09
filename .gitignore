@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+# Expo
+.expo/
+.expo-shared/
+# Build
+web-build/
+# Environment
+.env
+.env.local
+# Logs
+*.log
+npm-debug.log*
+# OS
+.DS_Store
+Thumbs.db
+# Firebase (kalau ada secret)
+google-services.json
+GoogleService-Info.plist
