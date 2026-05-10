@@ -68,10 +68,12 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
     if (filterType === 'Semua') rows.push(['Saldo Akhir', totalIncome - totalExpense]);
 
     rows.push([], ['DETAIL TRANSAKSI']);
-    rows.push(['Tanggal', 'Keterangan', 'Kategori', 'Sumber', 'Tipe', 'Oleh', 'Total Nominal']);
+    rows.push(['Tanggal', 'Keterangan', 'Kategori', 'Sumber', 'Tipe', 'Mode', 'Oleh', 'Porsi Saya', 'Porsi Pasangan', 'Total Nominal']);
 
     filtered.forEach(tx => {
-      const total = (tx.myContrib || 0) + (tx.partnerContrib || 0);
+      const myP = Number(tx.myContrib || 0);
+      const parP = Number(tx.partnerContrib || 0);
+      const total = myP + parP;
       const d = new Date(tx.date);
       const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString('id-ID') : '-';
       rows.push([
@@ -83,7 +85,10 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
           return acc ? acc.name : 'Tunai';
         })(),
         tx.type === 'income' ? 'Pemasukan' : 'Pengeluaran',
+        tx.isJoint ? 'Uang Bersama (50:50)' : (tx.isPatungan ? 'Patungan Custom' : 'Pribadi'),
         tx.owner || '-',
+        myP,
+        parP,
         total
       ]);
     });
@@ -175,19 +180,23 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
 
     let txRows = '';
     filtered.forEach(tx => {
-      const amount = (tx.myContrib || 0) + (tx.partnerContrib || 0);
+      const myP = Number(tx.myContrib || 0);
+      const parP = Number(tx.partnerContrib || 0);
+      const amount = myP + parP;
       const date = new Date(tx.date).toLocaleDateString('id-ID');
       const acc = (accounts || []).find(a => a.id === tx.accountId);
       const walletName = acc ? acc.name : 'Tunai';
+      const mode = tx.isJoint ? 'KITA (50:50)' : (tx.isPatungan ? 'PATUNGAN' : 'PRIBADI');
       txRows += `
         <tr>
           <td>${date}</td>
           <td>${tx.name || '-'}</td>
-          <td>${tx.category || '-'}</td>
           <td>${walletName}</td>
-          <td>${tx.owner || '-'}</td>
+          <td style="font-size:9px; font-weight:bold;">${mode}</td>
           <td style="color:${tx.type === 'income' ? '#059669' : '#dc2626'}">${tx.type === 'income' ? 'Masuk' : 'Keluar'}</td>
-          <td style="text-align:right;">${formatMoney(amount)}</td>
+          <td style="text-align:right;">${formatMoney(myP)}</td>
+          <td style="text-align:right;">${formatMoney(parP)}</td>
+          <td style="text-align:right; font-weight:bold;">${formatMoney(amount)}</td>
         </tr>`;
     });
 
@@ -234,11 +243,12 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
             <tr>
               <th>Tanggal</th>
               <th>Keterangan</th>
-              <th>Kategori</th>
               <th>Sumber</th>
-              <th>User</th>
+              <th>Mode</th>
               <th>Tipe</th>
-              <th style="text-align:right;">Nominal (Rp)</th>
+              <th style="text-align:right;">Saya (Rp)</th>
+              <th style="text-align:right;">Pasangan (Rp)</th>
+              <th style="text-align:right;">Total (Rp)</th>
             </tr>
           </thead>
           <tbody>
