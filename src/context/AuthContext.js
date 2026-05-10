@@ -19,35 +19,41 @@ export const AuthProvider = ({ children }) => {
 
   // Push Notification Setup
   useEffect(() => {
-    if (user && user.householdId && messaging) {
+    if (user && user.householdId && messaging && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       const requestPermission = async () => {
         try {
+          console.log('Memulai registrasi FCM...');
           const permission = await Notification.requestPermission();
+          console.log('Status izin notifikasi:', permission);
+          
           if (permission === 'granted') {
+            // Register service worker secara manual untuk memastikan lokasi benar
+            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+            console.log('Service Worker terdaftar:', registration.scope);
+
             const token = await getToken(messaging, {
-              vapidKey: 'BAUK0mQIyvfLwX4_W6oBFchmwIrkb60lr7eGK7u_qOVJDODAjfBb7e3zKrXt5mcKPzMtxZCvV9FpHc132PrJm3M' 
+              vapidKey: 'BAUK0mQIyvfLwX4_W6oBFchmwIrkb60lr7eGK7u_qOVJDODAjfBb7e3zKrXt5mcKPzMtxZCvV9FpHc132PrJm3M',
+              serviceWorkerRegistration: registration
             });
+
             if (token) {
               console.log('FCM Token Berhasil Didapat:', token);
-              // Simpan token ke Firestore agar pasangan bisa kirim notif ke kita
               await updateDoc(doc(db, 'households', user.householdId), {
                 [`fcmTokens.${user.name}`]: token
               });
             } else {
-              console.log('Gagal mendapatkan Token (Cek VAPID Key)');
+              console.warn('Token kosong, cek VAPID Key atau konfigurasi Firebase.');
             }
           }
         } catch (error) {
-          console.error('Error requesting notification permission:', error);
+          console.error('FCM Error Detail:', error);
         }
       };
 
       requestPermission();
 
-      // Listen to foreground messages
       const unsubscribe = onMessage(messaging, (payload) => {
-        console.log('Foreground message received:', payload);
-        // You could show a local alert/toast here if needed
+        console.log('Pesan diterima (Foreground):', payload);
       });
 
       return () => unsubscribe();
