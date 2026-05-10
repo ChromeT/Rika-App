@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
           const permission = await Notification.requestPermission();
           if (permission === 'granted') {
             const token = await getToken(messaging, {
-              vapidKey: 'MASUKKAN_VAPID_KEY_ANDA_DI_SINI' 
+              vapidKey: 'BAUK0mQIyvfLwX4_W6oBFchmwIrkb60lr7eGK7u_qOVJDODAjfBb7e3zKrXt5mcKPzMtxZCvV9FpHc132PrJm3M' 
             });
             if (token) {
               console.log('FCM Token Berhasil Didapat:', token);
