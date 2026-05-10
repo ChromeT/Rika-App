@@ -8,6 +8,7 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); // { name: 'Ayip', householdId: 'X8P2K9' }
   const [householdUsers, setHouseholdUsers] = useState([]); // ['Ayip', 'Ika']
+  const [householdAvatars, setHouseholdAvatars] = useState({});
   const [loading, setLoading] = useState(true);
 
   const [avatar, setAvatar] = useState('person');
@@ -40,6 +41,9 @@ export const AuthProvider = ({ children }) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           setHouseholdUsers(data.users || []);
+          if (data.avatars) {
+            setHouseholdAvatars(data.avatars);
+          }
           if (data.lastReadNotif && data.lastReadNotif[user.name] !== undefined) {
             setLastReadNotif(data.lastReadNotif[user.name]);
           }
@@ -157,7 +161,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, householdUsers, loading, createHousehold, joinHousehold, loginWithData, logout, avatar, updateAvatar, lastReadNotif, markNotificationsAsRead }}>
+    <AuthContext.Provider value={{ user, householdUsers, householdAvatars, loading, createHousehold, joinHousehold, loginWithData, logout, avatar, updateAvatar, lastReadNotif, markNotificationsAsRead }}>
       {children}
     </AuthContext.Provider>
   );

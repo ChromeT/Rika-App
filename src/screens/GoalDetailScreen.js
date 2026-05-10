@@ -67,11 +67,15 @@ const GoalDetailScreen = ({ route }) => {
   const { goalId } = route.params;
   const navigation = useNavigation();
   const { theme } = useContext(ThemeContext);
-  const { goals, updateGoal } = useContext(DataContext);
-  const { user } = useContext(AuthContext);
+  const { goals, updateGoal, addNotification } = useContext(DataContext);
+  const { user, householdUsers } = useContext(AuthContext);
+  
+  const partnerName = householdUsers?.find(u => u !== (user?.name || ''));
+  const hasPartner = !!partnerName;
 
   const goal = goals.find(g => g.id === goalId);
   const [fundingModalVisible, setFundingModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
   // Progress calculations
@@ -90,6 +94,27 @@ const GoalDetailScreen = ({ route }) => {
 
   const handleMarkAchieved = () => {
     navigation.navigate('AchieveGoal', { goalId: goal.id });
+  };
+
+  const handleDeleteConfirm = async () => {
+    setDeleteModalVisible(false);
+    try {
+      await deleteDoc(doc(db, 'households', user.householdId, 'goals', goal.id));
+      if (hasPartner) {
+        addNotification({
+          title: 'Goal dihapus',
+          body: `${user?.name || 'Pasanganmu'} telah menghapus goal "${goal.name}".`,
+          icon: 'delete',
+          targetType: 'goal',
+          targetId: goal.id,
+          sender: user?.name || 'Sistem',
+          createdAt: new Date().toISOString(),
+        });
+      }
+      navigation.goBack();
+    } catch (e) {
+      console.error('Delete error', e);
+    }
   };
 
   if (!goal) {
@@ -118,19 +143,7 @@ const GoalDetailScreen = ({ route }) => {
               <TouchableOpacity onPress={() => navigation.navigate('EditGoal', { goalId: goal.id })} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
                 <MaterialIcons name="edit" size={20} color="#fff" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => {
-                Alert.alert('Hapus Goal', `Apakah kamu yakin menghapus "${goal.name}"?`, [
-                  { text: 'Batal', style: 'cancel' },
-                  { text: 'Hapus', style: 'destructive', onPress: async () => {
-                    try {
-                      await deleteDoc(doc(db, 'households', user.householdId, 'goals', goal.id));
-                      navigation.goBack();
-                    } catch (e) {
-                      Alert.alert('Gagal', 'Tidak dapat menghapus goal');
-                    }
-                  }},
-                ]);
-              }} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
+              <TouchableOpacity onPress={() => setDeleteModalVisible(true)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}>
                 <MaterialIcons name="delete" size={20} color="#fff" />
               </TouchableOpacity>
             </View>
@@ -196,6 +209,29 @@ const GoalDetailScreen = ({ route }) => {
         onSave={handleAddFunding}
         theme={theme}
       />
+
+      {/* Custom Delete Confirmation Modal */}
+      <Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => setDeleteModalVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: theme.surface, borderRadius: 24, padding: 24, width: '100%', maxWidth: 400, alignItems: 'center' }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: theme.error + '1A', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+              <MaterialIcons name="delete-outline" size={32} color={theme.error} />
+            </View>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 8, textAlign: 'center' }}>Hapus Goal</Text>
+            <Text style={{ fontSize: 14, color: theme.onSurfaceVariant, textAlign: 'center', marginBottom: 24 }}>
+              Apakah kamu yakin ingin menghapus goal "{goal?.name}"? Tindakan ini tidak dapat dibatalkan.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <TouchableOpacity onPress={() => setDeleteModalVisible(false)} style={{ flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: theme.surfaceContainerHighest, alignItems: 'center' }}>
+                <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 16 }}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleDeleteConfirm} style={{ flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: theme.error, alignItems: 'center' }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Hapus</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

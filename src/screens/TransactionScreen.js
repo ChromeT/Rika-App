@@ -16,12 +16,18 @@ const TransactionScreen = ({ navigation, route }) => {
   const [isKonta, setIsKonta] = useState(true); 
   const [type, setType] = useState('expense');
 
-  // Baca parameter navigasi (misal: dari FAB Pemasukan)
+  // Baca parameter navigasi (misal: dari FAB Pemasukan atau Tagihan Lunas)
   useEffect(() => {
     if (route?.params?.type) {
       handleTypeChange(route.params.type);
     }
-  }, [route?.params?.type]);
+    if (route?.params?.predefinedName) {
+      setName(route.params.predefinedName);
+    }
+    if (route?.params?.predefinedAmount) {
+      setAmount(route.params.predefinedAmount);
+    }
+  }, [route?.params?.type, route?.params?.predefinedName, route?.params?.predefinedAmount]);
   
   // Category States
   const [categoryObj, setCategoryObj] = useState(null);
@@ -55,7 +61,7 @@ const TransactionScreen = ({ navigation, route }) => {
     return diff > 0 ? diff : 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     let finalCategoryName = categoryObj?.name;
     let finalIcon = categoryObj?.icon;
 
@@ -103,7 +109,7 @@ const TransactionScreen = ({ navigation, route }) => {
       }
     }
     
-    addTransaction({
+    const newTxId = await addTransaction({
       name: finalTxName,
       amount: numAmount,
       type,
@@ -123,6 +129,7 @@ const TransactionScreen = ({ navigation, route }) => {
       color: type === 'income' ? 'primary' : 'error',
       sender: user?.name || 'Saya',
       targetType: 'transaction',
+      targetId: newTxId,
       targetName: finalTxName,
     });
 

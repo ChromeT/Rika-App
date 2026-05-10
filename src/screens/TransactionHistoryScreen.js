@@ -59,7 +59,6 @@ const TransactionHistoryScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.logoText}>Rika</Text>
           <View style={styles.avatarWrapper}>
             {avatar?.startsWith('file://') || avatar?.startsWith('data:image') ? (
               <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />

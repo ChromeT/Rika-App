@@ -363,11 +363,16 @@ const GoalsScreen = () => {
         if (finalMediaList.length > 0) {
           updateData.previewImage = finalMediaList[0].type === 'image' ? (finalMediaList[0].url || finalMediaList[0].uri) : selectedGoal.previewImage;
           updateData.mediaCount = finalMediaList.length;
+        } else {
+          updateData.previewImage = null;
+          updateData.mediaCount = 0;
         }
       } else {
         updateData.media = finalMediaList;
         if (finalMediaList.length > 0) {
           updateData.previewImage = finalMediaList[0].type === 'image' ? (finalMediaList[0].url || finalMediaList[0].uri) : null;
+        } else {
+          updateData.previewImage = null;
         }
       }
 

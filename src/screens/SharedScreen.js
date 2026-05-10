@@ -342,7 +342,6 @@ const SharedScreen = () => {
       {/* Header */}
       <View style={s.header}>
         <View style={s.headerLeft}>
-          <Text style={s.logoText}>Rika</Text>
           <View style={s.avatarWrapper}>
             {avatar?.startsWith('file://') || avatar?.startsWith('data:image')
               ? <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />

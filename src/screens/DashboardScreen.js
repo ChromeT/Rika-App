@@ -13,13 +13,21 @@ const { width } = Dimensions.get('window');
 
 const DashboardScreen = () => {
   const { theme } = useContext(ThemeContext);
-  const { transactions, getBalance, bills, addBill, notifications, addNotification, goals } = useContext(DataContext);
+  const { transactions, getBalance, bills, addBill, updateBill, deleteBill, notifications, addNotification, goals } = useContext(DataContext);
   const { user, householdUsers, avatar, lastReadNotif, markNotificationsAsRead } = useContext(AuthContext);
   
   const navigation = useNavigation();
   const [filter, setFilter] = useState('Kita');
   const [notifyVisible, setNotifyVisible] = useState(false);
   const [billModalVisible, setBillModalVisible] = useState(false);
+  const [billActionModalVisible, setBillActionModalVisible] = useState(false);
+  const [selectedBill, setSelectedBill] = useState(null);
+  const [isEditingBill, setIsEditingBill] = useState(false);
+  
+  // Custom Confirm Modal states
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState({});
+  
   const [fabOpen, setFabOpen] = useState(false);
   const fabAnim = useRef(new Animated.Value(0)).current;
 
@@ -43,12 +51,23 @@ const DashboardScreen = () => {
   const handleNotifClick = (notif) => {
     setNotifyVisible(false);
     setTimeout(() => {
-      if (notif.targetType === 'bill' && notif.targetId) {
+      if (notif.targetType === 'goal' && notif.targetId) {
+        const goalData = Array.isArray(goals) ? goals.find(g => g.id === notif.targetId) : null;
+        if (goalData?.achieved) {
+          navigation.navigate('MemoryDetail', { goalId: notif.targetId });
+        } else {
+          navigation.navigate('GoalDetail', { goalId: notif.targetId });
+        }
+      } else if (notif.targetType === 'bill' && notif.targetId) {
         scrollRef.current?.scrollTo({ y: billsY, animated: true });
         setTimeout(() => triggerHighlight(notif.targetId), 400);
-      } else if (notif.targetType === 'transaction' && notif.targetName) {
+      } else if (notif.targetType === 'transaction') {
         scrollRef.current?.scrollTo({ y: recentY, animated: true });
-        setTimeout(() => triggerHighlight(notif.targetName), 400);
+        if (notif.targetId) {
+          setTimeout(() => triggerHighlight(notif.targetId), 400);
+        } else if (notif.targetName) {
+          setTimeout(() => triggerHighlight(notif.targetName), 400);
+        }
       } else if (notif.title?.toLowerCase().includes('tagihan')) {
         scrollRef.current?.scrollTo({ y: billsY, animated: true });
       } else if (notif.title?.toLowerCase().includes('transaksi') || notif.title?.toLowerCase().includes('pemasukan') || notif.title?.toLowerCase().includes('pengeluaran')) {
@@ -68,7 +87,13 @@ const DashboardScreen = () => {
     setTimeout(() => {
       if (action === 'pengeluaran') navigation.navigate('Transaksi', { type: 'expense' });
       else if (action === 'pemasukan') navigation.navigate('Transaksi', { type: 'income' });
-      else if (action === 'tagihan') setBillModalVisible(true);
+      else if (action === 'tagihan') {
+        setIsEditingBill(false);
+        setBillName('');
+        setBillAmount('');
+        setBillDays('');
+        setBillModalVisible(true);
+      }
       else if (action === 'goals') navigation.navigate('Goals');
     }, 200);
   };
@@ -178,32 +203,155 @@ const DashboardScreen = () => {
 
   const handleSaveBill = () => {
     if (!billName || !billAmount || !billDays) return;
-    addBill({
-      name: billName,
-      amount: Number(billAmount),
-      daysLeft: Number(billDays),
-    });
+    const numDays = Number(billDays);
+    const dueDate = new Date(Date.now() + numDays * 24 * 60 * 60 * 1000).toISOString();
+    
+    if (isEditingBill && selectedBill) {
+      updateBill(selectedBill.id, {
+        name: billName,
+        amount: Number(billAmount),
+        dueDate,
+      });
+      addNotification({
+        title: 'Tagihan Diperbarui',
+        body: `${myName} mengubah detail tagihan "${billName}".`,
+        icon: 'receipt-long',
+        color: 'primary',
+        sender: myName,
+        targetType: 'bill',
+        targetId: selectedBill.id,
+      });
+    } else {
+      addBill({
+        name: billName,
+        amount: Number(billAmount),
+        dueDate,
+      });
+      addNotification({
+        title: 'Tagihan Baru',
+        body: `${myName} menambahkan tagihan baru: "${billName}" sebesar Rp ${formatMoney(Number(billAmount))}.`,
+        icon: 'receipt-long',
+        color: 'primary',
+        sender: myName,
+        targetType: 'bill',
+      });
+    }
+    
     setBillName('');
     setBillAmount('');
     setBillDays('');
     setBillModalVisible(false);
+    setIsEditingBill(false);
   };
 
-  const handleRemindBill = (bill) => {
+  const handleBillClick = (bill) => {
+    setSelectedBill(bill);
+    setBillActionModalVisible(true);
+  };
+
+  const handleEditBill = () => {
+    setBillActionModalVisible(false);
+    setIsEditingBill(true);
+    setBillName(selectedBill.name);
+    setBillAmount(selectedBill.amount.toString());
+    
+    // Hitung ulang hari sisa untuk diisi di form
+    let currentDaysLeft = selectedBill.daysLeft;
+    if (selectedBill.dueDate) {
+      const diff = new Date(selectedBill.dueDate).getTime() - Date.now();
+      currentDaysLeft = Math.ceil(diff / (1000 * 3600 * 24));
+    }
+    setBillDays(currentDaysLeft.toString());
+    
+    setTimeout(() => setBillModalVisible(true), 300);
+  };
+
+  const handleDeleteBill = () => {
+    setBillActionModalVisible(false);
+    setTimeout(() => {
+      setConfirmConfig({
+        title: 'Hapus Tagihan',
+        message: 'Yakin ingin menghapus tagihan ini secara permanen?',
+        cancelText: 'Batal',
+        confirmText: 'Hapus',
+        confirmColor: theme.error,
+        onConfirm: () => {
+          deleteBill(selectedBill.id);
+          addNotification({
+            title: 'Tagihan Dihapus',
+            body: `${myName} telah menghapus tagihan "${selectedBill.name}".`,
+            icon: 'delete',
+            color: 'error',
+            sender: myName,
+            targetType: 'bill',
+          });
+          setConfirmVisible(false);
+        }
+      });
+      setConfirmVisible(true);
+    }, 300);
+  };
+
+  const handleMarkPaid = () => {
+    setBillActionModalVisible(false);
+    setTimeout(() => {
+      setConfirmConfig({
+        title: 'Tandai Lunas',
+        message: 'Apakah kamu ingin otomatis mencatat tagihan ini sebagai Pengeluaran?',
+        cancelText: 'Tidak, Hapus Saja',
+        confirmText: 'Ya, Catat!',
+        confirmColor: theme.primary,
+        onCancel: () => {
+          deleteBill(selectedBill.id);
+          addNotification({
+            title: 'Tagihan Lunas',
+            body: `${myName} menandai tagihan "${selectedBill.name}" telah lunas!`,
+            icon: 'check-circle',
+            color: 'primary',
+            sender: myName,
+            targetType: 'bill',
+          });
+          setConfirmVisible(false);
+        },
+        onConfirm: () => {
+          deleteBill(selectedBill.id);
+          addNotification({
+            title: 'Tagihan Lunas',
+            body: `${myName} menandai tagihan "${selectedBill.name}" telah lunas dan mencatatnya.`,
+            icon: 'check-circle',
+            color: 'primary',
+            sender: myName,
+            targetType: 'bill',
+          });
+          setConfirmVisible(false);
+          navigation.navigate('Transaksi', { 
+            type: 'expense', 
+            predefinedName: selectedBill.name, 
+            predefinedAmount: selectedBill.amount.toString() 
+          });
+        }
+      });
+      setConfirmVisible(true);
+    }, 300);
+  };
+
+  const handleRemindBill = () => {
+    if (!selectedBill) return;
     if (!hasPartner) {
       Alert.alert('Belum Ada Pasangan', 'Tunggu pasangan Anda bergabung sebelum mengirim pengingat.');
       return;
     }
+    setBillActionModalVisible(false);
     addNotification({
       title: 'Pengingat Tagihan',
-      body: `${myName} mengingatkan: Tagihan "${bill.name}" sebesar Rp ${formatMoney(bill.amount)} hampir jatuh tempo dalam ${bill.daysLeft} hari!`,
+      body: `${myName} mengingatkan: Tagihan "${selectedBill.name}" sebesar Rp ${formatMoney(selectedBill.amount)} belum lunas!`,
       icon: 'bolt',
       color: 'error',
       sender: myName,
       targetType: 'bill',
-      targetId: bill.id,
+      targetId: selectedBill.id,
     });
-    Alert.alert('Terkirim!', `Notifikasi pengingat untuk "${bill.name}" telah dikirim ke pasangan Anda!`);
+    Alert.alert('Terkirim!', `Notifikasi pengingat untuk "${selectedBill.name}" telah dikirim ke pasangan Anda!`);
   };
 
   const getStyles = (t) => StyleSheet.create({
@@ -305,7 +453,6 @@ const DashboardScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.logoText}>Rika</Text>
           <View style={styles.avatarWrapper}>
             {avatar?.startsWith('file://') || avatar?.startsWith('data:image') ? (
               <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />
@@ -436,7 +583,7 @@ const DashboardScreen = () => {
               </View>
             ) : activeGoals.length > 0 ? (
               <>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
+                <View style={{ gap: 12 }}>
                   {activeGoals.map(goal => {
                     const progress = goal.targetAmount > 0 ? Math.min((goal.currentAmount || 0) / goal.targetAmount * 100, 100) : 0;
                     return (
@@ -444,31 +591,31 @@ const DashboardScreen = () => {
                         key={goal.id}
                         onPress={() => navigation.navigate('GoalDetail', { goalId: goal.id })}
                         activeOpacity={0.8}
-                        style={{ marginRight: 12, width: 180, backgroundColor: theme.surfaceContainerLow, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: theme.outlineVariant + '22' }}
+                        style={{ flexDirection: 'row', backgroundColor: theme.surfaceContainerLow, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: theme.outlineVariant + '22', alignItems: 'center' }}
                       >
-                        <View style={{ height: 100, backgroundColor: theme.surfaceContainer }}>
+                        <View style={{ width: 88, height: 88, backgroundColor: theme.surfaceContainer }}>
                           {goal.previewImage ? (
                             <Image source={{ uri: goal.previewImage }} style={{ width: '100%', height: '100%' }} />
                           ) : (
                             <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
-                              <MaterialIcons name="savings" size={32} color={theme.primary + '99'} />
+                              <MaterialIcons name="savings" size={28} color={theme.primary + '99'} />
                             </View>
                           )}
                         </View>
-                        <View style={{ padding: 12 }}>
-                          <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.onSurface, marginBottom: 4 }} numberOfLines={1}>{goal.name}</Text>
-                          <View style={{ height: 6, backgroundColor: theme.surfaceContainerHighest, borderRadius: 3, marginBottom: 6 }}>
+                        <View style={{ padding: 14, flex: 1, justifyContent: 'center' }}>
+                          <Text style={{ fontSize: 15, fontWeight: 'bold', color: theme.onSurface, marginBottom: 8 }} numberOfLines={1}>{goal.name}</Text>
+                          <View style={{ height: 6, backgroundColor: theme.surfaceContainerHighest, borderRadius: 3, marginBottom: 8 }}>
                             <View style={{ height: '100%', width: `${progress}%`, backgroundColor: theme.primary, borderRadius: 3 }} />
                           </View>
-                          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                            <Text style={{ fontSize: 11, fontWeight: 'bold', color: theme.primary }}>Rp {formatMoney(goal.currentAmount)}</Text>
-                            <Text style={{ fontSize: 10, color: theme.onSurfaceVariant }}>/ Rp {formatMoney(goal.targetAmount)}</Text>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.primary }}>Rp {formatMoney(goal.currentAmount)}</Text>
+                            <Text style={{ fontSize: 10, color: theme.onSurfaceVariant }}>Rp {formatMoney(goal.targetAmount)}</Text>
                           </View>
                         </View>
                       </TouchableOpacity>
                     );
                   })}
-                </ScrollView>
+                </View>
                 {totalActiveGoals > 2 && (
                   <TouchableOpacity onPress={() => navigation.navigate('Goals')} style={{ marginTop: 8 }}>
                     <Text style={{ color: theme.primary, fontSize: 12, fontWeight: 'bold', textAlign: 'center' }}>
@@ -501,6 +648,11 @@ const DashboardScreen = () => {
           {bills.length > 0 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.billsScroll}>
               {bills.map(bill => {
+                let dynamicDaysLeft = bill.daysLeft;
+                if (bill.dueDate) {
+                  const diffTime = new Date(bill.dueDate).getTime() - Date.now();
+                  dynamicDaysLeft = Math.ceil(diffTime / (1000 * 3600 * 24));
+                }
                 const isHighlighted = highlightedId === bill.id;
                 const bgColor = highlightAnim.interpolate({
                   inputRange: [0, 1],
@@ -508,10 +660,10 @@ const DashboardScreen = () => {
                 });
                 return (
                   <Animated.View key={bill.id} style={[{ borderRadius: 24 }, isHighlighted && { backgroundColor: bgColor }]}>
-                    <TouchableOpacity style={[styles.billCard, bill.daysLeft <= 3 && styles.billCardUrgent]} activeOpacity={0.8} onPress={() => handleRemindBill(bill)}>
+                    <TouchableOpacity style={[styles.billCard, dynamicDaysLeft <= 3 && styles.billCardUrgent]} activeOpacity={0.8} onPress={() => handleBillClick(bill)}>
                       <View style={styles.billHeader}>
-                        <View style={styles.billIconBg}><MaterialIcons name="receipt-long" size={16} color={bill.daysLeft <= 3 ? theme.primary : theme.onSurfaceVariant} /></View>
-                        <Text style={[styles.billBadge, bill.daysLeft <= 3 ? styles.billBadgeUrgent : styles.billBadgeOk]}>{bill.daysLeft} HARI</Text>
+                        <View style={styles.billIconBg}><MaterialIcons name="receipt-long" size={16} color={dynamicDaysLeft <= 3 ? theme.primary : theme.onSurfaceVariant} /></View>
+                        <Text style={[styles.billBadge, dynamicDaysLeft <= 3 ? styles.billBadgeUrgent : styles.billBadgeOk]}>{dynamicDaysLeft} HARI</Text>
                       </View>
                       <Text style={styles.billTitle}>{bill.name}</Text>
                       <Text style={styles.billPrice}>Rp {formatMoney(bill.amount)}</Text>
@@ -532,7 +684,7 @@ const DashboardScreen = () => {
           </View>
 
           {filteredTx.slice(0, 5).map((tx) => {
-            const isHighlighted = highlightedId === tx.name;
+            const isHighlighted = highlightedId === tx.id || highlightedId === tx.name;
             const bgColor = highlightAnim.interpolate({
               inputRange: [0, 1],
               outputRange: [theme.surfaceContainer, theme.primary + '55'],
@@ -602,10 +754,10 @@ const DashboardScreen = () => {
       </View>
 
       {/* Bill Modal */}
-      <Modal visible={billModalVisible} transparent animationType="slide" onRequestClose={() => setBillModalVisible(false)}>
+      <Modal visible={billModalVisible} transparent animationType="slide" onRequestClose={() => { setBillModalVisible(false); setIsEditingBill(false); }}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Tambah Tagihan</Text>
+            <Text style={styles.modalTitle}>{isEditingBill ? 'Edit Tagihan' : 'Tambah Tagihan'}</Text>
             
             <Text style={styles.inputLabel}>Nama Tagihan</Text>
             <TextInput style={styles.input} placeholder="Misal: Listrik" placeholderTextColor={theme.onSurfaceVariant} value={billName} onChangeText={setBillName} />
@@ -617,11 +769,91 @@ const DashboardScreen = () => {
             <TextInput style={styles.input} placeholder="Misal: 14" keyboardType="numeric" placeholderTextColor={theme.onSurfaceVariant} value={billDays} onChangeText={setBillDays} />
             
             <View style={styles.btnRow}>
-              <TouchableOpacity style={styles.btnCancel} onPress={() => setBillModalVisible(false)}>
+              <TouchableOpacity style={styles.btnCancel} onPress={() => { setBillModalVisible(false); setIsEditingBill(false); }}>
                 <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Batal</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.btnSave} onPress={handleSaveBill}>
                 <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Simpan</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Bill Action Modal */}
+      <Modal visible={billActionModalVisible} transparent animationType="fade" onRequestClose={() => setBillActionModalVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setBillActionModalVisible(false)}>
+          <View style={[styles.modalContent, { padding: 0, overflow: 'hidden' }]}>
+            <View style={{ padding: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '33' }}>
+              <Text style={{ fontSize: 20, fontWeight: '900', color: theme.onSurface, marginBottom: 4 }}>Kelola Tagihan</Text>
+              <Text style={{ fontSize: 13, color: theme.onSurfaceVariant }}>{selectedBill?.name} - Rp {formatMoney(selectedBill?.amount)}</Text>
+            </View>
+            <View style={{ padding: 8 }}>
+              <TouchableOpacity onPress={handleMarkPaid} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}>
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.primary + '1A', justifyContent: 'center', alignItems: 'center' }}>
+                  <MaterialIcons name="check-circle" size={20} color={theme.primary} />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.onSurface }}>Tandai Lunas</Text>
+                  <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>Tandai tagihan ini sudah dibayar</Text>
+                </View>
+              </TouchableOpacity>
+              
+              <TouchableOpacity onPress={handleEditBill} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}>
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.surfaceContainerHighest, justifyContent: 'center', alignItems: 'center' }}>
+                  <MaterialIcons name="edit" size={20} color={theme.onSurfaceVariant} />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.onSurface }}>Edit Tagihan</Text>
+                  <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>Ubah nominal atau tanggal</Text>
+                </View>
+              </TouchableOpacity>
+              
+              <TouchableOpacity onPress={handleRemindBill} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}>
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.error + '1A', justifyContent: 'center', alignItems: 'center' }}>
+                  <MaterialIcons name="bolt" size={20} color={theme.error} />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.onSurface }}>Ingatkan Pasangan</Text>
+                  <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>Kirim notifikasi peringatan</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={handleDeleteBill} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}>
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.surfaceContainerHighest, justifyContent: 'center', alignItems: 'center' }}>
+                  <MaterialIcons name="delete" size={20} color={theme.error} />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.error }}>Hapus Tagihan</Text>
+                  <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>Hapus tanpa mencatat</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Confirm Modal */}
+      <Modal visible={confirmVisible} transparent animationType="fade" onRequestClose={() => setConfirmVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { padding: 24 }]}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 12, textAlign: 'center' }}>{confirmConfig.title}</Text>
+            <Text style={{ fontSize: 14, color: theme.onSurfaceVariant, marginBottom: 24, textAlign: 'center', lineHeight: 20 }}>{confirmConfig.message}</Text>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity 
+                style={{ flex: 1, backgroundColor: theme.surfaceContainerHighest, padding: 16, borderRadius: 16, alignItems: 'center' }} 
+                onPress={() => {
+                  if (confirmConfig.onCancel) confirmConfig.onCancel();
+                  else setConfirmVisible(false);
+                }}
+              >
+                <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>{confirmConfig.cancelText || 'Batal'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={{ flex: 1, backgroundColor: confirmConfig.confirmColor || theme.primary, padding: 16, borderRadius: 16, alignItems: 'center' }} 
+                onPress={confirmConfig.onConfirm}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{confirmConfig.confirmText || 'OK'}</Text>
               </TouchableOpacity>
             </View>
           </View>

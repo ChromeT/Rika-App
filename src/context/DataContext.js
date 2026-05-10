@@ -149,13 +149,15 @@ export const DataProvider = ({ children }) => {
   }, [user]);
 
   const addTransaction = async (tx) => {
-    if (!user || !user.householdId) return;
+    if (!user || !user.householdId) return null;
     try {
       const txRef = collection(db, 'households', user.householdId, 'transactions');
       const newTx = { ...tx, date: new Date().toISOString() };
-      await addDoc(txRef, newTx);
+      const docRef = await addDoc(txRef, newTx);
+      return docRef.id;
     } catch (e) {
       console.error('Failed to save transaction to Firebase', e);
+      return null;
     }
   };
 
@@ -195,6 +197,26 @@ export const DataProvider = ({ children }) => {
     }
   };
 
+  const updateBill = async (billId, updateData) => {
+    if (!user || !user.householdId) return;
+    try {
+      const billRef = doc(db, 'households', user.householdId, 'bills', billId);
+      await updateDoc(billRef, updateData);
+    } catch (e) {
+      console.error('Failed to update bill', e);
+    }
+  };
+
+  const deleteBill = async (billId) => {
+    if (!user || !user.householdId) return;
+    try {
+      const billRef = doc(db, 'households', user.householdId, 'bills', billId);
+      await deleteDoc(billRef);
+    } catch (e) {
+      console.error('Failed to delete bill', e);
+    }
+  };
+
   const addCategory = async (type, newCat) => {
     try {
       const updatedCats = {
@@ -211,10 +233,14 @@ export const DataProvider = ({ children }) => {
   const updateGoal = async (goalId, updates) => {
     if (!user || !user.householdId) return;
     try {
+      const cleanUpdates = Object.fromEntries(
+        Object.entries(updates).filter(([, v]) => v !== undefined)
+      );
       const goalRef = doc(db, 'households', user.householdId, 'goals', goalId);
-      await updateDoc(goalRef, updates);
+      await updateDoc(goalRef, cleanUpdates);
     } catch (e) {
       console.error('Failed to update goal', e);
+      throw e;
     }
   };
 
@@ -255,7 +281,7 @@ export const DataProvider = ({ children }) => {
     <DataContext.Provider value={{
       transactions, addTransaction, getBalance,
       goals, addGoal, updateGoal, deleteGoal,
-      bills, addBill,
+      bills, addBill, updateBill, deleteBill,
       notifications, addNotification,
       categories, addCategory,
       loading

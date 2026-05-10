@@ -1,4 +1,4 @@
-﻿import React, { useContext, useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, Image } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -10,7 +10,7 @@ import { exportToXLS, exportToPDF } from '../utils/exportUtils';
 const SettingsScreen = ({ navigation }) => {
   const { theme, isDarkMode, toggleTheme, changeAccent, accentColor, fontFamily, changeFont } = useContext(ThemeContext);
   const { getBalance, transactions } = useContext(DataContext);
-  const { user, householdUsers, logout, avatar, updateAvatar } = useContext(AuthContext);
+  const { user, householdUsers, householdAvatars, logout, avatar, updateAvatar } = useContext(AuthContext);
   
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
 
@@ -123,7 +123,7 @@ const SettingsScreen = ({ navigation }) => {
     acNameRight: { fontSize: 16, fontWeight: 'bold', color: t.onSurface },
     acRoleRight: { fontSize: 10, color: t.onSurfaceVariant, fontWeight: '500', marginBottom: 4 },
     acBalanceRight: { fontSize: 12, fontWeight: '900', color: t.primaryContainer },
-    acAvPrt: { width: 56, height: 56, borderRadius: 16, borderWidth: 2, borderColor: t.primaryContainer + '33', backgroundColor: t.surfaceContainerHigh, justifyContent: 'center', alignItems: 'center' },
+    acAvPrt: { width: 56, height: 56, borderRadius: 16, overflow: 'hidden', borderWidth: 2, borderColor: t.primaryContainer + '33', backgroundColor: t.surfaceContainerHigh, justifyContent: 'center', alignItems: 'center' },
     acAvDotPrt: { position: 'absolute', bottom: -4, right: -4, width: 20, height: 20, borderRadius: 10, backgroundColor: t.primary + '66', borderWidth: 4, borderColor: t.surfaceContainerLow },
 
     acBottom: { backgroundColor: t.surfaceContainer, borderRadius: 16, padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -194,7 +194,6 @@ const SettingsScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.logoText}>Rika</Text>
           <TouchableOpacity onPress={() => setAvatarModalVisible(true)}>
             <View style={styles.avatarWrapper}>
               {renderAvatar(avatar, 24)}
@@ -232,7 +231,12 @@ const SettingsScreen = ({ navigation }) => {
                   <Text style={styles.acBalanceRight}>Rp {formatMoney(getBalance(partnerName))}</Text>
                 </View>
                 <View style={styles.acAvatarWrap}>
-                  <View style={styles.acAvPrt}><MaterialIcons name="favorite" size={32} color={theme.primaryContainer} /></View>
+                  <View style={styles.acAvPrt}>
+                    {householdAvatars && householdAvatars[partnerName] 
+                      ? renderAvatar(householdAvatars[partnerName], 32)
+                      : <MaterialIcons name="favorite" size={32} color={theme.primaryContainer} />
+                    }
+                  </View>
                   <View style={styles.acAvDotPrt} />
                 </View>
               </View>

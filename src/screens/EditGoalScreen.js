@@ -6,6 +6,9 @@ import { Video, ResizeMode } from 'expo-av';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ThemeContext } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
+import { AuthContext } from '../context/AuthContext';
+
+import { uploadMultipleToCloudinary } from '../utils/cloudinaryUpload';
 
 const formatMoney = (v) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v || 0);
 
@@ -14,7 +17,11 @@ export const EditGoalScreen = () => {
   const route = useRoute();
   const { goalId } = route.params;
   const { theme } = useContext(ThemeContext);
-  const { goals, updateGoal, transactions } = useContext(DataContext);
+  const { goals, updateGoal, deleteGoal, transactions, addNotification } = useContext(DataContext);
+  const { user, householdUsers } = useContext(AuthContext);
+  
+  const partnerName = householdUsers?.find(u => u !== (user?.name || ''));
+  const hasPartner = !!partnerName;
   
   const goal = goals.find(g => g.id === goalId);
   const isAchieved = goal?.achieved;
@@ -26,6 +33,8 @@ export const EditGoalScreen = () => {
   const [memoryCaption, setMemoryCaption] = useState(goal?.memoryCaption || '');
   const [actualAmount, setActualAmount] = useState(String(goal?.actualAmount || 0));
   const [relatedTxIds, setRelatedTxIds] = useState(goal?.relatedTransactionIds || []);
+  const [uploading, setUploading] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   
   const recentTxs = Array.isArray(transactions) ? transactions.slice(0, 30) : [];
 
@@ -63,43 +72,106 @@ export const EditGoalScreen = () => {
     );
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!name.trim()) {
       Alert.alert('Error', 'Nama goal tidak boleh kosong');
       return;
     }
     
-    try {
-      const updateData = {
-        name: name.trim(),
-        targetAmount: Number(targetAmount) || 0,
-      };
-
-      if (isAchieved) {
-        updateData.memoryCaption = memoryCaption;
-        updateData.actualAmount = Number(actualAmount) || 0;
-        updateData.relatedTransactionIds = relatedTxIds;
-        updateData.media = mediaList;
-        if (mediaList.length > 0) {
-          updateData.previewImage = mediaList[0].type === 'image' ? mediaList[0].uri : goal.previewImage;
-          updateData.mediaCount = mediaList.length;
-        }
-      } else {
-        updateData.description = description;
-        updateData.media = mediaList;
-        if (mediaList.length > 0) {
-          updateData.previewImage = mediaList[0].type === 'image' ? mediaList[0].uri : null;
+    // Tutup halaman langsung agar interaktif
+    navigation.goBack();
+    
+    // Proses upload dan simpan di background
+    (async () => {
+      let finalMediaList = mediaList;
+      
+      const hasLocalMedia = mediaList.some(m => !m.url || m.uri?.startsWith('file://') || m.uri?.startsWith('content://'));
+      if (hasLocalMedia) {
+        try {
+          const localMedia = mediaList.filter(m => !m.url || m.uri?.startsWith('file://') || m.uri?.startsWith('content://'));
+          const uploaded = await uploadMultipleToCloudinary(localMedia);
+          let uploadedIdx = 0;
+          finalMediaList = mediaList.map(m => {
+            if (!m.url || m.uri?.startsWith('file://') || m.uri?.startsWith('content://')) {
+              return uploaded[uploadedIdx++] || m;
+            }
+            return m;
+          });
+        } catch (e) {
+          console.error('Upload error:', e);
+          return; // Batalkan update jika upload gagal
         }
       }
 
-      await updateGoal(goalId, updateData);
-      Alert.alert('Berhasil', 'Goal diperbarui', [
-        { text: 'OK', onPress: () => navigation.goBack() }
-      ]);
-    } catch (e) {
-      console.error('Save error:', e);
-      Alert.alert('Gagal', 'Tidak dapat memperbarui goal');
-    }
+      try {
+        const updateData = {
+          name: name.trim(),
+          targetAmount: Number(targetAmount) || 0,
+        };
+
+        if (isAchieved) {
+          updateData.memoryCaption = memoryCaption;
+          updateData.actualAmount = Number(actualAmount) || 0;
+          updateData.relatedTransactionIds = relatedTxIds;
+          updateData.media = finalMediaList;
+          if (finalMediaList.length > 0) {
+            updateData.previewImage = finalMediaList[0].type === 'image' ? (finalMediaList[0].url || finalMediaList[0].uri) : goal.previewImage;
+            updateData.mediaCount = finalMediaList.length;
+          } else {
+            updateData.previewImage = null;
+            updateData.mediaCount = 0;
+          }
+        } else {
+          updateData.description = description;
+          updateData.media = finalMediaList;
+          if (finalMediaList.length > 0) {
+            updateData.previewImage = finalMediaList[0].type === 'image' ? (finalMediaList[0].url || finalMediaList[0].uri) : null;
+          } else {
+            updateData.previewImage = null;
+          }
+        }
+
+        await updateGoal(goalId, updateData);
+
+        if (hasPartner) {
+          addNotification({
+            title: 'Goal diubah',
+            body: `${user?.name || 'Pasanganmu'} telah mengubah detail goal "${goal.name}".`,
+            icon: 'edit',
+            targetType: 'goal',
+            targetId: goalId,
+            sender: user?.name || 'Sistem',
+            createdAt: new Date().toISOString(),
+          });
+        }
+      } catch (e) {
+        console.error('Save error:', e);
+      }
+    })();
+  };
+
+  const handleDeleteConfirm = async () => {
+    setDeleteModalVisible(false);
+    
+    // Proses hapus di background agar interaktif
+    deleteGoal(goalId)
+      .then(() => {
+        if (hasPartner) {
+          addNotification({
+            title: 'Goal dihapus',
+            body: `${user?.name || 'Pasanganmu'} telah menghapus goal "${goal.name}".`,
+            icon: 'delete',
+            targetType: 'goal',
+            targetId: goalId,
+            sender: user?.name || 'Sistem',
+            createdAt: new Date().toISOString(),
+          });
+        }
+      })
+      .catch(e => console.error('Delete error:', e));
+    
+    // Kembali ke tab Goals
+    navigation.navigate('Goals');
   };
 
   if (!goal) {
@@ -112,6 +184,12 @@ export const EditGoalScreen = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {uploading && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", alignItems: "center", zIndex: 100 }}>
+          <ActivityIndicator size="large" color="#fff" />
+          <Text style={{ color: "#fff", marginTop: 12, fontSize: 14 }}>Mengupload media...</Text>
+        </View>
+      )}
       {/* Header */}
       <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '22' }}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
@@ -240,8 +318,36 @@ export const EditGoalScreen = () => {
           </>
         )}
 
+        <TouchableOpacity onPress={() => setDeleteModalVisible(true)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, marginTop: 16, backgroundColor: theme.error + '1A', borderRadius: 16, borderWidth: 1, borderColor: theme.error }}>
+          <MaterialIcons name="delete" size={24} color={theme.error} style={{ marginRight: 8 }} />
+          <Text style={{ color: theme.error, fontWeight: 'bold', fontSize: 16 }}>Hapus Goal Ini</Text>
+        </TouchableOpacity>
+
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Custom Delete Confirmation Modal */}
+      <Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => setDeleteModalVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: theme.surface, borderRadius: 24, padding: 24, width: '100%', maxWidth: 400, alignItems: 'center' }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: theme.error + '1A', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+              <MaterialIcons name="delete-outline" size={32} color={theme.error} />
+            </View>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 8, textAlign: 'center' }}>Hapus Goal</Text>
+            <Text style={{ fontSize: 14, color: theme.onSurfaceVariant, textAlign: 'center', marginBottom: 24 }}>
+              Apakah kamu yakin ingin menghapus goal "{goal.name}"? Tindakan ini tidak dapat dibatalkan.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <TouchableOpacity onPress={() => setDeleteModalVisible(false)} style={{ flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: theme.surfaceContainerHighest, alignItems: 'center' }}>
+                <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 16 }}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleDeleteConfirm} style={{ flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: theme.error, alignItems: 'center' }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Hapus</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
