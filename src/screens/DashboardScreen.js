@@ -622,7 +622,7 @@ const DashboardScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
           
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.walletScroll}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.walletScroll} nestedScrollEnabled={true} directionalLockEnabled={true}>
             {filteredAccounts.length === 0 ? (
               filter === 'Pasangan' ? (
                 <View style={[styles.walletCard, { backgroundColor: theme.surfaceContainerLow, minWidth: 180, justifyContent: 'center', alignItems: 'center' }]}>
