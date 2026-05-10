@@ -23,7 +23,17 @@
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "pwa": {
+        "name": "Rika Financial",
+        "short_name": "Rika",
+        "description": "Smart Financial Management for Couples",
+        "themeColor": "#0b0f10",
+        "backgroundColor": "#0b0f10",
+        "display": "standalone",
+        "orientation": "portrait"
+      }
     },
     "plugins": [
       "expo-video",

@@ -5,6 +5,7 @@ node_modules/
 .expo-shared/
 # Build
 web-build/
+dist/
 # Environment
 .env
 .env.local
