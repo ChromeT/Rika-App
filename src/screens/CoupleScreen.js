@@ -17,6 +17,9 @@ const CoupleScreen = ({ navigation }) => {
   const { user, householdUsers, householdAvatars, householdData, avatar } = useContext(AuthContext);
   const { getBalance, goals, transactions } = useContext(DataContext);
 
+  const [showAllRoadmap, setShowAllRoadmap] = React.useState(false);
+  const [showAllHistory, setShowAllHistory] = React.useState(false);
+
   const myName = user?.name || 'Saya';
   const partnerName = householdUsers.find(u => u !== myName);
   const hasPartner = !!partnerName;
@@ -175,48 +178,67 @@ const CoupleScreen = ({ navigation }) => {
         <View style={{ paddingBottom: 60 }}>
           {(() => {
             const now = dayjs();
+            
+            // Helper to determine status and visual info
+            const getGoalStatusInfo = (g) => {
+              const progress = g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0;
+              if (g.status === 'achieved') return { icon: 'stars', color: '#FFB800', badge: 'Terwujud', type: 'ACHIEVED', progress };
+              if (progress >= 100) return { icon: 'flag', color: '#10B981', badge: 'Siap Lunas', type: 'READY', progress };
+              if (progress > 0) return { icon: 'donut-large', color: theme.primary, badge: `Berjalan ${progress.toFixed(0)}%`, type: 'PROGRESS', progress };
+              return { icon: 'lightbulb', color: theme.onSurfaceVariant, badge: 'Rencana Baru', type: 'NEW', progress };
+            };
+
             const pastMilestones = [
-              { title: 'Awal Kisah Kita', date: relationshipStart, icon: 'favorite', color: theme.primary, desc: 'Momen pertama kalian resmi terhubung dan mulai berpetualang di Rika.' },
+              { title: 'Awal Kisah Kita', date: relationshipStart, icon: 'favorite', color: theme.primary, desc: 'Momen pertama kalian resmi terhubung dan mulai berpetualang di Rika.', type: 'SYSTEM' },
             ];
 
             // Achieved goals
-            const achievedGoals = goals.filter(g => g.status === 'achieved').sort((a,b) => new Date(a.achievedAt) - new Date(b.achievedAt));
-            achievedGoals.forEach(g => {
+            goals.filter(g => g.status === 'achieved').forEach(g => {
+              const info = getGoalStatusInfo(g);
               pastMilestones.push({
-                title: `Jejak Kemenangan: ${g.name}`,
-                date: dayjs(g.achievedAt),
-                icon: 'stars',
-                color: '#FFB800',
-                desc: `Satu mimpi berhasil kita wujudkan. Kebanggaan yang tak terlupakan!`
+                id: g.id,
+                title: `Goal Terwujud: ${g.name}`,
+                date: dayjs(g.achievedAt || g.createdAt),
+                icon: info.icon,
+                color: info.color,
+                desc: `Satu mimpi berhasil kita wujudkan. Kebanggaan yang tak terlupakan!`,
+                type: 'ACHIEVED',
+                badge: info.badge
               });
             });
 
             // High assets
             if (totalAssets > 5000000) {
-              pastMilestones.push({ 
-                title: 'Benteng Keuangan: 5 Juta!', 
-                date: dayjs(), 
-                icon: 'shield', 
-                color: '#10B981', 
-                desc: 'Aset gabungan kita menembus 5 Juta. Fondasi masa depan makin kokoh!' 
-              });
+              pastMilestones.push({ title: 'Benteng Keuangan: 5 Juta!', date: dayjs(), icon: 'shield', color: '#10B981', desc: 'Aset gabungan kita menembus 5 Juta. Fondasi masa depan makin kokoh!', type: 'SYSTEM' });
             }
 
             // Future Roadmap
-            const futureMilestones = goals
+            const roadmapItems = goals
               .filter(g => g.status !== 'achieved' && g.targetDate)
               .sort((a,b) => new Date(a.targetDate) - new Date(b.targetDate))
-              .map(g => ({
-                title: `Goal: ${g.name}`,
-                date: dayjs(g.targetDate),
-                icon: 'auto_awesome',
-                color: theme.primary,
-                desc: `Rencana indah yang sedang kita susun rapi untuk dicapai bersama.`,
-                isFuture: true
-              }));
+              .map(g => {
+                const info = getGoalStatusInfo(g);
+                return {
+                  id: g.id,
+                  title: g.name,
+                  date: dayjs(g.targetDate),
+                  icon: info.icon,
+                  color: info.color,
+                  desc: g.description || `Target Roadmap: Rencana pencapaian goal ini.`,
+                  isFuture: true,
+                  badge: info.badge,
+                  progress: info.progress,
+                  type: info.type
+                };
+              });
 
             const renderMilestone = (m, idx, list) => (
-              <View key={idx} style={styles.milestoneItem}>
+              <TouchableOpacity 
+                key={m.id || idx} 
+                activeOpacity={0.7}
+                onPress={() => m.id && navigation.navigate('GoalDetail', { goalId: m.id })}
+                style={styles.milestoneItem}
+              >
                 <View style={styles.milestoneLeft}>
                   <View style={[styles.milestoneIconBg, { backgroundColor: m.color + (m.isFuture ? '11' : '22'), borderWidth: m.isFuture ? 1 : 0, borderColor: m.color + '44' }]}>
                     <MaterialIcons name={m.icon} size={18} color={m.color} />
@@ -231,24 +253,53 @@ const CoupleScreen = ({ navigation }) => {
                 </View>
                 <View style={styles.milestoneRight}>
                   <View style={styles.milestoneHeader}>
-                    <Text style={[styles.milestoneTitle, { color: theme.onSurface }]}>{m.title}</Text>
-                    <Text style={[styles.milestoneDate, { color: theme.onSurfaceVariant }]}>{m.date.format('MMM YYYY')}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.milestoneTitle, { color: theme.onSurface }]} numberOfLines={1}>{m.title}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <View style={[styles.miniBadge, { backgroundColor: m.color + '1A' }]}>
+                          <Text style={[styles.miniBadgeText, { color: m.color }]}>{m.badge || (m.isFuture ? 'ROADMAP' : 'MEMORI')}</Text>
+                        </View>
+                        <Text style={[styles.milestoneDate, { color: theme.onSurfaceVariant }]}>{m.date.format('MMM YYYY')}</Text>
+                      </View>
+                    </View>
                   </View>
-                  <Text style={[styles.milestoneDesc, { color: theme.onSurfaceVariant }]}>{m.desc}</Text>
+                  
+                  {m.progress !== undefined && m.type !== 'ACHIEVED' && (
+                    <View style={styles.miniProgressContainer}>
+                      <View style={[styles.miniProgressBar, { backgroundColor: theme.surfaceContainerHighest }]}>
+                        <View style={[styles.miniProgressFill, { width: `${m.progress}%`, backgroundColor: m.color }]} />
+                      </View>
+                    </View>
+                  )}
+
+                  <Text style={[styles.milestoneDesc, { color: theme.onSurfaceVariant }]} numberOfLines={2}>{m.desc}</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
+
+            const sortedPast = pastMilestones.sort((a,b) => b.date - a.date);
+            const visibleRoadmap = showAllRoadmap ? roadmapItems : roadmapItems.slice(0, 3);
+            const visiblePast = showAllHistory ? sortedPast : sortedPast.slice(0, 3);
 
             return (
               <>
-                {futureMilestones.length > 0 && (
+                {roadmapItems.length > 0 && (
                   <View style={{ marginBottom: 24 }}>
                     <View style={styles.roadmapHeader}>
                       <MaterialIcons name="rocket_launch" size={16} color={theme.primary} />
                       <Text style={[styles.roadmapHeaderText, { color: theme.primary }]}>ROADMAP MASA DEPAN</Text>
                     </View>
                     <View style={[styles.timelineCard, { backgroundColor: theme.surfaceContainerLow, borderStyle: 'dashed', borderWidth: 1, borderColor: theme.primary + '33' }]}>
-                      {futureMilestones.map((m, idx) => renderMilestone(m, idx, futureMilestones))}
+                      {visibleRoadmap.map((m, idx) => renderMilestone(m, idx, visibleRoadmap))}
+                      
+                      {roadmapItems.length > 3 && (
+                        <TouchableOpacity style={styles.showMoreBtn} onPress={() => setShowAllRoadmap(!showAllRoadmap)}>
+                          <Text style={[styles.showMoreText, { color: theme.primary }]}>
+                            {showAllRoadmap ? 'Ringkas Roadmap' : `Lihat ${roadmapItems.length - 3} Goal Lainnya`}
+                          </Text>
+                          <MaterialIcons name={showAllRoadmap ? "expand-less" : "expand-more"} size={18} color={theme.primary} />
+                        </TouchableOpacity>
+                      )}
                     </View>
                   </View>
                 )}
@@ -258,7 +309,16 @@ const CoupleScreen = ({ navigation }) => {
                   <Text style={[styles.roadmapHeaderText, { color: theme.onSurfaceVariant }]}>JEJAK KENANGAN</Text>
                 </View>
                 <View style={[styles.timelineCard, { backgroundColor: theme.surfaceContainerLow }]}>
-                  {pastMilestones.sort((a,b) => b.date - a.date).map((m, idx) => renderMilestone(m, idx, pastMilestones))}
+                  {visiblePast.map((m, idx) => renderMilestone(m, idx, visiblePast))}
+                  
+                  {sortedPast.length > 3 && (
+                    <TouchableOpacity style={styles.showMoreBtn} onPress={() => setShowAllHistory(!showAllHistory)}>
+                      <Text style={[styles.showMoreText, { color: theme.onSurfaceVariant }]}>
+                        {showAllHistory ? 'Tutup Kotak Kenangan' : `Buka ${sortedPast.length - 3} Kenangan Lainnya`}
+                      </Text>
+                      <MaterialIcons name={showAllHistory ? "expand-less" : "expand-more"} size={18} color={theme.onSurfaceVariant} />
+                    </TouchableOpacity>
+                  )}
                 </View>
               </>
             );
@@ -336,6 +396,14 @@ const styles = StyleSheet.create({
   milestoneTitle: { fontSize: 14, fontWeight: 'bold' },
   milestoneDate: { fontSize: 10, fontWeight: '500' },
   milestoneDesc: { fontSize: 11, lineHeight: 16 },
+
+  miniBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  miniBadgeText: { fontSize: 8, fontWeight: '900' },
+  miniProgressContainer: { marginVertical: 6 },
+  miniProgressBar: { height: 4, borderRadius: 2, overflow: 'hidden' },
+  miniProgressFill: { height: '100%', borderRadius: 2 },
+  showMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
+  showMoreText: { fontSize: 11, fontWeight: 'bold' },
 });
 
 export default CoupleScreen;
