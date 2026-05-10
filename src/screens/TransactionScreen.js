@@ -175,7 +175,7 @@ const TransactionScreen = ({ navigation, route }) => {
 
   const calcPartnerContrib = () => {
     const total = Number(amount.replace(/\./g, '')) || 0;
-    const mine = Number(myContrib) || 0;
+    const mine = Number(myContrib.replace(/\./g, '')) || 0;
     const diff = total - mine;
     return diff > 0 ? diff : 0;
   };
@@ -228,7 +228,7 @@ const TransactionScreen = ({ navigation, route }) => {
           fMy = numAmount / 2;
           fPar = numAmount / 2;
         } else if (isPatungan) {
-          fMy = Number(myContrib) || 0;
+          fMy = Number(myContrib.replace(/\./g, '')) || 0;
           fPar = calcPartnerContrib();
         } else {
           fMy = numAmount;
