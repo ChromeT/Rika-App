@@ -7,7 +7,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "build": "npx expo export --platform web"
+    "build": "expo export --platform web"
   },
   "dependencies": {
     "@expo-google-fonts/be-vietnam-pro": "^0.4.1",
@@ -45,6 +45,9 @@
     "react-native-svg": "15.12.1",
     "react-native-web": "^0.21.0",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "babel-preset-expo": "~12.0.0"
   },
   "private": true
 }
