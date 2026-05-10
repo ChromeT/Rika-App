@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Platform, Image } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
@@ -23,8 +23,9 @@ import EditGoalScreen from '../screens/EditGoalScreen';
 import CategoriesScreen from '../screens/CategoriesScreen';
 import WalletsScreen from '../screens/WalletsScreen';
 import AddAccountScreen from '../screens/AddAccountScreen';
+import TransferScreen from '../screens/TransferScreen';
 
-const Tab = createBottomTabNavigator();
+const Tab = createMaterialTopTabNavigator();
 const Stack = createNativeStackNavigator();
 
 // Pre-require tab icons for static analysis
@@ -64,10 +65,16 @@ const MainTabs = () => {
 
   return (
     <Tab.Navigator
+      tabBarPosition="bottom"
+      style={{ backgroundColor: theme.background }}
+      sceneContainerStyle={{ backgroundColor: theme.background }}
       screenOptions={({ route }) => ({
-        headerShown: false,
         tabBarShowLabel: true,
-tabBarStyle: {
+        swipeEnabled: true,
+        lazy: false,
+        tabBarIndicator: () => null,
+        tabBarIndicatorStyle: { height: 0, opacity: 0, backgroundColor: 'transparent' },
+        tabBarStyle: {
           height: 70,
           position: 'absolute',
           bottom: 20,
@@ -76,12 +83,15 @@ tabBarStyle: {
           borderRadius: 32,
           backgroundColor: theme.surface,
           borderTopWidth: 0,
+          borderBottomWidth: 0,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -8 },
           shadowOpacity: 0.3,
           shadowRadius: 24,
           paddingHorizontal: 16,
-          elevation: 10,
+          elevation: 0,
+          overflow: 'hidden',
+          borderWidth: 0,
         },
         tabBarBackground: () => <TabBarBackground />,
         tabBarActiveTintColor: theme.primary,
@@ -89,11 +99,14 @@ tabBarStyle: {
         tabBarShowIcon: true,
         tabBarIconStyle: {
           marginTop: 4,
+          alignItems: 'center',
+          justifyContent: 'center',
         },
         tabBarLabelStyle: {
           fontWeight: '700',
-          fontSize: 13,
-          paddingBottom: 6,
+          fontSize: 11,
+          textTransform: 'none',
+          marginBottom: 4,
         },
         tabBarItemStyle: {
           paddingTop: 8,
@@ -137,7 +150,13 @@ tabBarStyle: {
 const MainStack = () => {
   const { theme } = useContext(ThemeContext);
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        animation: 'slide_from_right',
+        animationDuration: 350,
+      }}
+    >
       <Stack.Screen name="MainTabs" component={MainTabs} />
       <Stack.Screen
         name="Transaksi"
@@ -152,7 +171,6 @@ const MainStack = () => {
       <Stack.Screen
         name="GoalDetail"
         component={GoalDetailScreen}
-        options={{ animation: 'slide_from_right' }}
       />
       <Stack.Screen
         name="AchieveGoal"
@@ -167,21 +185,23 @@ const MainStack = () => {
       <Stack.Screen
         name="MemoryDetail"
         component={MemoryDetailScreen}
-        options={{ animation: 'slide_from_right' }}
       />
       <Stack.Screen
         name="Categories"
         component={CategoriesScreen}
-        options={{ animation: 'slide_from_right' }}
       />
       <Stack.Screen
         name="Wallets"
         component={WalletsScreen}
-        options={{ animation: 'slide_from_right' }}
       />
       <Stack.Screen
         name="AddAccount"
         component={AddAccountScreen}
+        options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen
+        name="Transfer"
+        component={TransferScreen}
         options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
       />
     </Stack.Navigator>
@@ -190,7 +210,12 @@ const MainStack = () => {
 
 const AuthStack = () => {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        animation: 'fade',
+      }}
+    >
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="CreateRoom" component={CreateRoomScreen} />
       <Stack.Screen name="JoinRoom" component={JoinRoomScreen} />

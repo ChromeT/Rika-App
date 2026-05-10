@@ -1,14 +1,16 @@
 import React, { useContext, useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, Modal, ActivityIndicator, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { ThemeContext } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
 import { AuthContext } from '../context/AuthContext';
 
 const TransactionHistoryScreen = () => {
   const { theme } = useContext(ThemeContext);
-  const { transactions, accounts } = useContext(DataContext);
   const { user, householdUsers, avatar } = useContext(AuthContext);
+  const { transactions, accounts, deleteTransaction } = useContext(DataContext);
+  const navigation = useNavigation();
 
   const myName = user?.name || 'Saya';
   const partnerName = householdUsers.find(u => u !== myName) || 'Pasangan';
@@ -16,6 +18,12 @@ const TransactionHistoryScreen = () => {
   const [filterOwner, setFilterOwner] = useState('Semua'); // Semua, Saya, Pasangan
   const [filterType, setFilterType] = useState('Semua');   // Semua, income, expense
   const [search, setSearch] = useState('');
+
+  // UI States
+  const [selectedTx, setSelectedTx] = useState(null);
+  const [actionModalVisible, setActionModalVisible] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const formatMoney = (amount) =>
     new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(amount);
@@ -146,13 +154,25 @@ const TransactionHistoryScreen = () => {
 
             {txs.map(tx => {
               const totalAmt = (tx.myContrib || 0) + (tx.partnerContrib || 0);
+              const isOwner = tx.owner === myName;
               return (
-                <View key={tx.id} style={styles.txCard}>
-                  <View style={[styles.txIconBg, { backgroundColor: tx.type === 'income' ? theme.primary + '1A' : theme.error + '1A' }]}>
+                <TouchableOpacity 
+                  key={tx.id} 
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    if (isOwner && !loading) {
+                      setSelectedTx(tx);
+                      setActionModalVisible(true);
+                    }
+                  }}
+                  disabled={loading}
+                  style={[styles.txCard, { opacity: loading ? 0.6 : 1 }]}
+                >
+                  <View style={[styles.txIconBg, { backgroundColor: tx.type === 'income' ? theme.primary + '1A' : tx.type === 'transfer' ? '#6366F1' + '1A' : theme.error + '1A' }]}>
                     <MaterialIcons
-                      name={tx.icon || (tx.type === 'income' ? 'payments' : 'shopping-bag')}
+                      name={tx.icon || (tx.type === 'income' ? 'payments' : tx.type === 'transfer' ? 'swap-horiz' : 'shopping-bag')}
                       size={22}
-                      color={tx.type === 'income' ? theme.primary : theme.error}
+                      color={tx.type === 'income' ? theme.primary : tx.type === 'transfer' ? '#6366F1' : theme.error}
                     />
                   </View>
                   <View style={styles.txInfo}>
@@ -165,7 +185,8 @@ const TransactionHistoryScreen = () => {
                         <MaterialIcons name="account-balance-wallet" size={10} color={theme.onSurfaceVariant} />
                         <Text style={styles.txWalletName}>
                           {(() => {
-                            const acc = (accounts || []).find(a => a.id === tx.accountId);
+                            const accId = tx.type === 'transfer' ? tx.fromAccountId : tx.accountId;
+                            const acc = (accounts || []).find(a => a.id === accId);
                             return acc ? acc.name : 'Tunai';
                           })()}
                         </Text>
@@ -173,16 +194,106 @@ const TransactionHistoryScreen = () => {
                       <Text style={styles.txOwner}>{tx.owner}</Text>
                     </View>
                   </View>
-                  <Text style={[styles.txAmount, { color: tx.type === 'income' ? theme.primary : theme.error }]}>
-                    {tx.type === 'income' ? '+' : '-'}Rp {formatMoney(totalAmt)}
+                  <Text style={[styles.txAmount, { color: tx.type === 'income' ? theme.primary : tx.type === 'transfer' ? '#6366F1' : theme.error }]}>
+                    {tx.type === 'income' ? '+' : tx.type === 'transfer' ? '⇅' : '-'}Rp {formatMoney(totalAmt)}
                   </Text>
-                </View>
+                </TouchableOpacity>
               );
             })}
           </View>
         ))}
         <View style={{ height: 120 }} />
       </ScrollView>
+
+      {/* Action Modal */}
+      <Modal visible={actionModalVisible} transparent animationType="fade" onRequestClose={() => setActionModalVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setActionModalVisible(false)}>
+          <View style={[styles.modalContent, { padding: 0, overflow: 'hidden' }]}>
+            <View style={{ padding: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '33' }}>
+              <Text style={{ fontSize: 20, fontWeight: '900', color: theme.onSurface, marginBottom: 4 }}>Kelola Transaksi</Text>
+              <Text style={{ fontSize: 13, color: theme.onSurfaceVariant }}>{selectedTx?.name} - Rp {formatMoney((selectedTx?.myContrib || 0) + (selectedTx?.partnerContrib || 0))}</Text>
+            </View>
+            <View style={{ padding: 8 }}>
+              <TouchableOpacity 
+                onPress={() => {
+                  setActionModalVisible(false);
+                  if (selectedTx.type === 'transfer') {
+                    navigation.navigate('Transfer', { editingTransaction: selectedTx });
+                  } else {
+                    navigation.navigate('Transaksi', { editingTransaction: selectedTx });
+                  }
+                }} 
+                style={styles.modalActionItem}
+              >
+                <View style={[styles.modalActionIcon, { backgroundColor: theme.primary + '1A' }]}>
+                  <MaterialIcons name="edit" size={20} color={theme.primary} />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.onSurface }}>Edit Transaksi</Text>
+                  <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>Ubah nominal, kategori, atau dompet</Text>
+                </View>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={() => {
+                  setActionModalVisible(false);
+                  setTimeout(() => setConfirmVisible(true), 300);
+                }} 
+                style={styles.modalActionItem}
+              >
+                <View style={[styles.modalActionIcon, { backgroundColor: theme.error + '1A' }]}>
+                  <MaterialIcons name="delete" size={20} color={theme.error} />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.error }}>Hapus Transaksi</Text>
+                  <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>Saldo dompet akan dikembalikan</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Confirm Delete Modal */}
+      <Modal visible={confirmVisible} transparent animationType="fade" onRequestClose={() => setConfirmVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { padding: 24 }]}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 12, textAlign: 'center' }}>Hapus Transaksi?</Text>
+            <Text style={{ fontSize: 14, color: theme.onSurfaceVariant, marginBottom: 24, textAlign: 'center', lineHeight: 20 }}>
+              Yakin ingin menghapus transaksi ini? Saldo dompet Anda akan disesuaikan secara otomatis.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity 
+                style={{ flex: 1, backgroundColor: theme.surfaceContainerHighest, padding: 16, borderRadius: 16, alignItems: 'center' }} 
+                onPress={() => setConfirmVisible(false)}
+              >
+                <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={{ flex: 1, backgroundColor: theme.error, padding: 16, borderRadius: 16, alignItems: 'center', opacity: loading ? 0.6 : 1 }} 
+                onPress={async () => {
+                  setLoading(true);
+                  try {
+                    await deleteTransaction(selectedTx.id);
+                    setConfirmVisible(false);
+                  } catch (e) {
+                    // Alert.alert('Error', 'Gagal menghapus');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>Hapus</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -192,6 +303,7 @@ const getStyles = (t) => StyleSheet.create({
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 24, paddingVertical: 16, backgroundColor: t.surface,
+    borderBottomWidth: 0, elevation: 0, shadowOpacity: 0,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   logoText: { fontSize: 22, fontWeight: '900', color: t.primary, letterSpacing: -1, marginRight: 4 },
@@ -262,6 +374,11 @@ const getStyles = (t) => StyleSheet.create({
   emptyState: { alignItems: 'center', paddingTop: 80, gap: 12 },
   emptyText: { fontSize: 16, fontWeight: 'bold', color: t.onSurfaceVariant },
   emptySubText: { fontSize: 12, color: t.onSurfaceVariant + '99' },
+  
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalContent: { backgroundColor: t.surface, borderRadius: 32, padding: 24, width: '100%' },
+  modalActionItem: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
+  modalActionIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
 });
 
 export default TransactionHistoryScreen;

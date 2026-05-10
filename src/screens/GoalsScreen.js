@@ -1,4 +1,4 @@
-import React, { useContext, useState, useMemo, useEffect } from 'react';
+import React, { useContext, useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, FlatList, Dimensions, ActivityIndicator, TextInput, Alert, Modal } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -50,7 +50,41 @@ export const AddGoalScreen = () => {
   
   const [name, setName] = useState('');
   const [target, setTarget] = useState('');
+  const selectionTargetRef = useRef({ start: 0, end: 0 });
+  const [selectionTarget, setSelectionTarget] = useState({ start: 0, end: 0 });
+  const targetRef = useRef('');
   const [description, setDescription] = useState('');
+
+  const formatInput = (val) => {
+    if (!val) return '';
+    const clean = val.replace(/\D/g, '');
+    return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
+  const handleTargetChange = (val) => {
+    // 1. Ambil jumlah angka di KANAN kursor dari teks LAMA
+    const oldText = targetRef.current || '';
+    const oldSel = selectionTargetRef.current.start;
+    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
+    
+    const formatted = formatInput(val);
+    setTarget(formatted);
+    targetRef.current = formatted;
+
+    // 2. Cari posisi baru dari KANAN di teks baru
+    let newPos = formatted.length;
+    let count = 0;
+    for (let i = formatted.length - 1; i >= 0; i--) {
+      if (count >= digitsAfter) break;
+      if (formatted[i] !== '.') {
+        count++;
+      }
+      newPos = i;
+    }
+
+    setSelectionTarget({ start: newPos, end: newPos }); 
+    selectionTargetRef.current = { start: newPos, end: newPos };
+  };
   const [mediaList, setMediaList] = useState([]);
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -126,7 +160,7 @@ export const AddGoalScreen = () => {
       const newGoalId = await addGoal({
         name: name.trim(),
         description: description.trim(),
-        targetAmount: Number(target) || 0,
+        targetAmount: Number(target.replace(/\./g, '')) || 0,
         previewImage,
         media: finalMediaList,
         status: 'active',
@@ -267,7 +301,13 @@ export const AddGoalScreen = () => {
             placeholder="0" 
             placeholderTextColor={safeTheme.onSurfaceVariant}
             value={target}
-            onChangeText={setTarget}
+            onChangeText={handleTargetChange}
+            selection={selectionTarget}
+            onSelectionChange={(e) => {
+              const sel = e.nativeEvent.selection;
+              setSelectionTarget(sel);
+              selectionTargetRef.current = sel;
+            }}
             keyboardType="numeric"
             style={{ color: safeTheme.onSurface, fontSize: 16, fontWeight: 'bold' }}
           />
@@ -304,14 +344,50 @@ const GoalsScreen = () => {
   const [editMemoryCaption, setEditMemoryCaption] = useState('');
   const [editRelatedTxIds, setEditRelatedTxIds] = useState([]);
   const [editUploading, setEditUploading] = useState(false);
-  
+  const [selectionEditTarget, setSelectionEditTarget] = useState({ start: 0, end: 0 });
+  const selectionEditTargetRef = useRef({ start: 0, end: 0 });
+  const editTargetRef = useRef('');
+
+  const formatInput = (val) => {
+    if (!val) return '';
+    const clean = val.replace(/\D/g, '');
+    return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
+  const handleEditTargetChange = (val) => {
+    // 1. Ambil jumlah angka di KANAN kursor dari teks LAMA
+    const oldText = editTargetRef.current || '';
+    const oldSel = selectionEditTargetRef.current.start;
+    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
+    
+    const formatted = formatInput(val);
+    setEditTarget(formatted);
+    editTargetRef.current = formatted;
+
+    // 2. Cari posisi baru dari KANAN di teks baru
+    let newPos = formatted.length;
+    let count = 0;
+    for (let i = formatted.length - 1; i >= 0; i--) {
+      if (count >= digitsAfter) break;
+      if (formatted[i] !== '.') {
+        count++;
+      }
+      newPos = i;
+    }
+
+    setSelectionEditTarget({ start: newPos, end: newPos }); 
+    selectionEditTargetRef.current = { start: newPos, end: newPos };
+  };
+
   const formatMoney = (v) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v || 0);
 
   const handleEditGoal = (goal) => {
     setSelectedGoal(goal);
     setEditName(goal.name || '');
     setEditDescription(goal.description || '');
-    setEditTarget(String(goal.targetAmount || 0));
+    const formatted = formatInput(String(goal.targetAmount || 0));
+    setEditTarget(formatted);
+    editTargetRef.current = formatted;
     setEditMediaList(goal.media ? [...goal.media] : []);
     setEditMemoryCaption(goal.memoryCaption || '');
     setEditRelatedTxIds(goal.relatedTransactionIds || []);
@@ -386,7 +462,7 @@ const GoalsScreen = () => {
       const updateData = {
         name: editName.trim(),
         description: isAchieved ? editMemoryCaption : editDescription.trim(),
-        targetAmount: Number(editTarget) || 0,
+        targetAmount: Number(editTarget.replace(/\./g, '')) || 0,
       };
 
       if (isAchieved) {
@@ -605,7 +681,13 @@ const GoalsScreen = () => {
                 <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16 }}>
                   <TextInput 
                     value={editTarget}
-                    onChangeText={setEditTarget}
+                    onChangeText={handleEditTargetChange}
+                    selection={selectionEditTarget}
+                    onSelectionChange={(e) => {
+                      const sel = e.nativeEvent.selection;
+                      setSelectionEditTarget(sel);
+                      selectionEditTargetRef.current = sel;
+                    }}
                     keyboardType="numeric"
                     style={{ color: theme.onSurface, fontSize: 16, fontWeight: 'bold' }}
                   />

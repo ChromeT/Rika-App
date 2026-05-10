@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Switch } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -23,10 +23,44 @@ const AddAccountScreen = ({ route }) => {
   const editingAccount = route.params?.account;
   const isEditing = !!editingAccount;
 
+  const formatInput = (val) => {
+    if (!val) return '';
+    const clean = val.replace(/\D/g, '');
+    return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
   const [name, setName] = useState(editingAccount?.name || '');
   const [type, setType] = useState(editingAccount?.type || 'cash');
-  const [balance, setBalance] = useState(editingAccount?.balance?.toString() || '');
+  const [balance, setBalance] = useState(editingAccount?.balance ? formatInput(editingAccount.balance.toString()) : '');
+  const selectionRef = useRef({ start: 0, end: 0 });
+  const [selectionState, setSelectionState] = useState({ start: 0, end: 0 });
+  const balanceRef = useRef(editingAccount?.balance ? formatInput(editingAccount.balance.toString()) : '');
   const [loading, setLoading] = useState(false);
+
+  const handleBalanceChange = (val) => {
+    // 1. Ambil jumlah angka di KANAN kursor dari teks LAMA
+    const oldText = balanceRef.current || '';
+    const oldSel = selectionRef.current.start;
+    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
+    
+    const formatted = formatInput(val);
+    setBalance(formatted);
+    balanceRef.current = formatted;
+
+    // 2. Cari posisi baru dari KANAN di teks baru
+    let newPos = formatted.length;
+    let count = 0;
+    for (let i = formatted.length - 1; i >= 0; i--) {
+      if (count >= digitsAfter) break;
+      if (formatted[i] !== '.') {
+        count++;
+      }
+      newPos = i;
+    }
+
+    setSelectionState({ start: newPos, end: newPos });
+    selectionRef.current = { start: newPos, end: newPos };
+  };
 
   const handleSave = async () => {
     if (!name.trim() || !balance.trim()) {
@@ -38,10 +72,11 @@ const AddAccountScreen = ({ route }) => {
     const selectedType = ACCOUNT_TYPES.find(t => t.id === type);
     
     try {
+      const rawBalance = balance.replace(/\./g, '');
       const accountData = {
         name: name.trim(),
         type: type,
-        balance: Number(balance),
+        balance: Number(rawBalance),
         icon: selectedType.icon,
         color: selectedType.color,
       };
@@ -94,7 +129,13 @@ const AddAccountScreen = ({ route }) => {
           placeholderTextColor={theme.onSurfaceVariant}
           keyboardType="numeric"
           value={balance}
-          onChangeText={setBalance}
+          onChangeText={handleBalanceChange}
+          selection={selectionState}
+          onSelectionChange={(e) => {
+            const sel = e.nativeEvent.selection;
+            setSelectionState(sel);
+            selectionRef.current = sel;
+          }}
         />
 
         <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>JENIS SUMBER</Text>

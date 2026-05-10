@@ -1,8 +1,9 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { AuthContext } from './AuthContext';
 import { db } from '../config/firebase';
-import { collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 
 // Helper to safely parse dates
 const safeDate = (dateStr) => {
@@ -61,6 +62,11 @@ export const DataProvider = ({ children }) => {
     let unsubs = [];
     let dataLoaded = { tx: false, goals: false, bills: false, notif: false, accounts: false };
 
+    // Fail-safe: Paksa loading berhenti setelah 5 detik biar nggak blank selamanya
+    const failSafe = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+
     if (user && user.householdId) {
       setLoading(true);
       const houseRef = doc(db, 'households', user.householdId);
@@ -68,6 +74,7 @@ export const DataProvider = ({ children }) => {
       const checkAllLoaded = () => {
         if (dataLoaded.tx && dataLoaded.goals && dataLoaded.bills && dataLoaded.notif && dataLoaded.accounts) {
           setLoading(false);
+          clearTimeout(failSafe);
         }
       };
 
@@ -163,7 +170,10 @@ export const DataProvider = ({ children }) => {
       setLoading(false);
     }
 
-    return () => unsubs.forEach(unsub => unsub());
+    return () => {
+      unsubs.forEach(unsub => unsub());
+      clearTimeout(failSafe);
+    };
   }, [user]);
 
   // AUTO-MIGRATION: Cek semua user di rumah tangga
@@ -259,6 +269,129 @@ export const DataProvider = ({ children }) => {
     }
   };
 
+  const deleteTransaction = async (txId) => {
+    if (!user || !user.householdId) return;
+    try {
+      const tx = transactions.find(t => t.id === txId);
+      if (!tx) return;
+
+      if (tx.type === 'transfer') {
+        const fromAcc = accounts.find(a => a.id === tx.fromAccountId);
+        const toAcc = accounts.find(a => a.id === tx.toAccountId);
+        
+        if (fromAcc) {
+          await updateAccount(tx.fromAccountId, { balance: (fromAcc.balance || 0) + (tx.amount || 0) });
+        }
+        if (toAcc) {
+          await updateAccount(tx.toAccountId, { balance: (toAcc.balance || 0) - (tx.amount || 0) });
+        }
+      } else if (tx.accountId) {
+        const account = accounts.find(a => a.id === tx.accountId);
+        if (account) {
+          const totalAmount = Number(tx.myContrib || 0) + Number(tx.partnerContrib || 0);
+          const newBalance = tx.type === 'income' 
+            ? (account.balance || 0) - totalAmount 
+            : (account.balance || 0) + totalAmount;
+          await updateAccount(tx.accountId, { balance: newBalance });
+        }
+      }
+
+      const txRef = doc(db, 'households', user.householdId, 'transactions', txId);
+      await deleteDoc(txRef);
+    } catch (e) {
+      console.error('Failed to delete transaction', e);
+    }
+  };
+
+  const updateTransaction = async (txId, updateData) => {
+    if (!user || !user.householdId) return;
+    
+    try {
+      const txRef = doc(db, 'households', user.householdId, 'transactions', txId);
+      const docSnap = await getDoc(txRef);
+      
+      if (!docSnap.exists()) {
+        Alert.alert('Error', 'Data transaksi lama tidak ditemukan di server.');
+        throw new Error('Old transaction not found');
+      }
+
+      const oldTx = { id: docSnap.id, ...docSnap.data() };
+      
+      // Alert buat bukti kalau angkanya bener
+      // Alert.alert('Debug', 'Simpan nominal baru: ' + updateData.amount);
+
+      // Gunakan map saldo sementara agar perhitungan tidak mengandalkan mutasi state langsung
+      const balanceMap = {};
+      accounts.forEach(acc => {
+        balanceMap[acc.id] = Number(acc.balance) || 0;
+      });
+
+      // 1. Revert saldo lama (Kembalikan ke kondisi sebelum transaksi ini ada)
+      if (oldTx.type === 'transfer') {
+        if (balanceMap[oldTx.fromAccountId] !== undefined) {
+          balanceMap[oldTx.fromAccountId] += (oldTx.amount || 0);
+        }
+        if (balanceMap[oldTx.toAccountId] !== undefined) {
+          balanceMap[oldTx.toAccountId] -= (oldTx.amount || 0);
+        }
+      } else if (oldTx.accountId) {
+        if (balanceMap[oldTx.accountId] !== undefined) {
+          const oldTotal = Number(oldTx.myContrib || 0) + Number(oldTx.partnerContrib || 0);
+          if (oldTx.type === 'income') {
+            balanceMap[oldTx.accountId] -= oldTotal;
+          } else {
+            balanceMap[oldTx.accountId] += oldTotal;
+          }
+        }
+      }
+
+      // 2. Terapkan saldo baru
+      const finalType = updateData.type || oldTx.type;
+      const finalAmount = updateData.amount !== undefined ? Number(updateData.amount) : (oldTx.amount || 0);
+
+      // 3. Dorong perubahan saldo ke Firestore
+      if (finalType === 'transfer') {
+        const finalFromId = updateData.fromAccountId || oldTx.fromAccountId;
+        const finalToId = updateData.toAccountId || oldTx.toAccountId;
+        
+        if (balanceMap[finalFromId] !== undefined) balanceMap[finalFromId] -= finalAmount;
+        if (balanceMap[finalToId] !== undefined) balanceMap[finalToId] += finalAmount;
+
+        // Update kedua dompet yang terlibat transfer
+        await updateAccount(finalFromId, { balance: Number(balanceMap[finalFromId]) || 0 });
+        await updateAccount(finalToId, { balance: Number(balanceMap[finalToId]) || 0 });
+      } else {
+        const finalAccountId = updateData.accountId || oldTx.accountId;
+        if (finalAccountId && balanceMap[finalAccountId] !== undefined) {
+          const newMy = updateData.myContrib !== undefined ? updateData.myContrib : (oldTx.myContrib || 0);
+          const newPar = updateData.partnerContrib !== undefined ? updateData.partnerContrib : (oldTx.partnerContrib || 0);
+          const newTotal = Number(newMy) + Number(newPar);
+
+          if (finalType === 'income') {
+            balanceMap[finalAccountId] += newTotal;
+          } else {
+            balanceMap[finalAccountId] -= newTotal;
+          }
+          await updateAccount(finalAccountId, { balance: Number(balanceMap[finalAccountId]) || 0 });
+        }
+      }
+
+      // 4. Update dokumen transaksi itu sendiri
+      const cleanUpdateData = {};
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] !== undefined) {
+          cleanUpdateData[key] = updateData[key];
+        }
+      });
+
+      await updateDoc(txRef, { ...cleanUpdateData, updatedAt: new Date().toISOString() });
+      console.log('Transaction updated successfully:', txId);
+    } catch (e) {
+      console.error('Failed to update transaction', e);
+      throw e; // Lempar error biar ditangkep sama Alert di layar
+    }
+  };
+
   const addNotification = async (notif) => {
     if (!user || !user.householdId) return;
     try {
@@ -351,14 +484,90 @@ export const DataProvider = ({ children }) => {
 
   const addCategory = async (type, newCat) => {
     try {
-      const updatedCats = {
-        ...categories,
-        [type]: [...categories[type], newCat]
-      };
-      setCategories(updatedCats);
-      await AsyncStorage.setItem('@rika_cats_v2', JSON.stringify(updatedCats));
+      setCategories(prev => {
+        const updatedCats = {
+          ...prev,
+          [type]: [...prev[type], newCat]
+        };
+        AsyncStorage.setItem('@rika_cats_v2', JSON.stringify(updatedCats));
+        return updatedCats;
+      });
     } catch (e) {
       console.error('Failed to save category', e);
+    }
+  };
+
+  const updateCategory = async (type, oldName, newCat) => {
+    try {
+      setCategories(prev => {
+        const updatedCats = { ...prev };
+        const idx = updatedCats[type].findIndex(c => c.name === oldName);
+        if (idx !== -1) {
+          updatedCats[type][idx] = newCat;
+          AsyncStorage.setItem('@rika_cats_v2', JSON.stringify(updatedCats));
+          return updatedCats;
+        }
+        return prev;
+      });
+    } catch (e) {
+      console.error('Failed to update category', e);
+    }
+  };
+
+  const deleteCategory = async (type, catName) => {
+    try {
+      setCategories(prev => {
+        const updatedCats = {
+          ...prev,
+          [type]: prev[type].filter(c => c.name !== catName)
+        };
+        AsyncStorage.setItem('@rika_cats_v2', JSON.stringify(updatedCats));
+        return updatedCats;
+      });
+    } catch (e) {
+      console.error('Failed to delete category', e);
+    }
+  };
+
+  const addTransfer = async (fromId, toId, amount) => {
+    if (!user || !user.householdId) return;
+    try {
+      const numAmount = Number(amount);
+      const fromAcc = accounts.find(a => a.id === fromId);
+      const toAcc = accounts.find(a => a.id === toId);
+
+      if (!fromAcc || !toAcc) return;
+
+      // 1. Catat transaksi transfer (agar muncul di riwayat)
+      const txRef = collection(db, 'households', user.householdId, 'transactions');
+      const docRef = await addDoc(txRef, {
+        name: `Transfer: ${fromAcc.name} ➔ ${toAcc.name}`,
+        amount: numAmount,
+        type: 'transfer',
+        category: 'Transfer',
+        icon: 'swap-horiz',
+        owner: user.name,
+        fromAccountId: fromId,
+        toAccountId: toId,
+        myContrib: numAmount,
+        partnerContrib: 0,
+        date: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      });
+
+      // 2. Update saldo pengirim
+      const fromRef = doc(db, 'households', user.householdId, 'accounts', fromId);
+      await updateDoc(fromRef, { balance: (fromAcc.balance || 0) - numAmount });
+
+      // 3. Update saldo penerima
+      const toRef = doc(db, 'households', user.householdId, 'accounts', toId);
+      await updateDoc(toRef, { balance: (toAcc.balance || 0) + numAmount });
+
+      return docRef.id;
+
+    } catch (e) {
+      console.error('Failed to process transfer', e);
+      throw e;
     }
   };
 
@@ -403,12 +612,12 @@ export const DataProvider = ({ children }) => {
 
   return (
     <DataContext.Provider value={{
-      transactions, addTransaction, getBalance,
+      transactions, addTransaction, updateTransaction, deleteTransaction, addTransfer, getBalance,
       goals, addGoal, updateGoal, deleteGoal,
       bills, addBill, updateBill, deleteBill,
       accounts, addAccount, updateAccount, deleteAccount,
       notifications, addNotification,
-      categories, addCategory,
+      categories, addCategory, updateCategory, deleteCategory,
       loading
     }}>
       {children}

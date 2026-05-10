@@ -1,6 +1,5 @@
-import React, { useContext, useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Dimensions, Modal, Image, Alert, Animated } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Dimensions, Modal, Image, Alert, Animated, ActivityIndicator, RefreshControl } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,12 +11,11 @@ import Svg, { Circle, G } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
 
-const DashboardScreen = () => {
+const DashboardScreen = ({ navigation, route }) => {
   const { theme } = useContext(ThemeContext);
-  const { transactions, getBalance, bills, addBill, updateBill, deleteBill, notifications, addNotification, goals, accounts } = useContext(DataContext);
+  const { transactions, getBalance, bills, addBill, updateBill, deleteBill, notifications, addNotification, goals, accounts, deleteTransaction } = useContext(DataContext);
   const { user, householdUsers, avatar, lastReadNotif, markNotificationsAsRead } = useContext(AuthContext);
   
-  const navigation = useNavigation();
   const [filter, setFilter] = useState('Kita');
   const [timeFilter, setTimeFilter] = useState('Bulan ini');
   const [notifyVisible, setNotifyVisible] = useState(false);
@@ -30,10 +28,39 @@ const DashboardScreen = () => {
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState({});
   
+  // Transaction Action States
+  const [selectedRecentTx, setSelectedRecentTx] = useState(null);
+  const [txActionModalVisible, setTxActionModalVisible] = useState(false);
+  const [txConfirmVisible, setTxConfirmVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
   const [fabOpen, setFabOpen] = useState(false);
   const fabAnim = useRef(new Animated.Value(0)).current;
 
   const scrollRef = useRef(null);
+
+  // Fitur Tarik / Double Tap buat Refresh
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    // Data dari Firestore sudah real-time, jadi kita beri sensasi loading 1.2 detik saja
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1200);
+  }, []);
+
+  // Listen untuk klik tab "Beranda" pas lagi di dalam Beranda
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('tabPress', (e) => {
+      // Kalau layar sedang aktif dan user pencet tabnya lagi (Double tap logic)
+      if (navigation.isFocused()) {
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+        onRefresh();
+      }
+    });
+    return unsubscribe;
+  }, [navigation, onRefresh]);
   const [billsY, setBillsY] = useState(0);
   const [recentY, setRecentY] = useState(0);
   const [goalsY, setGoalsY] = useState(0);
@@ -49,6 +76,19 @@ const DashboardScreen = () => {
       Animated.timing(highlightAnim, { toValue: 0, duration: 500, useNativeDriver: false }),
     ]).start(() => setHighlightedId(null));
   };
+
+  // Trigger highlight if coming from Transaksi/Transfer screen
+  useEffect(() => {
+    if (route.params?.highlightTxId) {
+      const tid = route.params.highlightTxId;
+      // Beri sedikit delay agar transisi layar selesai
+      setTimeout(() => {
+        triggerHighlight(tid);
+        // Reset params
+        navigation.setParams({ highlightTxId: null });
+      }, 500);
+    }
+  }, [route.params?.highlightTxId]);
 
   const handleNotifClick = (notif) => {
     setNotifyVisible(false);
@@ -96,12 +136,14 @@ const DashboardScreen = () => {
         setBillDays('');
         setBillModalVisible(true);
       }
+      else if (action === 'transfer') navigation.navigate('Transfer');
       else if (action === 'goals') navigation.navigate('Goals');
     }, 200);
   };
 
   const fabActions = [
     { key: 'goals', icon: 'favorite', label: 'Goals baru', color: '#E879F9' },
+    { key: 'transfer', icon: 'swap-horiz', label: 'Pindah dana', color: '#6366F1' },
     { key: 'tagihan', icon: 'receipt-long', label: 'Pengingat tagihan', color: '#F59E0B' },
     { key: 'pemasukan', icon: 'payments', label: 'Pemasukan', color: '#10B981' },
     { key: 'pengeluaran', icon: 'shopping-bag', label: 'Pengeluaran', color: '#F43F5E' },
@@ -390,7 +432,18 @@ const DashboardScreen = () => {
 
   const getStyles = (t) => StyleSheet.create({
     container: { flex: 1, backgroundColor: t.background },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16, backgroundColor: t.surface, zIndex: 50 },
+    header: { 
+      flexDirection: 'row', 
+      justifyContent: 'space-between', 
+      alignItems: 'center', 
+      paddingHorizontal: 24, 
+      paddingVertical: 16, 
+      backgroundColor: t.surface, 
+      zIndex: 50,
+      borderBottomWidth: 0, // Pastikan nggak ada garis bawah
+      elevation: 0, // Hapus bayangan Android
+      shadowOpacity: 0, // Hapus bayangan iOS
+    },
     headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     logoText: { fontSize: 22, fontWeight: '900', color: t.primary, letterSpacing: -1, marginRight: 4 },
     avatarWrapper: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', backgroundColor: t.surfaceContainer, borderWidth: 1, borderColor: t.outlineVariant + '33', justifyContent: 'center', alignItems: 'center' },
@@ -521,7 +574,19 @@ const DashboardScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView ref={scrollRef} contentContainerStyle={styles.main} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        ref={scrollRef} 
+        contentContainerStyle={styles.main} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            colors={[theme.primary]} 
+            tintColor={theme.primary} 
+          />
+        }
+      >
         <View style={styles.heroSection}>
           <Text style={styles.heroLabel}>Saldo kita</Text>
           <View style={styles.balanceRow}>
@@ -822,32 +887,43 @@ const DashboardScreen = () => {
               outputRange: [theme.surfaceContainer, theme.primary + '55'],
             });
             return (
-              <Animated.View key={tx.id} style={[styles.txItem, { backgroundColor: isHighlighted ? bgColor : theme.surfaceContainer }]}>
-                <View style={styles.txLeft}>
-                  <View style={styles.txIconBg}>
-                    <MaterialIcons name={tx.icon || (tx.type === 'income' ? 'payments' : 'shopping-bag')} size={24} color={theme.primary} />
-                  </View>
-                  <View>
-                    <Text style={styles.txName}>{tx.name}</Text>
-                    <View style={styles.txMeta}>
-                      <Text style={styles.txBadge}>{tx.category}</Text>
-                      <View style={styles.txWallet}>
-                        <MaterialIcons name="account-balance-wallet" size={10} color={theme.onSurfaceVariant} />
-                        <Text style={styles.txWalletName}>
-                          {(() => {
-                            const acc = (accounts || []).find(a => a.id === tx.accountId);
-                            return acc ? acc.name : 'Tunai';
-                          })()}
-                        </Text>
+              <TouchableOpacity 
+                key={tx.id} 
+                activeOpacity={0.7}
+                onPress={() => {
+                  if (tx.owner === user?.name) {
+                    setSelectedRecentTx(tx);
+                    setTxActionModalVisible(true);
+                  }
+                }}
+              >
+                <Animated.View style={[styles.txItem, { backgroundColor: isHighlighted ? bgColor : theme.surfaceContainer }]}>
+                  <View style={styles.txLeft}>
+                    <View style={styles.txIconBg}>
+                      <MaterialIcons name={tx.icon || (tx.type === 'income' ? 'payments' : tx.type === 'transfer' ? 'swap-horiz' : 'shopping-bag')} size={24} color={tx.type === 'transfer' ? '#6366F1' : theme.primary} />
+                    </View>
+                    <View>
+                      <Text style={styles.txName}>{tx.name}</Text>
+                      <View style={styles.txMeta}>
+                        <Text style={styles.txBadge}>{tx.category}</Text>
+                        <View style={styles.txWallet}>
+                          <MaterialIcons name="account-balance-wallet" size={10} color={theme.onSurfaceVariant} />
+                          <Text style={styles.txWalletName}>
+                            {(() => {
+                              const acc = (accounts || []).find(a => a.id === tx.accountId || a.id === tx.fromAccountId);
+                              return acc ? acc.name : 'Tunai';
+                            })()}
+                          </Text>
+                        </View>
+                        <Text style={styles.txTime}>{(new Date(tx.date).toString() !== 'Invalid Date' ? new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : '-')}</Text>
                       </View>
-                      <Text style={styles.txTime}>{(new Date(tx.date).toString() !== 'Invalid Date' ? new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : '-')}</Text>
                     </View>
                   </View>
-                </View>
-                <Text style={tx.type === 'income' ? styles.txAmountPos : styles.txAmountNeg}>
-                  {tx.type === 'income' ? '+' : '-'} {formatMoney(tx.myContrib + tx.partnerContrib)}
-                </Text>
-              </Animated.View>
+                  <Text style={[tx.type === 'income' ? styles.txAmountPos : tx.type === 'transfer' ? { color: '#6366F1', fontSize: 14, fontWeight: 'bold' } : styles.txAmountNeg]}>
+                    {tx.type === 'income' ? '+' : tx.type === 'transfer' ? '⇅' : '-'} {formatMoney(tx.myContrib + tx.partnerContrib)}
+                  </Text>
+                </Animated.View>
+              </TouchableOpacity>
             );
           })}
           {filteredTx.length === 0 && (
@@ -1042,6 +1118,95 @@ const DashboardScreen = () => {
         </TouchableOpacity>
       </Modal>
 
+      {/* Transaction Action Modal */}
+      <Modal visible={txActionModalVisible} transparent animationType="fade" onRequestClose={() => setTxActionModalVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setTxActionModalVisible(false)}>
+          <View style={[styles.modalContent, { padding: 0, overflow: 'hidden' }]}>
+            <View style={{ padding: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '33' }}>
+              <Text style={{ fontSize: 20, fontWeight: '900', color: theme.onSurface, marginBottom: 4 }}>Kelola Transaksi</Text>
+              <Text style={{ fontSize: 13, color: theme.onSurfaceVariant }}>{selectedRecentTx?.name} - Rp {formatMoney((selectedRecentTx?.myContrib || 0) + (selectedRecentTx?.partnerContrib || 0))}</Text>
+            </View>
+            <View style={{ padding: 8 }}>
+              <TouchableOpacity 
+                onPress={() => {
+                  setTxActionModalVisible(false);
+                  if (selectedRecentTx.type === 'transfer') {
+                    navigation.navigate('Transfer', { editingTransaction: selectedRecentTx });
+                  } else {
+                    navigation.navigate('Transaksi', { editingTransaction: selectedRecentTx });
+                  }
+                }} 
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}
+              >
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.primary + '1A', justifyContent: 'center', alignItems: 'center' }}>
+                  <MaterialIcons name="edit" size={20} color={theme.primary} />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.onSurface }}>Edit Transaksi</Text>
+                  <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>Ubah nominal, kategori, atau dompet</Text>
+                </View>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={() => {
+                  setTxActionModalVisible(false);
+                  setTimeout(() => setTxConfirmVisible(true), 300);
+                }} 
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}
+              >
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.error + '1A', justifyContent: 'center', alignItems: 'center' }}>
+                  <MaterialIcons name="delete" size={20} color={theme.error} />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.error }}>Hapus Transaksi</Text>
+                  <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>Saldo dompet akan dikembalikan</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Confirm Delete Transaction Modal */}
+      <Modal visible={txConfirmVisible} transparent animationType="fade" onRequestClose={() => setTxConfirmVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { padding: 24 }]}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 12, textAlign: 'center' }}>Hapus Transaksi?</Text>
+            <Text style={{ fontSize: 14, color: theme.onSurfaceVariant, marginBottom: 24, textAlign: 'center', lineHeight: 20 }}>
+              Yakin ingin menghapus transaksi ini? Saldo dompet Anda akan disesuaikan secara otomatis.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity 
+                style={{ flex: 1, backgroundColor: theme.surfaceContainerHighest, padding: 16, borderRadius: 16, alignItems: 'center' }} 
+                onPress={() => setTxConfirmVisible(false)}
+              >
+                <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={{ flex: 1, backgroundColor: theme.error, padding: 16, borderRadius: 16, alignItems: 'center', opacity: loading ? 0.6 : 1 }} 
+                onPress={async () => {
+                  setLoading(true);
+                  try {
+                    await deleteTransaction(selectedRecentTx.id);
+                    setTxConfirmVisible(false);
+                  } catch (e) {
+                    // console.error(e);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>Hapus</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

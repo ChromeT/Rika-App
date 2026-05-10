@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,6 +25,40 @@ export const AchieveGoalScreen = () => {
   const [mediaList, setMediaList] = useState([]);
   const [caption, setCaption] = useState('');
   const [actualAmount, setActualAmount] = useState('');
+  const [selectionActual, setSelectionActual] = useState({ start: 0, end: 0 });
+  const selectionActualRef = useRef({ start: 0, end: 0 });
+  const actualAmountRef = useRef('');
+
+  const formatInput = (val) => {
+    if (!val) return '';
+    const clean = val.replace(/\D/g, '');
+    return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
+  const handleActualAmountChange = (val) => {
+    // 1. Ambil jumlah angka di KANAN kursor dari teks LAMA
+    const oldText = actualAmountRef.current || '';
+    const oldSel = selectionActualRef.current.start;
+    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
+    
+    const formatted = formatInput(val);
+    setActualAmount(formatted);
+    actualAmountRef.current = formatted;
+
+    // 2. Cari posisi baru dari KANAN di teks baru
+    let newPos = formatted.length;
+    let count = 0;
+    for (let i = formatted.length - 1; i >= 0; i--) {
+      if (count >= digitsAfter) break;
+      if (formatted[i] !== '.') {
+        count++;
+      }
+      newPos = i;
+    }
+
+    setSelectionActual({ start: newPos, end: newPos }); 
+    selectionActualRef.current = { start: newPos, end: newPos };
+  };
   const [selectedTxIds, setSelectedTxIds] = useState([]);
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -97,7 +131,7 @@ export const AchieveGoalScreen = () => {
       achieved: true,
       achievedAt: new Date().toISOString(),
       memoryCaption: caption,
-      actualAmount: Number(actualAmount) || 0,
+      actualAmount: Number(actualAmount.replace(/\./g, '')) || 0,
       relatedTransactionIds: selectedTxIds,
       media: finalMediaList,
     };
@@ -226,7 +260,13 @@ export const AchieveGoalScreen = () => {
             placeholder="0"
             placeholderTextColor={theme.onSurfaceVariant}
             value={actualAmount}
-            onChangeText={setActualAmount}
+            onChangeText={handleActualAmountChange}
+            selection={selectionActual}
+            onSelectionChange={(e) => {
+              const sel = e.nativeEvent.selection;
+              setSelectionActual(sel);
+              selectionActualRef.current = sel;
+            }}
             keyboardType="numeric"
             style={{ color: theme.onSurface, fontSize: 18, fontWeight: 'bold' }}
           />

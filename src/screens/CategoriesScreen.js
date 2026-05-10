@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert, KeyboardAvoidingView, Platform, ScrollView, Modal, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemeContext } from '../context/ThemeContext';
@@ -24,28 +24,79 @@ const iconOptions = [
 
 const CategoriesScreen = ({ navigation }) => {
   const { theme } = useContext(ThemeContext);
-  const { categories, addCategory } = useContext(DataContext);
+  const { categories, addCategory, updateCategory, deleteCategory } = useContext(DataContext);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingOldName, setEditingOldName] = useState('');
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [catToDelete, setCatToDelete] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const [type, setType] = useState('expense');
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('shopping-bag');
 
-  const handleAdd = () => {
+  const handleSave = async () => {
     if (!name.trim()) {
       Alert.alert('Oops', 'Nama kategori nggak boleh kosong bro.');
       return;
     }
-    addCategory(type, { name: name.trim(), icon });
-    setName('');
-    Alert.alert('Mantap!', `Kategori "${name}" udah ditambah.`);
+    
+    setLoading(true);
+    try {
+      if (isEditing) {
+        await updateCategory(type, editingOldName, { name: name.trim(), icon });
+        setIsEditing(false);
+        setEditingOldName('');
+        Alert.alert('Selesai', `Kategori diperbarui!`);
+      } else {
+        await addCategory(type, { name: name.trim(), icon });
+        Alert.alert('Mantap!', `Kategori "${name}" udah ditambah.`);
+      }
+      setName('');
+      setIcon('shopping-bag');
+    } catch (e) {
+      Alert.alert('Gagal', 'Terjadi kesalahan saat memproses kategori.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = (cat) => {
+    setName(cat.name);
+    setIcon(cat.icon);
+    setEditingOldName(cat.name);
+    setIsEditing(true);
+  };
+
+  const handleDelete = (catName) => {
+    setCatToDelete(catName);
+    setDeleteModalVisible(true);
   };
 
   const renderItem = ({ item }) => (
     <View style={[styles.catItem, { backgroundColor: theme.surfaceContainer }]}>
-      <View style={[styles.iconWrap, { backgroundColor: theme.primaryContainer + '33' }]}>
-        <MaterialIcons name={item.icon} size={20} color={theme.primary} />
+      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View style={[styles.iconWrap, { backgroundColor: theme.primaryContainer + '33' }]}>
+          <MaterialIcons name={item.icon} size={20} color={theme.primary} />
+        </View>
+        <Text style={[styles.catName, { color: theme.onSurface }]}>{item.name}</Text>
       </View>
-      <Text style={[styles.catName, { color: theme.onSurface }]}>{item.name}</Text>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <TouchableOpacity 
+          style={{ padding: 10, backgroundColor: theme.surfaceContainerHighest, borderRadius: 12, opacity: loading ? 0.5 : 1 }}
+          onPress={() => handleEdit(item)}
+          disabled={loading}
+        >
+          <MaterialIcons name="edit" size={18} color={theme.onSurfaceVariant} />
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={{ padding: 10, backgroundColor: theme.error + '1A', borderRadius: 12, opacity: loading ? 0.5 : 1 }}
+          onPress={() => handleDelete(item.name)}
+          disabled={loading}
+        >
+          <MaterialIcons name="delete" size={18} color={theme.error} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -129,11 +180,23 @@ const CategoriesScreen = ({ navigation }) => {
             </View>
           </ScrollView>
 
-          <TouchableOpacity style={styles.btnAdd} onPress={handleAdd}>
+          <TouchableOpacity style={styles.btnAdd} onPress={handleSave}>
             <LinearGradient colors={[theme.primary, theme.primaryContainer]} style={styles.btnGradient}>
-              <Text style={styles.btnText}>+ Tambah Kategori</Text>
+              <Text style={styles.btnText}>{isEditing ? 'Simpan Perubahan' : '+ Tambah Kategori'}</Text>
             </LinearGradient>
           </TouchableOpacity>
+          {isEditing && (
+            <TouchableOpacity 
+              style={{ marginTop: 8, padding: 8, alignItems: 'center' }} 
+              onPress={() => {
+                setIsEditing(false);
+                setName('');
+                setIcon('shopping-bag');
+              }}
+            >
+              <Text style={{ color: theme.error, fontSize: 13, fontWeight: 'bold' }}>Batal Edit</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* List Kategori */}
@@ -148,6 +211,46 @@ const CategoriesScreen = ({ navigation }) => {
             </Text>
           }
         />
+        {/* Modal Konfirmasi Hapus */}
+        <Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => setDeleteModalVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+            <View style={{ backgroundColor: theme.surface, borderRadius: 32, padding: 24, width: '100%' }}>
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 12, textAlign: 'center' }}>Hapus Kategori?</Text>
+              <Text style={{ fontSize: 14, color: theme.onSurfaceVariant, marginBottom: 24, textAlign: 'center', lineHeight: 20 }}>
+                Yakin ingin menghapus "{catToDelete}"? Transaksi lama tetap aman, tapi kategori ini tidak akan muncul lagi di pilihan.
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity 
+                  style={{ flex: 1, backgroundColor: theme.surfaceContainerHighest, padding: 16, borderRadius: 16, alignItems: 'center' }} 
+                  onPress={() => setDeleteModalVisible(false)}
+                >
+                  <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Batal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={{ flex: 1, backgroundColor: theme.error, padding: 16, borderRadius: 16, alignItems: 'center', opacity: loading ? 0.6 : 1 }} 
+                  onPress={async () => {
+                    setLoading(true);
+                    try {
+                      await deleteCategory(type, catToDelete);
+                      setDeleteModalVisible(false);
+                    } catch (e) {
+                      Alert.alert('Gagal', 'Gagal menghapus kategori.');
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Hapus</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </KeyboardAvoidingView>
   );

@@ -1,5 +1,5 @@
-import React, { useContext, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Switch, Image, Alert } from 'react-native';
+import React, { useContext, useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Switch, Image, Alert, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemeContext } from '../context/ThemeContext';
@@ -8,62 +8,86 @@ import { AuthContext } from '../context/AuthContext';
 
 const TransactionScreen = ({ navigation, route }) => {
   const { theme } = useContext(ThemeContext);
-  const { addTransaction, transactions, categories, addCategory, addNotification, accounts } = useContext(DataContext);
+  const { addTransaction, updateTransaction, transactions, categories, addCategory, addNotification, accounts } = useContext(DataContext);
   const { user, avatar } = useContext(AuthContext);
   const [selectedAccountId, setSelectedAccountId] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+
+  const selectionRef = useRef({ start: 0, end: 0 });
+  const selectionMyRef = useRef({ start: 0, end: 0 });
+  const [selectionState, setSelectionState] = useState({ start: 0, end: 0 });
+  const [selectionMyState, setSelectionMyState] = useState({ start: 0, end: 0 });
+  const amountRef = useRef('');
+  const myContribRef = useRef('');
+
+  const formatMoney = (amount) =>
+    new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(amount);
 
   const [amount, setAmount] = useState('');
+  const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
   const [isKonta, setIsKonta] = useState(false); 
   const [type, setType] = useState('expense');
-
-  // Baca parameter navigasi (misal: dari FAB Pemasukan atau Tagihan Lunas)
-  useEffect(() => {
-    if (route?.params?.type) {
-      handleTypeChange(route.params.type);
-    }
-    if (route?.params?.predefinedName) {
-      setName(route.params.predefinedName);
-    }
-    if (route?.params?.predefinedAmount) {
-      setAmount(route.params.predefinedAmount);
-    }
-  }, [route?.params?.type, route?.params?.predefinedName, route?.params?.predefinedAmount]);
-  
-  // AUTO-SELECT dompet pertama
-  useEffect(() => {
-    if (accounts.length > 0 && !selectedAccountId) {
-      const myAccounts = accounts.filter(a => a.owner === user?.name);
-      if (myAccounts.length > 0) {
-        setSelectedAccountId(myAccounts[0].id);
-      }
-    }
-  }, [accounts, user, selectedAccountId]);
-  
-  // Category States
   const [categoryObj, setCategoryObj] = useState(null);
   const [customCategory, setCustomCategory] = useState('');
   const [customIcon, setCustomIcon] = useState('star');
-  
   const [isPatungan, setIsPatungan] = useState(false);
   const [myContrib, setMyContrib] = useState('');
 
-  const availableCustomIcons = [
-    // General & Misc
-    'star', 'pets', 'child-friendly', 'cake', 'favorite', 'emoji-events',
-    // Income / Finance
-    'payments', 'account-balance-wallet', 'savings', 'paid', 'monetization-on', 'trending-up', 'work', 'volunteer-activism', 'card-giftcard',
-    // Food & Groceries
-    'restaurant', 'local-cafe', 'fastfood', 'local-grocery-store', 'local-pizza',
-    // Transport & Utilities
-    'commute', 'directions-car', 'local-gas-station', 'flight', 'water-drop', 'bolt', 'wifi', 'phone-iphone',
-    // Lifestyle & Entertainment
-    'shopping-cart', 'checkroom', 'movie', 'sports-esports', 'fitness-center', 'spa', 'palette',
-    // Health & Education
-    'medical-services', 'healing', 'school', 'menu-book',
-    // Home & Repair
-    'home', 'home-repair-service', 'build', 'laptop-mac', 'chair'
-  ];
+  const formatInput = (val) => {
+    if (!val) return '';
+    const clean = val.replace(/\D/g, '').toString();
+    return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
+  const handleAmountChange = (val) => {
+    // 1. Ambil jumlah angka di KANAN kursor dari teks LAMA (PENTING!)
+    const oldText = amountRef.current || '';
+    const oldSel = selectionRef.current.start;
+    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
+    
+    const formatted = formatInput(val);
+    setAmount(formatted);
+    amountRef.current = formatted;
+
+    // 2. Cari posisi baru dari KANAN di teks baru agar jumlah angka di kanan tetap sama
+    let newPos = formatted.length;
+    let count = 0;
+    for (let i = formatted.length - 1; i >= 0; i--) {
+      if (count >= digitsAfter) break;
+      if (formatted[i] !== '.') {
+        count++;
+      }
+      newPos = i;
+    }
+
+    setSelectionState({ start: newPos, end: newPos });
+    selectionRef.current = { start: newPos, end: newPos };
+  };
+
+  const handleMyContribChange = (val) => {
+    const oldText = myContribRef.current || '';
+    const oldSel = selectionMyRef.current.start;
+    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
+    
+    const formatted = formatInput(val);
+    setMyContrib(formatted);
+    myContribRef.current = formatted;
+
+    let newPos = formatted.length;
+    let count = 0;
+    for (let i = formatted.length - 1; i >= 0; i--) {
+      if (count >= digitsAfter) break;
+      if (formatted[i] !== '.') {
+        count++;
+      }
+      newPos = i;
+    }
+
+    setSelectionMyState({ start: newPos, end: newPos });
+    selectionMyRef.current = { start: newPos, end: newPos };
+  };
 
   const handleTypeChange = (newType) => {
     setType(newType);
@@ -76,102 +100,178 @@ const TransactionScreen = ({ navigation, route }) => {
     }
   };
 
+  // Baca parameter navigasi (misal: dari FAB Pemasukan atau Tagihan Lunas)
+  useEffect(() => {
+    if (route?.params?.type) {
+      handleTypeChange(route.params.type);
+    }
+    if (route?.params?.predefinedName) {
+      setName(route.params.predefinedName);
+    }
+    if (route?.params?.predefinedAmount) {
+      const formatted = formatInput(route.params.predefinedAmount);
+      setAmount(formatted);
+      amountRef.current = formatted;
+    }
+    if (route?.params?.editingTransaction) {
+      const tx = route.params.editingTransaction;
+      setIsEditMode(true);
+      setEditingId(tx.id);
+      const formattedAmt = formatInput((tx.amount || 0).toString());
+      setAmount(formattedAmt);
+      amountRef.current = formattedAmt;
+      setName(tx.name);
+      setType(tx.type);
+      setIsKonta(tx.isJoint);
+      setIsPatungan(tx.isPatungan);
+      const formattedContrib = tx.myContrib ? formatInput(tx.myContrib.toString()) : '';
+      setMyContrib(formattedContrib);
+      myContribRef.current = formattedContrib;
+      setSelectedAccountId(tx.type === 'transfer' ? tx.fromAccountId : tx.accountId);
+      
+      const cat = (categories[tx.type] || []).find(c => c.name === tx.category);
+      if (cat) {
+        setCategoryObj(cat);
+      } else {
+        setCategoryObj({ name: 'Lainnya', icon: tx.icon });
+        setCustomCategory(tx.category);
+        setCustomIcon(tx.icon);
+      }
+    }
+  }, [route?.params?.type, route?.params?.predefinedName, route?.params?.predefinedAmount, route?.params?.editingTransaction, categories]);
+
+  useEffect(() => {
+    if (accounts.length > 0 && !selectedAccountId) {
+      const myAccounts = accounts.filter(a => a.owner === user?.name);
+      if (myAccounts.length > 0) {
+        setSelectedAccountId(myAccounts[0].id);
+      }
+    }
+  }, [accounts, user, selectedAccountId]);
+
   const calcPartnerContrib = () => {
-    const total = Number(amount) || 0;
+    const total = Number(amount.replace(/\./g, '')) || 0;
     const mine = Number(myContrib) || 0;
     const diff = total - mine;
     return diff > 0 ? diff : 0;
   };
 
-  const handleSave = async () => {
-    let finalCategoryName = categoryObj?.name;
-    let finalIcon = categoryObj?.icon;
 
-    if (categoryObj?.name === 'Lainnya') {
-      finalCategoryName = customCategory.trim();
-      finalIcon = customIcon;
-      if (!finalCategoryName) {
-        Alert.alert('Data kategori kosong', 'Tuliskan nama kategori baru Anda terlebih dahulu!');
+
+  const handleSave = async () => {
+    setLoading(true);
+    let newId = editingId;
+    try {
+      let finalCategoryName = categoryObj?.name;
+      let finalIcon = categoryObj?.icon;
+
+      if (categoryObj?.name === 'Lainnya') {
+        finalCategoryName = customCategory.trim();
+        finalIcon = customIcon;
+        if (!finalCategoryName) {
+          Alert.alert('Data kategori kosong', 'Tuliskan nama kategori baru Anda terlebih dahulu!');
+          setLoading(false);
+          return;
+        }
+        await addCategory(type, { name: finalCategoryName, icon: finalIcon });
+      }
+
+      const finalTxName = name.trim() ? name.trim() : finalCategoryName;
+
+      // Hapus titik sebelum diproses angkanya
+      const rawAmount = amount.replace(/\./g, '');
+
+      if (!rawAmount || !finalCategoryName || !selectedAccountId) {
+        Alert.alert('Data belum lengkap', 'Pastikan nominal, kategori, dan dompet sumber sudah dipilih!');
+        setLoading(false);
         return;
       }
       
-      // Simpan Kategori Kustom ini Permanen ke Database Konteks agar Muncul Lagi!
-      addCategory(type, { name: finalCategoryName, icon: finalIcon });
-    }
+      const numAmount = Number(rawAmount) || 0;
+      let fMy = numAmount;
+      let fPar = 0;
 
-    const finalTxName = name.trim() ? name.trim() : finalCategoryName;
-
-    if (!amount || !finalCategoryName || !selectedAccountId) {
-      Alert.alert('Data belum lengkap', 'Pastikan nominal, kategori, dan dompet sumber sudah dipilih!');
-      return;
-    }
-    
-    const numAmount = Number(amount);
-    let fMy = numAmount;
-    let fPar = 0;
-
-    if (type === 'income') {
-      if (isKonta) {
-        fMy = numAmount / 2;
-        fPar = numAmount / 2;
+      if (type === 'income') {
+        if (isKonta) {
+          fMy = numAmount / 2;
+          fPar = numAmount / 2;
+        } else {
+          fMy = numAmount;
+          fPar = 0;
+        }
       } else {
-        fMy = numAmount;
-        fPar = 0;
+        if (isKonta) {
+          fMy = numAmount / 2;
+          fPar = numAmount / 2;
+        } else if (isPatungan) {
+          fMy = Number(myContrib) || 0;
+          fPar = calcPartnerContrib();
+        } else {
+          fMy = numAmount;
+          fPar = 0;
+        }
       }
-    } else {
-      if (isKonta) {
-        fMy = numAmount / 2;
-        fPar = numAmount / 2;
-      } else if (isPatungan) {
-        fMy = Number(myContrib);
-        fPar = calcPartnerContrib();
-      } else {
-        fMy = numAmount;
-        fPar = 0;
-      }
-    }
     
-    const newTxId = await addTransaction({
-      name: finalTxName,
-      amount: numAmount,
-      type,
-      category: finalCategoryName,
-      icon: finalIcon || (type === 'income' ? 'payments' : 'receipt'),
-      owner: user?.name || 'Saya', 
-      isJoint: isKonta,
-      isPatungan: type === 'expense' ? (!isKonta && isPatungan) : false,
-      myContrib: fMy,
-      partnerContrib: fPar,
-      accountId: selectedAccountId,
-    });
+      if (isEditMode) {
+        const txUpdate = {
+          name: finalTxName,
+          amount: numAmount,
+          type,
+          category: finalCategoryName,
+          icon: finalIcon || (type === 'income' ? 'payments' : 'receipt'),
+          isJoint: isKonta,
+          isPatungan: type === 'expense' ? (!isKonta && isPatungan) : false,
+          myContrib: fMy,
+          partnerContrib: fPar,
+        };
 
-    addNotification({
-      title: 'Transaksi Baru',
-      body: `${user?.name || 'Pasangan'} baru saja mencatat ${type === 'income' ? 'pemasukan' : 'pengeluaran'} "${finalTxName}" sebesar Rp ${formatMoney(numAmount)}.`,
-      icon: type === 'income' ? 'payments' : 'shopping-bag',
-      color: type === 'income' ? 'primary' : 'error',
-      sender: user?.name || 'Saya',
-      targetType: 'transaction',
-      targetId: newTxId,
-      targetName: finalTxName,
-    });
+        if (type === 'transfer') {
+          txUpdate.fromAccountId = selectedAccountId;
+          // Ambil toAccountId lama dari parameter route
+          txUpdate.toAccountId = route.params.editingTransaction?.toAccountId;
+        } else {
+          txUpdate.accountId = selectedAccountId;
+        }
 
-    Alert.alert('Berhasil', `${type === 'income' ? 'Pemasukan' : 'Pengeluaran'} telah dicatat!`, [
-      { text: 'OK', onPress: () => {
-        setAmount('');
-        setName('');
-        setCategoryObj(null);
-        setCustomCategory('');
-        setCustomIcon('star');
-        setMyContrib('');
-        setIsPatungan(false);
-        navigation.goBack();
-      }}
-    ]);
-  };
+        await updateTransaction(editingId, txUpdate);
+      } else {
+        newId = await addTransaction({
+          name: finalTxName,
+          amount: numAmount,
+          type,
+          category: finalCategoryName,
+          icon: finalIcon || (type === 'income' ? 'payments' : 'receipt'),
+          owner: user?.name || 'Saya', 
+          isJoint: isKonta,
+          isPatungan: type === 'expense' ? (!isKonta && isPatungan) : false,
+          myContrib: fMy,
+          partnerContrib: fPar,
+          accountId: selectedAccountId,
+        });
+      }
 
-  const formatMoney = (val) => {
-    return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(val);
+      await addNotification({
+        title: isEditMode ? 'Transaksi Diperbarui' : 'Transaksi Baru',
+        body: `${user?.name || 'Pasangan'} baru saja ${isEditMode ? 'mengubah' : 'mencatat'} ${type === 'income' ? 'pemasukan' : 'pengeluaran'} "${finalTxName}" sebesar Rp ${formatMoney(numAmount)}.`,
+        icon: type === 'income' ? 'payments' : 'shopping-bag',
+        color: type === 'income' ? 'primary' : 'error',
+        sender: user?.name || 'Saya',
+        targetType: 'transaction',
+        targetId: newId,
+        targetName: finalTxName,
+      });
+
+      // Langsung balik ke Dashboard biar terasa instant + Highlight
+      navigation.navigate('MainTabs', { 
+        screen: 'Dashboard',
+        params: { highlightTxId: newId } 
+      });
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Gagal', 'Terjadi kesalahan saat menyimpan transaksi.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getStyles = (t) => StyleSheet.create({
@@ -211,6 +311,7 @@ const TransactionScreen = ({ navigation, route }) => {
     nominalInputWrapper: { position: 'relative', justifyContent: 'center', marginBottom: 24, marginTop: 12 },
     nominalCurrency: { position: 'absolute', left: 20, zIndex: 10, color: t.primary, fontWeight: 'bold', fontSize: 20 },
     nominalInput: { backgroundColor: t.surfaceContainerLowest, borderRadius: 24, paddingVertical: 20, paddingLeft: 64, paddingRight: 24, fontSize: 30, fontWeight: 'bold', color: t.onSurface },
+    inputAmount: { backgroundColor: t.surfaceContainerLowest, borderRadius: 24, paddingVertical: 20, paddingLeft: 64, paddingRight: 24, fontSize: 30, fontWeight: 'bold', color: t.onSurface },
     
     switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: t.surfaceContainerLowest + '80', padding: 16, borderRadius: 24, borderWidth: 1, borderColor: t.outlineVariant + '1A', marginBottom: 24 },
     switchLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -380,12 +481,18 @@ const TransactionScreen = ({ navigation, route }) => {
           <View style={styles.nominalInputWrapper}>
             <Text style={styles.nominalCurrency}>IDR</Text>
             <TextInput 
-              style={styles.nominalInput}
+              style={styles.inputAmount}
               placeholder="0"
               placeholderTextColor={theme.surfaceContainerHighest}
               keyboardType="numeric"
               value={amount}
-              onChangeText={setAmount}
+              onChangeText={handleAmountChange}
+              selection={selectionState}
+              onSelectionChange={(e) => {
+                const sel = e.nativeEvent.selection;
+                setSelectionState(sel);
+                selectionRef.current = sel;
+              }}
             />
           </View>
 
@@ -441,7 +548,13 @@ const TransactionScreen = ({ navigation, route }) => {
                         keyboardType="numeric" 
                         placeholderTextColor={theme.onSurfaceVariant} 
                         value={myContrib}
-                        onChangeText={setMyContrib}
+                        onChangeText={handleMyContribChange}
+                        selection={selectionMyState}
+                        onSelectionChange={(e) => {
+                          const sel = e.nativeEvent.selection;
+                          setSelectionMyState(sel);
+                          selectionMyRef.current = sel;
+                        }}
                       />
                     </View>
                   </View>
@@ -516,12 +629,26 @@ const TransactionScreen = ({ navigation, route }) => {
             );
           })()}
 
-          <TouchableOpacity style={styles.submitBtn} activeOpacity={0.8} onPress={handleSave}>
+          <TouchableOpacity 
+            style={[styles.submitBtn, { opacity: loading ? 0.7 : 1 }]} 
+            activeOpacity={0.8} 
+            onPress={handleSave}
+            disabled={loading}
+          >
             <LinearGradient colors={[theme.primary, theme.primaryContainer]} style={styles.submitGradient} start={{x:0, y:0}} end={{x:1, y:1}}>
-              <Text style={styles.submitText}>Simpan Transaksi</Text>
-              <View style={styles.submitIconBg}>
-                <MaterialIcons name="save" size={20} color={theme.onPrimary} />
-              </View>
+              {loading ? (
+                <>
+                  <ActivityIndicator color={theme.onPrimary} size="small" />
+                  <Text style={styles.submitText}>Memproses...</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.submitText}>{isEditMode ? 'Simpan Perubahan' : 'Simpan Transaksi'}</Text>
+                  <View style={styles.submitIconBg}>
+                    <MaterialIcons name={isEditMode ? 'check' : 'save'} size={20} color={theme.onPrimary} />
+                  </View>
+                </>
+              )}
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -531,7 +658,7 @@ const TransactionScreen = ({ navigation, route }) => {
             <Text style={styles.recentTitle}>Riwayat Anda</Text>
           </View>
 
-          {transactions.slice(0, 5).map(tx => (
+          {(transactions || []).slice(0, 5).map(tx => (
             <View key={tx.id} style={styles.txItem}>
               <View style={styles.txLeft}>
                 <View style={styles.txIconBg}>
@@ -543,16 +670,20 @@ const TransactionScreen = ({ navigation, route }) => {
                     <Text style={tx.isJoint ? styles.txBadgeKita : styles.txBadgePribadi}>
                       {tx.isPatungan ? 'PATUNGAN' : tx.isJoint ? 'KITA' : 'PRIBADI'}
                     </Text>
-                    <Text style={styles.txTime}>{new Date(tx.date).toLocaleDateString('id-ID')}</Text>
+                    <Text style={styles.txTime}>
+                      {new Date(tx.date).toString() !== 'Invalid Date' 
+                        ? new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) 
+                        : '-'}
+                    </Text>
                   </View>
                 </View>
               </View>
               <View style={styles.txRight}>
                 <Text style={tx.type === 'income' ? styles.txAmountPos : styles.txAmountNeg}>
-                  {tx.type === 'income' ? '+' : '-'} {formatMoney(tx.amount)}
+                  {tx.type === 'income' ? '+' : '-'} {formatMoney(tx.amount || 0)}
                 </Text>
                 {tx.isPatungan ? (
-                  <Text style={styles.txCatTag}>Psg: {formatMoney(tx.partnerContrib)}</Text>
+                  <Text style={styles.txCatTag}>Psg: {formatMoney(tx.partnerContrib || 0)}</Text>
                 ) : (
                   <Text style={styles.txCatTag}>{tx.category}</Text>
                 )}
