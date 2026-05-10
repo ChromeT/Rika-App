@@ -182,7 +182,8 @@ const CoupleScreen = ({ navigation }) => {
             // Helper to determine status and visual info
             const getGoalStatusInfo = (g) => {
               const progress = g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0;
-              if (g.status === 'achieved') return { icon: 'stars', color: '#FFB800', badge: 'Terwujud', type: 'ACHIEVED', progress };
+              const isGoalAchieved = g.status === 'achieved' || g.achieved === true;
+              if (isGoalAchieved) return { icon: 'stars', color: '#FFB800', badge: 'Terwujud', type: 'ACHIEVED', progress };
               if (progress >= 100) return { icon: 'flag', color: '#10B981', badge: 'Siap Lunas', type: 'READY', progress };
               if (progress > 0) return { icon: 'donut-large', color: theme.primary, badge: `Berjalan ${progress.toFixed(0)}%`, type: 'PROGRESS', progress };
               return { icon: 'lightbulb', color: theme.onSurfaceVariant, badge: 'Rencana Baru', type: 'NEW', progress };
@@ -193,7 +194,7 @@ const CoupleScreen = ({ navigation }) => {
             ];
 
             // Achieved goals
-            goals.filter(g => g.status === 'achieved').forEach(g => {
+            goals.filter(g => g.status === 'achieved' || g.achieved === true).forEach(g => {
               const info = getGoalStatusInfo(g);
               pastMilestones.push({
                 id: g.id,
@@ -214,7 +215,7 @@ const CoupleScreen = ({ navigation }) => {
 
             // Future Roadmap
             const roadmapItems = goals
-              .filter(g => g.status !== 'achieved' && g.targetDate)
+              .filter(g => g.status !== 'achieved' && g.achieved !== true && g.targetDate)
               .sort((a,b) => new Date(a.targetDate) - new Date(b.targetDate))
               .map(g => {
                 const info = getGoalStatusInfo(g);
