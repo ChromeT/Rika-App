@@ -28,6 +28,33 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Missing required fields (token, title, body)' });
   }
 
+  // DETEKSI JALUR: Expo (Native APK) atau Firebase (Web PWA)
+  if (token.startsWith('ExponentPushToken') || token.startsWith('ExpoPushToken')) {
+    try {
+      const response = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Accept-encoding': 'gzip, deflate',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: token,
+          sound: 'default',
+          title: title,
+          body: body,
+          data: data || {},
+        }),
+      });
+      const result = await response.json();
+      return res.status(200).json({ success: true, result });
+    } catch (error) {
+      console.error('Expo Push Error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  // Jalur Firebase (Web PWA)
   try {
     const message = {
       token: token,

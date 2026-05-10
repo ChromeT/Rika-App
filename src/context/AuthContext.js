@@ -1,10 +1,25 @@
 import React, { createContext, useState, useEffect } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db, messaging } from '../config/firebase';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, onSnapshot } from 'firebase/firestore';
 import { getToken, onMessage } from 'firebase/messaging';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 
 export const AuthContext = createContext();
+
+// Setup Notification Handler for Native
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); // { name: 'Ayip', householdId: 'X8P2K9' }
@@ -19,48 +34,72 @@ export const AuthProvider = ({ children }) => {
 
   // Push Notification Setup
   useEffect(() => {
-    if (user && user.householdId && messaging && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      const requestPermission = async () => {
-        try {
-          console.log('Memulai registrasi FCM...');
-          const permission = await Notification.requestPermission();
-          console.log('Status izin notifikasi:', permission);
-          
-          if (permission === 'granted') {
-            // Register service worker secara manual untuk memastikan lokasi benar
-            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-            console.log('Service Worker terdaftar, menunggu status aktif...');
-            
-            // Tunggu sampai Service Worker benar-benar aktif (Ready)
-            await navigator.serviceWorker.ready;
-            console.log('Service Worker sudah aktif dan siap!');
-
-            const token = await getToken(messaging, {
-              vapidKey: 'BAUK0mQIyvfLwX4_W6oBFchmwIrkb60lr7eGK7u_qOVJDODAjfBb7e3zKrXt5mcKPzMtxZCvV9FpHc132PrJm3M',
-              serviceWorkerRegistration: registration
-            });
-
-            if (token) {
-              console.log('FCM Token Berhasil Didapat:', token);
-              await updateDoc(doc(db, 'households', user.householdId), {
-                [`fcmTokens.${user.name}`]: token
-              });
-            } else {
-              console.warn('Token kosong, cek VAPID Key atau konfigurasi Firebase.');
+    if (user && user.householdId) {
+      const registerForPushNotifications = async () => {
+        if (Platform.OS === 'web') {
+          if (messaging && 'serviceWorker' in navigator) {
+            try {
+              console.log('Memulai registrasi FCM Web...');
+              const permission = await Notification.requestPermission();
+              if (permission === 'granted') {
+                const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                await navigator.serviceWorker.ready;
+                const token = await getToken(messaging, {
+                  vapidKey: 'BAUK0mQIyvfLwX4_W6oBFchmwIrkb60lr7eGK7u_qOVJDODAjfBb7e3zKrXt5mcKPzMtxZCvV9FpHc132PrJm3M',
+                  serviceWorkerRegistration: registration
+                });
+                if (token) {
+                  console.log('FCM Web Token Didapat:', token);
+                  await updateDoc(doc(db, 'households', user.householdId), {
+                    [`fcmTokens.${user.name}`]: token,
+                    [`tokenType.${user.name}`]: 'web'
+                  });
+                }
+              }
+            } catch (error) {
+              console.error('FCM Web Error:', error);
             }
           }
-        } catch (error) {
-          console.error('FCM Error Detail:', error);
+        } else {
+          // Native Push (APK)
+          if (Device.isDevice) {
+            try {
+              const { status: existingStatus } = await Notifications.getPermissionsAsync();
+              let finalStatus = existingStatus;
+              if (existingStatus !== 'granted') {
+                const { status } = await Notifications.requestPermissionsAsync();
+                finalStatus = status;
+              }
+              if (finalStatus === 'granted') {
+                const token = (await Notifications.getExpoPushTokenAsync({
+                  projectId: Constants.expoConfig?.extra?.eas?.projectId,
+                })).data;
+                console.log('Expo Native Token Didapat:', token);
+                await updateDoc(doc(db, 'households', user.householdId), {
+                  [`fcmTokens.${user.name}`]: token,
+                  [`tokenType.${user.name}`]: 'expo'
+                });
+              }
+            } catch (error) {
+              console.error('Native Push Error:', error);
+            }
+          }
         }
       };
 
-      requestPermission();
+      registerForPushNotifications();
 
-      const unsubscribe = onMessage(messaging, (payload) => {
-        console.log('Pesan diterima (Foreground):', payload);
-      });
-
-      return () => unsubscribe();
+      if (Platform.OS === 'web' && messaging) {
+        const unsubscribe = onMessage(messaging, (payload) => {
+          console.log('Pesan diterima (Web Foreground):', payload);
+        });
+        return () => unsubscribe();
+      } else {
+        const subscription = Notifications.addNotificationReceivedListener(notification => {
+          console.log('Pesan diterima (Native):', notification);
+        });
+        return () => subscription.remove();
+      }
     }
   }, [user]);
 
