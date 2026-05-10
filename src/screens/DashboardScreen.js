@@ -631,6 +631,8 @@ const DashboardScreen = ({ navigation, route }) => {
             onScrollBeginDrag={() => navigation.setOptions({ swipeEnabled: false })}
             onScrollEndDrag={() => navigation.setOptions({ swipeEnabled: true })}
             onMomentumScrollEnd={() => navigation.setOptions({ swipeEnabled: true })}
+            onTouchStart={() => navigation.setOptions({ swipeEnabled: false })}
+            onTouchEnd={() => navigation.setOptions({ swipeEnabled: true })}
           >
             {filteredAccounts.length === 0 ? (
               filter === 'Pasangan' ? (
@@ -701,6 +703,8 @@ const DashboardScreen = ({ navigation, route }) => {
               onScrollBeginDrag={() => navigation.setOptions({ swipeEnabled: false })}
               onScrollEndDrag={() => navigation.setOptions({ swipeEnabled: true })}
               onMomentumScrollEnd={() => navigation.setOptions({ swipeEnabled: true })}
+              onTouchStart={() => navigation.setOptions({ swipeEnabled: false })}
+              onTouchEnd={() => navigation.setOptions({ swipeEnabled: true })}
             >
               {['Hari ini', 'Minggu ini', 'Bulan ini', 'Tahun ini', 'Semua Waktu'].map((period) => (
                 <TouchableOpacity 
