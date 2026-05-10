@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeContext } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
 import { AuthContext } from '../context/AuthContext';
+import { exportToXLS, exportToPDF } from '../utils/exportUtils';
 import Svg, { Circle, G } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
@@ -18,6 +19,7 @@ const DashboardScreen = () => {
   
   const navigation = useNavigation();
   const [filter, setFilter] = useState('Kita');
+  const [timeFilter, setTimeFilter] = useState('Bulan ini');
   const [notifyVisible, setNotifyVisible] = useState(false);
   const [billModalVisible, setBillModalVisible] = useState(false);
   const [billActionModalVisible, setBillActionModalVisible] = useState(false);
@@ -149,7 +151,25 @@ const DashboardScreen = () => {
 
 
   const activeName = filter === 'Saya' ? myName : (filter === 'Pasangan' ? partnerName : 'Kita');
-  const filteredTx = transactions.filter(tx => filter === 'Kita' || tx.owner === activeName);
+  
+  const filteredByTime = transactions.filter(tx => {
+    const txDate = new Date(tx.date);
+    const today = new Date();
+    if (timeFilter === 'Hari ini') {
+      return txDate.toDateString() === today.toDateString();
+    } else if (timeFilter === 'Minggu ini') {
+      const lastWeek = new Date();
+      lastWeek.setDate(today.getDate() - 7);
+      return txDate >= lastWeek;
+    } else if (timeFilter === 'Bulan ini') {
+      return txDate.getMonth() === today.getMonth() && txDate.getFullYear() === today.getFullYear();
+    } else if (timeFilter === 'Tahun ini') {
+      return txDate.getFullYear() === today.getFullYear();
+    }
+    return true; // Semua Waktu
+  });
+
+  const filteredTx = filteredByTime.filter(tx => filter === 'Kita' || tx.owner === activeName);
   const currentBalance = getBalance(activeName);
 
   const formatMoney = (amount) => {
@@ -504,9 +524,45 @@ const DashboardScreen = () => {
         <View style={styles.bentoRow}>
           <View style={styles.chartCard}>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Pengeluaran</Text>
-              <Text style={styles.cardBadge}>Bulan ini</Text>
+              <View>
+                <Text style={styles.cardTitle}>Pengeluaran</Text>
+                <Text style={styles.cardBadge}>{timeFilter}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TouchableOpacity 
+                  onPress={() => exportToPDF(filteredTx, timeFilter, user?.name || 'User')} 
+                  style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: theme.primary + '1A', justifyContent: 'center', alignItems: 'center' }}
+                >
+                  <MaterialIcons name="picture-as-pdf" size={20} color={theme.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={() => exportToXLS(filteredTx, timeFilter, user?.name || 'User')} 
+                  style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: theme.primary + '1A', justifyContent: 'center', alignItems: 'center' }}
+                >
+                  <MaterialIcons name="table-view" size={20} color={theme.primary} />
+                </TouchableOpacity>
+              </View>
             </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16, marginTop: 4 }}>
+              {['Hari ini', 'Minggu ini', 'Bulan ini', 'Tahun ini', 'Semua Waktu'].map((period) => (
+                <TouchableOpacity 
+                  key={period} 
+                  onPress={() => setTimeFilter(period)}
+                  style={{ 
+                    paddingHorizontal: 12, 
+                    paddingVertical: 6, 
+                    borderRadius: 20, 
+                    backgroundColor: timeFilter === period ? theme.primaryContainer : 'transparent',
+                    marginRight: 8,
+                    borderWidth: 1,
+                    borderColor: timeFilter === period ? theme.primary : theme.outlineVariant + '33'
+                  }}
+                >
+                  <Text style={{ fontSize: 10, fontWeight: 'bold', color: timeFilter === period ? theme.onPrimaryContainer : theme.onSurfaceVariant }}>{period}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
             
             {segments.length > 0 ? (
               <>

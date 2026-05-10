@@ -50,38 +50,7 @@ const SettingsScreen = ({ navigation }) => {
     return <MaterialIcons name={src || "person"} size={size} color={theme.primary} />;
   };
 
-    // Handler for export buttons
-  const handleExport = async (period, format) => {
-    // Filter transactions based on period
-    const now = new Date();
-    let startDate;
-    
-    if (period === 'harian') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    } else if (period === 'mingguan') {
-      const dayOfWeek = now.getDay(); // 0=Sunday, 1=Monday, etc.
-      startDate = new Date(now);
-      startDate.setDate(now.getDate() - dayOfWeek); // Start of week (Sunday)
-      startDate.setHours(0, 0, 0, 0);
-    } else if (period === 'bulanan') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    } else {
-      startDate = new Date(0); // All time
-    }
-    
-    const filteredTx = transactions.filter(tx => {
-      const txDate = new Date(tx.date);
-      if (isNaN(txDate.getTime())) return false;
-      return txDate >= startDate && txDate <= now;
-    });
-    
-    if (format === 'PDF') {
-      await exportToPDF(filteredTx, period);
-    } else if (format === 'XLS') {
-      await exportToXLS(filteredTx, period);
-    }
-  };
-
+  
   const getStyles = (t) => StyleSheet.create({
     container: { flex: 1, backgroundColor: t.background },
     header: {
@@ -134,24 +103,6 @@ const SettingsScreen = ({ navigation }) => {
     acBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
     acBtnText: { color: t.primary, fontWeight: 'bold', fontSize: 12 },
 
-    reportRow: { flexDirection: 'row', gap: 16, marginBottom: 32 },
-    reportCol: { flex: 1, gap: 16 },
-    rCard: { backgroundColor: t.surfaceContainer, borderRadius: 24, padding: 20 },
-    rIconBg: { width: 40, height: 40, borderRadius: 20, backgroundColor: t.primary + '1A', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-    rTitle: { fontSize: 14, fontWeight: 'bold', color: t.onSurface, marginBottom: 4, fontFamily: t.fontFamily },
-    rDesc: { fontSize: 10, color: t.onSurfaceVariant, marginBottom: 16, fontFamily: t.fontFamily },
-    rBtnRow: { flexDirection: 'row', gap: 8 },
-    rBtn: { flex: 1, backgroundColor: t.surfaceContainerHighest, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-    rBtnText: { fontSize: 10, fontWeight: 'bold', color: t.onSurfaceVariant },
-    
-    rCardPop: { backgroundColor: t.surfaceContainerLow, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: t.primary + '33', position: 'relative', overflow: 'hidden' },
-    rPopBadge: { position: 'absolute', top: 12, right: 12, backgroundColor: t.primary + '33', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-    rPopBadgeText: { color: t.primary, fontSize: 8, fontWeight: 'bold', textTransform: 'uppercase' },
-    rPopTitle: { fontSize: 14, fontWeight: 'bold', color: t.primary, marginBottom: 4, fontFamily: t.fontFamily },
-    rBtnPopP: { flex: 1, backgroundColor: t.primary, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-    rBtnPopPText: { fontSize: 10, fontWeight: 'bold', color: t.onPrimary },
-    rBtnPopS: { flex: 1, backgroundColor: t.primaryContainer, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-    rBtnPopSText: { fontSize: 10, fontWeight: 'bold', color: t.onPrimaryContainer },
 
     viewSection: { gap: 24, marginBottom: 32 },
     vCardRow: { backgroundColor: t.surfaceContainerLow, padding: 24, borderRadius: 32, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -209,6 +160,46 @@ const SettingsScreen = ({ navigation }) => {
     changeAccent(hex);
     setCustomHexInput('');
     setCustomColorModalVisible(false);
+  };
+
+  const filterTransactionsByPeriod = (period) => {
+    const now = new Date();
+    let startDate;
+    if (period === 'harian') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (period === 'mingguan') {
+      const dayOfWeek = now.getDay();
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - dayOfWeek);
+      startDate.setHours(0, 0, 0, 0);
+    } else if (period === 'bulanan') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else {
+      startDate = new Date(0);
+    }
+    return transactions.filter(tx => {
+      const txDate = new Date(tx.date);
+      return !isNaN(txDate.getTime()) && txDate >= startDate && txDate <= now;
+    });
+  };
+
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [exportPeriod, setExportPeriod] = useState('bulanan');
+  const [exportFilters, setExportFilters] = useState({ user: 'Kita', type: 'Semua' });
+
+  const startExport = (period) => {
+    setExportPeriod(period);
+    setExportModalVisible(true);
+  };
+
+  const confirmExport = (format) => {
+    const filtered = filterTransactionsByPeriod(exportPeriod);
+    if (format === 'PDF') {
+      exportToPDF(filtered, exportPeriod.charAt(0).toUpperCase() + exportPeriod.slice(1), user?.name || 'User', exportFilters);
+    } else {
+      exportToXLS(filtered, exportPeriod.charAt(0).toUpperCase() + exportPeriod.slice(1), user?.name || 'User', exportFilters);
+    }
+    setExportModalVisible(false);
   };
 
   return (
@@ -294,40 +285,56 @@ const SettingsScreen = ({ navigation }) => {
           </View>
         )}
 
-        <Text style={[styles.sectionTitle, { marginBottom: 24 }]}>Laporan & Analisa</Text>
-        <View style={styles.reportRow}>
-          <View style={styles.reportCol}>
-            <View style={styles.rCard}>
-              <View style={styles.rIconBg}><MaterialIcons name="calendar-today" size={20} color={theme.primary} /></View>
-              <Text style={styles.rTitle}>Harian</Text>
-              <Text style={styles.rDesc}>Cek pengeluaran kopi dan jajan hari ini.</Text>
-              <View style={styles.rBtnRow}>
-                <TouchableOpacity style={styles.rBtn} onPress={() => handleExport("harian", "PDF")}><Text style={styles.rBtnText}>PDF</Text></TouchableOpacity>
-                <TouchableOpacity style={styles.rBtn} onPress={() => handleExport("harian", "XLS")}><Text style={styles.rBtnText}>XLS</Text></TouchableOpacity>
-              </View>
-            </View>
-            <View style={styles.rCard}>
-              <View style={styles.rIconBg}><MaterialIcons name="date-range" size={20} color={theme.primary} /></View>
-              <Text style={styles.rTitle}>Mingguan</Text>
-              <Text style={styles.rDesc}>Rekap belanja mingguan kita berdua.</Text>
-              <View style={styles.rBtnRow}>
-                <TouchableOpacity style={styles.rBtn} onPress={() => handleExport("mingguan", "PDF")}><Text style={styles.rBtnText}>PDF</Text></TouchableOpacity>
-                <TouchableOpacity style={styles.rBtn} onPress={() => handleExport("mingguan", "XLS")}><Text style={styles.rBtnText}>XLS</Text></TouchableOpacity>
-              </View>
-            </View>
-          </View>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionTitle}>Laporan & Analisa</Text>
+          <View style={styles.badge}><Text style={styles.badgeText}>Periodik</Text></View>
+        </View>
 
-          <View style={[styles.reportCol, { justifyContent: 'center' }]}>
-            <View style={styles.rCardPop}>
-              <View style={styles.rPopBadge}><Text style={styles.rPopBadgeText}>POPULER</Text></View>
-              <View style={[styles.rIconBg, { backgroundColor: theme.primary + '33' }]}><MaterialIcons name="analytics" size={20} color={theme.primary} /></View>
-              <Text style={styles.rPopTitle}>Bulanan</Text>
-              <Text style={styles.rDesc}>Analisa mendalam cashflow bulanan.</Text>
-              <View style={styles.rBtnRow}>
-                <TouchableOpacity style={styles.rBtnPopP} onPress={() => handleExport("bulanan", "PDF")}><Text style={styles.rBtnPopPText}>PDF</Text></TouchableOpacity>
-                <TouchableOpacity style={styles.rBtnPopS} onPress={() => handleExport("bulanan", "XLS")}><Text style={styles.rBtnPopSText}>XLS</Text></TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 12, height: 210, marginBottom: 32 }}>
+          {/* Kartu Bulanan - Highlighted */}
+          <TouchableOpacity 
+            activeOpacity={0.9}
+            style={{ flex: 1.2, backgroundColor: theme.primary, borderRadius: 28, padding: 20, justifyContent: 'space-between', overflow: 'hidden' }}
+            onPress={() => startExport('bulanan')}
+          >
+            <View style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+            <View>
+              <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+                <MaterialIcons name="analytics" size={24} color="#FFF" />
               </View>
+              <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold', fontFamily: theme.fontFamily }}>Bulanan</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11, marginTop: 4, fontFamily: theme.fontFamily }}>Analisa mendalam cashflow bulanan</Text>
             </View>
+            <TouchableOpacity onPress={() => startExport('bulanan')} style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 10, borderRadius: 12, alignItems: 'center' }}>
+              <Text style={{ color: '#FFF', fontSize: 11, fontWeight: 'bold' }}>Unduh Laporan</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+
+          {/* Harian & Mingguan Side Column */}
+          <View style={{ flex: 1, gap: 12 }}>
+            <TouchableOpacity 
+              activeOpacity={0.8}
+              style={{ flex: 1, backgroundColor: theme.surfaceContainerLow, borderRadius: 24, padding: 16, justifyContent: 'center', borderWidth: 1, borderColor: theme.outlineVariant + '33' }}
+              onPress={() => startExport('harian')}
+            >
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: theme.primary + '1A', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
+                <MaterialIcons name="today" size={20} color={theme.primary} />
+              </View>
+              <Text style={{ color: theme.onSurface, fontSize: 14, fontWeight: 'bold', fontFamily: theme.fontFamily }}>Harian</Text>
+              <Text style={{ color: theme.onSurfaceVariant, fontSize: 10, fontFamily: theme.fontFamily }}>Jajan hari ini</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              activeOpacity={0.8}
+              style={{ flex: 1, backgroundColor: theme.surfaceContainerLow, borderRadius: 24, padding: 16, justifyContent: 'center', borderWidth: 1, borderColor: theme.outlineVariant + '33' }}
+              onPress={() => startExport('mingguan')}
+            >
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: theme.primary + '1A', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
+                <MaterialIcons name="date-range" size={20} color={theme.primary} />
+              </View>
+              <Text style={{ color: theme.onSurface, fontSize: 14, fontWeight: 'bold', fontFamily: theme.fontFamily }}>Mingguan</Text>
+              <Text style={{ color: theme.onSurfaceVariant, fontSize: 10, fontFamily: theme.fontFamily }}>Rekap seminggu</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -337,7 +344,6 @@ const SettingsScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.viewSection}>
-
           <TouchableOpacity style={styles.vCardRow} onPress={() => navigation.navigate("Categories")}>
             <View style={styles.vCardLeft}>
               <View style={styles.vIconBg}><MaterialIcons name="category" size={24} color={theme.primary} /></View>
@@ -420,8 +426,68 @@ const SettingsScreen = ({ navigation }) => {
         <Text style={styles.versionText}>RIKA V2.4.0 • DIBUAT DENGAN CINTA</Text>
       </ScrollView>
 
+      {/* Export Filter Modal */}
+      <Modal visible={exportModalVisible} transparent animationType="slide" onRequestClose={() => setExportModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={[styles.modalTitle, { marginBottom: 8 }]}>Filter Laporan</Text>
+            <Text style={{ textAlign: 'center', color: theme.onSurfaceVariant, fontSize: 12, marginBottom: 24, textTransform: 'capitalize' }}>Periode: {exportPeriod}</Text>
+            
+            <View style={{ marginBottom: 20 }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.onSurface, marginBottom: 12 }}>Pilih Data Pengguna:</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {[
+                  { label: myName, value: 'Saya' },
+                  { label: partnerName || 'Pasangan', value: 'Pasangan' },
+                  { label: 'Kita', value: 'Kita' }
+                ].map(opt => (
+                  <TouchableOpacity 
+                    key={opt.value} 
+                    onPress={() => setExportFilters({ ...exportFilters, user: opt.value })}
+                    style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 4, borderRadius: 12, backgroundColor: exportFilters.user === opt.value ? theme.primary : theme.surfaceContainerHighest, alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <Text numberOfLines={1} style={{ color: exportFilters.user === opt.value ? theme.onPrimary : theme.onSurfaceVariant, fontSize: 11, fontWeight: 'bold' }}>{opt.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={{ marginBottom: 32 }}>
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.onSurface, marginBottom: 12 }}>Pilih Tipe Transaksi:</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {['Semua', 'Pengeluaran', 'Pemasukan'].map(t => (
+                  <TouchableOpacity 
+                    key={t} 
+                    onPress={() => setExportFilters({ ...exportFilters, type: t })}
+                    style={{ flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: exportFilters.type === t ? theme.primary : theme.surfaceContainerHighest, alignItems: 'center' }}
+                  >
+                    <Text style={{ color: exportFilters.type === t ? theme.onPrimary : theme.onSurfaceVariant, fontSize: 12, fontWeight: 'bold' }}>{t}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity style={{ flex: 1, backgroundColor: theme.surfaceContainerLow, borderWidth: 1, borderColor: '#F44336', padding: 16, borderRadius: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }} onPress={() => confirmExport('PDF')}>
+                <MaterialIcons name="picture-as-pdf" size={20} color="#F44336" />
+                <Text style={{ color: '#F44336', fontWeight: 'bold' }}>PDF</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={{ flex: 1, backgroundColor: theme.surfaceContainerLow, borderWidth: 1, borderColor: '#4CAF50', padding: 16, borderRadius: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }} onPress={() => confirmExport('XLS')}>
+                <MaterialIcons name="table-view" size={20} color="#4CAF50" />
+                <Text style={{ color: '#4CAF50', fontWeight: 'bold' }}>XLS</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity style={[styles.btnCancel, { marginTop: 12 }]} onPress={() => setExportModalVisible(false)}>
+              <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Batal</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Avatar Modal */}
       <Modal visible={avatarModalVisible} transparent animationType="slide" onRequestClose={() => setAvatarModalVisible(false)}>
+
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Pilih Foto Profil</Text>
