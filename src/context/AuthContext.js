@@ -1,7 +1,8 @@
 import React, { createContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { db } from '../config/firebase';
+import { db, messaging } from '../config/firebase';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, onSnapshot } from 'firebase/firestore';
+import { getToken, onMessage } from 'firebase/messaging';
 
 export const AuthContext = createContext();
 
@@ -15,6 +16,41 @@ export const AuthProvider = ({ children }) => {
 
   const [avatar, setAvatar] = useState('person');
   const [lastReadNotif, setLastReadNotif] = useState(0);
+
+  // Push Notification Setup
+  useEffect(() => {
+    if (user && user.householdId && messaging) {
+      const requestPermission = async () => {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            const token = await getToken(messaging, {
+              vapidKey: 'BMYpW-37-8-6_r8_f1XqJ2-wM1954n6B8o5R9_rY0Z5n6-m6-m6-m6-m6-m6-m6-m6' // VAPID KEY dummy for now, we'll see
+            });
+            if (token) {
+              console.log('FCM Token:', token);
+              // Simpan token ke Firestore agar pasangan bisa kirim notif ke kita
+              await updateDoc(doc(db, 'households', user.householdId), {
+                [`fcmTokens.${user.name}`]: token
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error requesting notification permission:', error);
+        }
+      };
+
+      requestPermission();
+
+      // Listen to foreground messages
+      const unsubscribe = onMessage(messaging, (payload) => {
+        console.log('Foreground message received:', payload);
+        // You could show a local alert/toast here if needed
+      });
+
+      return () => unsubscribe();
+    }
+  }, [user]);
 
   useEffect(() => {
     const loadUser = async () => {

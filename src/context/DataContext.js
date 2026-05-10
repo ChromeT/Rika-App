@@ -270,6 +270,12 @@ export const DataProvider = ({ children }) => {
             // Set status jadi pending_partner jika porsi pasangan > 0
             if (Number(tx.partnerContrib || 0) > 0) {
               await updateDoc(docRef, { status: 'pending_partner' });
+              
+              // KIRIM PUSH NOTIFICATION KE PASANGAN
+              const partnerName = householdUsers.find(u => u !== user?.name);
+              if (partnerName) {
+                sendPushNotification(partnerName, 'Butuh Konfirmasi!', `${user?.name} baru saja input patungan: ${tx.name}`);
+              }
             } else {
               await updateDoc(docRef, { status: 'completed' });
             }
@@ -690,13 +696,17 @@ export const DataProvider = ({ children }) => {
       // 1. Potong saldo dompet yang dipilih pasangan
       await updateAccount(partnerAccountId, { balance: newBalance });
 
-      // 2. Update status transaksi jadi lunas & simpan ID dompet pasangan
-      const txRef = doc(db, 'households', user.householdId, 'transactions', txId);
-      await updateDoc(txRef, { 
-        status: 'completed', 
+      // 2. Update status transaksi jadi lunas & simpan
+      await updateDoc(doc(db, 'households', user.householdId, 'transactions', tx.id), {
+        status: 'completed',
         partnerAccountId: partnerAccountId,
-        confirmedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString()
       });
+
+      // KIRIM PUSH NOTIFICATION KE INISIATOR
+      if (tx.owner && tx.owner !== user.name) {
+        sendPushNotification(tx.owner, 'Patungan Dibayar!', `${user.name} baru saja mengonfirmasi pembayaran untuk ${tx.name}`);
+      }
 
       // 3. Kirim notifikasi balik
       await addNotification({
@@ -795,13 +805,47 @@ export const DataProvider = ({ children }) => {
     return balance;
   };
 
+  const sendPushNotification = async (targetUserName, title, body) => {
+    if (!householdData || !householdData.fcmTokens) return;
+    const targetToken = householdData.fcmTokens[targetUserName];
+    if (!targetToken) {
+      console.log('No FCM Token found for', targetUserName);
+      return;
+    }
+
+    try {
+      const SERVER_KEY = 'YOUR_FIREBASE_SERVER_KEY'; 
+      
+      await fetch('https://fcm.googleapis.com/fcm/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `key=${SERVER_KEY}`,
+        },
+        body: JSON.stringify({
+          to: targetToken,
+          notification: {
+            title: title,
+            body: body,
+            sound: 'default',
+          },
+          data: {
+            type: 'split_confirmation',
+          }
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to send push notification:', error);
+    }
+  };
+
   return (
     <DataContext.Provider value={{
       transactions, addTransaction, updateTransaction, deleteTransaction, addTransfer, getBalance, confirmSplitTransaction,
       goals, addGoal, updateGoal, deleteGoal,
       bills, addBill, updateBill, deleteBill, payBill,
       accounts, addAccount, updateAccount, deleteAccount,
-      notifications, addNotification,
+      notifications, addNotification, sendPushNotification,
       categories, addCategory, updateCategory, deleteCategory,
       loading
     }}>
