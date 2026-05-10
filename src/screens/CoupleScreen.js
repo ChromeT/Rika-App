@@ -210,7 +210,16 @@ const CoupleScreen = ({ navigation }) => {
 
             // High assets
             if (totalAssets > 5000000) {
-              pastMilestones.push({ title: 'Benteng Keuangan: 5 Juta!', date: dayjs(), icon: 'shield', color: '#10B981', desc: 'Aset gabungan kita menembus 5 Juta. Fondasi masa depan makin kokoh!', type: 'SYSTEM' });
+              // Find the date when this might have happened (approx by latest transaction)
+              const latestTxDate = transactions.length > 0 ? dayjs(transactions[0].date) : dayjs();
+              pastMilestones.push({ 
+                title: 'Benteng Keuangan: 5 Juta!', 
+                date: latestTxDate, 
+                icon: 'shield', 
+                color: '#10B981', 
+                desc: 'Aset gabungan kita menembus 5 Juta. Fondasi masa depan makin kokoh!', 
+                type: 'SYSTEM' 
+              });
             }
 
             // Future Roadmap
@@ -260,7 +269,7 @@ const CoupleScreen = ({ navigation }) => {
                         <View style={[styles.miniBadge, { backgroundColor: m.color + '1A' }]}>
                           <Text style={[styles.miniBadgeText, { color: m.color }]}>{m.badge || (m.isFuture ? 'ROADMAP' : 'MEMORI')}</Text>
                         </View>
-                        <Text style={[styles.milestoneDate, { color: theme.onSurfaceVariant }]}>{m.date.format('MMM YYYY')}</Text>
+                        <Text style={[styles.milestoneDate, { color: theme.onSurfaceVariant }]}>{m.date.format('DD MMM YYYY')}</Text>
                       </View>
                     </View>
                   </View>
