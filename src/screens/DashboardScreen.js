@@ -19,10 +19,21 @@ const DashboardScreen = ({ navigation, route }) => {
   const [filter, setFilter] = useState('Kita');
   const [timeFilter, setTimeFilter] = useState('Bulan ini');
   const [notifyVisible, setNotifyVisible] = useState(false);
+  const [isEditingBill, setIsEditingBill] = useState(false);
   const [billModalVisible, setBillModalVisible] = useState(false);
   const [billActionModalVisible, setBillActionModalVisible] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
-  const [isEditingBill, setIsEditingBill] = useState(false);
+  
+  const [billName, setBillName] = useState('');
+  const [billAmount, setBillAmount] = useState('');
+  const [billDays, setBillDays] = useState('');
+  const [billType, setBillType] = useState('one-time'); // 'one-time', 'recurring', 'installment'
+  const [billTotalTenor, setBillTotalTenor] = useState('12');
+  const [billIcon, setBillIcon] = useState('receipt-long');
+  const [billColor, setBillColor] = useState('#6366F1');
+  
+  const [payBillModalVisible, setPayBillModalVisible] = useState(false);
+  const [selectedPayAccountId, setSelectedPayAccountId] = useState(null);
   
   // Custom Confirm Modal states
   const [confirmVisible, setConfirmVisible] = useState(false);
@@ -216,22 +227,6 @@ const DashboardScreen = ({ navigation, route }) => {
       markNotificationsAsRead(now);
     }
   };
-
-  // State for new bill
-  const [billName, setBillName] = useState('');
-  const [billAmount, setBillAmount] = useState('');
-  const [billDays, setBillDays] = useState('');
-  const [billType, setBillType] = useState('one-time'); // 'one-time', 'recurring', 'installment'
-  const [billTotalTenor, setBillTotalTenor] = useState('12');
-  const [billIcon, setBillIcon] = useState('receipt-long');
-  const [billColor, setBillColor] = useState('#6366F1');
-  const [isEditingBill, setIsEditingBill] = useState(false);
-  const [billModalVisible, setBillModalVisible] = useState(false);
-  const [billActionModalVisible, setBillActionModalVisible] = useState(false);
-  const [selectedBill, setSelectedBill] = useState(null);
-  
-  const [payBillModalVisible, setPayBillModalVisible] = useState(false);
-  const [selectedPayAccountId, setSelectedPayAccountId] = useState(null);
 
   const billAmountRef = useRef('');
   const selectionBillRef = useRef({ start: 0, end: 0 });
