@@ -231,10 +231,11 @@ const CoupleScreen = ({ navigation }) => {
                 return {
                   id: g.id,
                   title: g.name,
-                  date: dayjs(g.targetDate),
+                  date: targetDate,
                   icon: info.icon,
                   color: info.color,
                   desc: g.description || `Target Roadmap: Rencana pencapaian goal ini.`,
+                  dateLabel: `${isOverdue ? 'Terlewat ' : 'Target: '}${targetDate.format('DD MMM YYYY')}`,
                   isFuture: true,
                   badge: info.badge,
                   progress: info.progress,
@@ -269,7 +270,7 @@ const CoupleScreen = ({ navigation }) => {
                         <View style={[styles.miniBadge, { backgroundColor: m.color + '1A' }]}>
                           <Text style={[styles.miniBadgeText, { color: m.color }]}>{m.badge || (m.isFuture ? 'ROADMAP' : 'MEMORI')}</Text>
                         </View>
-                        <Text style={[styles.milestoneDate, { color: theme.onSurfaceVariant }]}>{m.date.format('DD MMM YYYY')}</Text>
+                        <Text style={[styles.milestoneDate, { color: theme.onSurfaceVariant }]}>{m.date.format('DD-MM-YYYY')}</Text>
                       </View>
                     </View>
                   </View>

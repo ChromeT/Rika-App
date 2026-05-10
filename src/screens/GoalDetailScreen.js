@@ -255,7 +255,7 @@ const GoalDetailScreen = ({ route }) => {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
                 <MaterialIcons name="event" size={14} color={isOverdue ? '#f2b8b5' : '#b2cad3'} />
                 <Text style={{ color: isOverdue ? '#f2b8b5' : '#b2cad3', fontSize: 12, fontWeight: 'bold' }}>
-                  {isOverdue ? 'Terlewat ' : 'Target: '} {targetDate.format('DD MMM YYYY')}
+                  {isOverdue ? 'Terlewat ' : 'Target: '} {targetDate.format('DD-MM-YYYY')}
                   {daysLeft !== null && !isOverdue && ` (${daysLeft} hari lagi)`}
                 </Text>
               </View>

@@ -110,6 +110,7 @@ export const EditGoalScreen = () => {
       const fa = formatInput(String(goal.actualAmount || 0));
       setActualAmount(fa);
       actualRef.current = fa;
+      setTargetDate(goal.targetDate || '');
     }
   }, [goal]);
   
