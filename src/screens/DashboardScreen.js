@@ -349,10 +349,13 @@ const DashboardScreen = ({ navigation, route }) => {
     const numDays = Number(billDays);
     const dueDate = new Date(Date.now() + numDays * 24 * 60 * 60 * 1000).toISOString();
     
+    const rawAmount = billAmount.replace(/\./g, '');
+    const numAmount = Number(rawAmount);
+    
     if (isEditingBill && selectedBill) {
       updateBill(selectedBill.id, {
         name: billName,
-        amount: Number(billAmount),
+        amount: numAmount,
         dueDate,
       });
       addNotification({
@@ -367,12 +370,12 @@ const DashboardScreen = ({ navigation, route }) => {
     } else {
       addBill({
         name: billName,
-        amount: Number(billAmount),
+        amount: numAmount,
         dueDate,
       });
       addNotification({
         title: 'Tagihan Baru',
-        body: `${myName} menambahkan tagihan baru: "${billName}" sebesar Rp ${formatMoney(Number(billAmount))}.`,
+        body: `${myName} menambahkan tagihan baru: "${billName}" sebesar Rp ${formatMoney(numAmount)}.`,
         icon: 'receipt-long',
         color: 'primary',
         sender: myName,
