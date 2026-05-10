@@ -165,9 +165,9 @@ const CoupleScreen = ({ navigation }) => {
         >
           <MaterialIcons name="auto-awesome" size={24} color={theme.primary} style={{ marginBottom: 8 }} />
           <Text style={[styles.mottoText, { color: theme.onSurface }]}>
-            "Uang bukan segalanya, tapi membangun masa depan bersama adalah segalanya."
+            "Seribu kali memilih, seribu kali aku akan memilihmu kembali."
           </Text>
-          <Text style={[styles.mottoAuthor, { color: theme.primary }]}>— Rika Financial Philosophy</Text>
+          <Text style={[styles.mottoAuthor, { color: theme.primary }]}>— SORE</Text>
         </TouchableOpacity>
 
         {/* Timeline Milestones */}
