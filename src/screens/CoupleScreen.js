@@ -71,6 +71,7 @@ const CoupleScreen = ({ navigation }) => {
               </View>
             </View>
 
+            <View style={styles.connectLine}>
               <View style={[styles.heartCircle, { backgroundColor: theme.primary }]}>
                 <MaterialIcons name="favorite" size={20} color="#fff" />
               </View>
