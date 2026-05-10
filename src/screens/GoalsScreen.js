@@ -327,18 +327,14 @@ export const AddGoalScreen = () => {
           <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>TARGET TANGGAL DICAPAI (ROADMAP)</Text>
           <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <MaterialIcons name="calendar-today" size={20} color={safeTheme.primary} />
-            <input 
+            <TextInput 
               type="date"
               value={targetDate}
-              onChange={(e) => setTargetDate(e.target.value)}
+              onChangeText={setTargetDate}
               style={{ 
-                backgroundColor: 'transparent', 
                 color: safeTheme.onSurface, 
-                fontSize: '16px', 
-                border: 'none', 
-                outline: 'none',
+                fontSize: 16, 
                 flex: 1,
-                fontFamily: 'inherit'
               }}
             />
           </View>

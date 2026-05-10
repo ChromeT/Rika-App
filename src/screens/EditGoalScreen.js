@@ -330,18 +330,14 @@ export const EditGoalScreen = () => {
             <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>TARGET TANGGAL (ROADMAP)</Text>
             <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
               <MaterialIcons name="calendar-today" size={18} color={theme.primary} style={{ marginRight: 10 }} />
-              <input 
+              <TextInput 
                 type="date"
                 value={targetDate}
-                onChange={(e) => setTargetDate(e.target.value)}
+                onChangeText={setTargetDate}
                 style={{ 
-                  backgroundColor: 'transparent', 
                   color: theme.onSurface, 
-                  fontSize: '15px', 
-                  border: 'none', 
-                  outline: 'none',
+                  fontSize: 15, 
                   flex: 1,
-                  fontFamily: 'inherit'
                 }}
               />
             </View>
