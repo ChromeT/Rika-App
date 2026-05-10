@@ -25,14 +25,16 @@ export const AuthProvider = ({ children }) => {
           const permission = await Notification.requestPermission();
           if (permission === 'granted') {
             const token = await getToken(messaging, {
-              vapidKey: 'BMYpW-37-8-6_r8_f1XqJ2-wM1954n6B8o5R9_rY0Z5n6-m6-m6-m6-m6-m6-m6-m6' // VAPID KEY dummy for now, we'll see
+              vapidKey: 'MASUKKAN_VAPID_KEY_ANDA_DI_SINI' 
             });
             if (token) {
-              console.log('FCM Token:', token);
+              console.log('FCM Token Berhasil Didapat:', token);
               // Simpan token ke Firestore agar pasangan bisa kirim notif ke kita
               await updateDoc(doc(db, 'households', user.householdId), {
                 [`fcmTokens.${user.name}`]: token
               });
+            } else {
+              console.log('Gagal mendapatkan Token (Cek VAPID Key)');
             }
           }
         } catch (error) {

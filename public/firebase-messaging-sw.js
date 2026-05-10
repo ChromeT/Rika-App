@@ -17,7 +17,8 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification.title || 'Rika App Notification';
   const notificationOptions = {
     body: payload.notification.body || 'Ada pesan baru untukmu.',
-    icon: '/favicon.ico'
+    icon: 'https://rika-app.vercel.app/assets/favicon.png',
+    badge: 'https://rika-app.vercel.app/assets/favicon.png'
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
