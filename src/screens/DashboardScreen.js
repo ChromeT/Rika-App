@@ -622,7 +622,16 @@ const DashboardScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
           
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.walletScroll} nestedScrollEnabled={true} directionalLockEnabled={true}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            style={styles.walletScroll} 
+            nestedScrollEnabled={true} 
+            directionalLockEnabled={true}
+            onScrollBeginDrag={() => navigation.setOptions({ swipeEnabled: false })}
+            onScrollEndDrag={() => navigation.setOptions({ swipeEnabled: true })}
+            onMomentumScrollEnd={() => navigation.setOptions({ swipeEnabled: true })}
+          >
             {filteredAccounts.length === 0 ? (
               filter === 'Pasangan' ? (
                 <View style={[styles.walletCard, { backgroundColor: theme.surfaceContainerLow, minWidth: 180, justifyContent: 'center', alignItems: 'center' }]}>
@@ -685,7 +694,14 @@ const DashboardScreen = ({ navigation, route }) => {
               </View>
             </View>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16, marginTop: 4 }}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              style={{ marginBottom: 16, marginTop: 4 }}
+              onScrollBeginDrag={() => navigation.setOptions({ swipeEnabled: false })}
+              onScrollEndDrag={() => navigation.setOptions({ swipeEnabled: true })}
+              onMomentumScrollEnd={() => navigation.setOptions({ swipeEnabled: true })}
+            >
               {['Hari ini', 'Minggu ini', 'Bulan ini', 'Tahun ini', 'Semua Waktu'].map((period) => (
                 <TouchableOpacity 
                   key={period} 
