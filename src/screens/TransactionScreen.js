@@ -6,6 +6,16 @@ import { ThemeContext } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
 import { AuthContext } from '../context/AuthContext';
 
+const availableCustomIcons = [
+  'star', 'pets', 'child-friendly', 'cake', 'favorite', 'emoji-events',
+  'payments', 'account-balance-wallet', 'savings', 'paid', 'monetization-on', 'trending-up', 'work', 'volunteer-activism', 'card-giftcard',
+  'restaurant', 'local-cafe', 'fastfood', 'local-grocery-store', 'local-pizza',
+  'commute', 'directions-car', 'local-gas-station', 'flight', 'water-drop', 'bolt', 'wifi', 'phone-iphone',
+  'shopping-cart', 'checkroom', 'movie', 'sports-esports', 'fitness-center', 'spa', 'palette',
+  'medical-services', 'healing', 'school', 'menu-book',
+  'home', 'home-repair-service', 'build', 'laptop-mac', 'chair'
+];
+
 const TransactionScreen = ({ navigation, route }) => {
   const { theme } = useContext(ThemeContext);
   const { addTransaction, updateTransaction, transactions, categories, addCategory, addNotification, accounts } = useContext(DataContext);
@@ -450,12 +460,6 @@ const TransactionScreen = ({ navigation, route }) => {
               <Text style={categoryObj?.name === 'Lainnya' ? styles.catTextAct : styles.catText}>Lainnya</Text>
             </TouchableOpacity>
           </ScrollView>
-
-            <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 4, marginBottom: 8 }}>
-              <TouchableOpacity onPress={() => navigation.navigate("Categories")}>
-                <Text style={{ color: theme.primary, fontSize: 12, fontWeight: "bold" }}>Kelola Kategori</Text>
-              </TouchableOpacity>
-            </View>
 
           {categoryObj?.name === 'Lainnya' && (
             <View style={styles.customCatWrapper}>
