@@ -213,7 +213,7 @@ const SettingsScreen = ({ navigation }) => {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{myName}</Text>
         </View>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Couple')}>
           <MaterialIcons name="group" size={24} color={theme.primary} />
         </TouchableOpacity>
       </View>

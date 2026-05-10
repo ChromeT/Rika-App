@@ -24,6 +24,7 @@ import CategoriesScreen from '../screens/CategoriesScreen';
 import WalletsScreen from '../screens/WalletsScreen';
 import AddAccountScreen from '../screens/AddAccountScreen';
 import TransferScreen from '../screens/TransferScreen';
+import CoupleScreen from '../screens/CoupleScreen';
 
 const Tab = createMaterialTopTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -203,6 +204,11 @@ const MainStack = () => {
         name="Transfer"
         component={TransferScreen}
         options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen
+        name="Couple"
+        component={CoupleScreen}
+        options={{ presentation: 'card', animation: 'slide_from_right' }}
       />
     </Stack.Navigator>
   );
