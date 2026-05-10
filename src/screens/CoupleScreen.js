@@ -2,20 +2,28 @@ import React, { useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Share, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { ThemeContext } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import { DataContext } from '../context/DataContext';
+
+dayjs.extend(relativeTime);
 
 const { width } = Dimensions.get('window');
 
 const CoupleScreen = ({ navigation }) => {
   const { theme } = useContext(ThemeContext);
-  const { user, householdUsers, householdAvatars } = useContext(AuthContext);
-  const { getBalance, goals } = useContext(DataContext);
+  const { user, householdUsers, householdAvatars, householdData } = useContext(AuthContext);
+  const { getBalance, goals, transactions } = useContext(DataContext);
 
   const myName = user?.name || 'Saya';
   const partnerName = householdUsers.find(u => u !== myName);
   const hasPartner = !!partnerName;
+
+  const relationshipStart = householdData?.createdAt ? dayjs(householdData.createdAt) : dayjs();
+  const daysTogether = dayjs().diff(relationshipStart, 'day');
+  const durationText = daysTogether === 0 ? 'Hari Pertama' : `${daysTogether} Hari Bersama`;
 
   const formatMoney = (val) => {
     return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(val || 0);
@@ -63,16 +71,13 @@ const CoupleScreen = ({ navigation }) => {
               </View>
             </View>
 
-            <View style={styles.connectLine}>
-              <LinearGradient 
-                colors={[theme.primary, theme.primaryContainer]} 
-                start={{x:0, y:0}} 
-                end={{x:1, y:0}} 
-                style={styles.heartCircle}
-              >
+              <View style={[styles.heartCircle, { backgroundColor: theme.primary }]}>
                 <MaterialIcons name="favorite" size={20} color="#fff" />
-              </LinearGradient>
+              </View>
               <View style={[styles.dashLine, { borderBottomColor: theme.outlineVariant + '44' }]} />
+              <Text style={{ position: 'absolute', top: 44, fontSize: 10, fontWeight: 'bold', color: theme.primary, width: 100, textAlign: 'center' }}>
+                {durationText}
+              </Text>
             </View>
 
             <View style={styles.avatarContainer}>
@@ -154,7 +159,7 @@ const CoupleScreen = ({ navigation }) => {
         </View>
 
         <TouchableOpacity 
-          style={[styles.mottoCard, { backgroundColor: theme.primary + '0D', borderColor: theme.primary + '33', borderWidth: 1, borderStyle: 'dashed' }]}
+          style={[styles.mottoCard, { backgroundColor: theme.primary + '0D', borderColor: theme.primary + '33', borderWidth: 1, borderStyle: 'dashed', marginBottom: 32 }]}
           activeOpacity={0.8}
         >
           <MaterialIcons name="auto-awesome" size={24} color={theme.primary} style={{ marginBottom: 8 }} />
@@ -163,6 +168,57 @@ const CoupleScreen = ({ navigation }) => {
           </Text>
           <Text style={[styles.mottoAuthor, { color: theme.primary }]}>— Rika Financial Philosophy</Text>
         </TouchableOpacity>
+
+        {/* Timeline Milestones */}
+        <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Timeline Kebersamaan</Text>
+        <View style={[styles.timelineCard, { backgroundColor: theme.surfaceContainerLow }]}>
+          {(() => {
+            const milestones = [
+              { title: 'Perjalanan Dimulai', date: relationshipStart, icon: 'auto-awesome', color: theme.primary, desc: 'Kalian resmi memulai petualangan di Rika App.' },
+            ];
+
+            // Add Milestone for first goal achieved
+            const achievedGoals = goals.filter(g => g.status === 'achieved').sort((a,b) => new Date(a.achievedAt) - new Date(b.achievedAt));
+            if (achievedGoals.length > 0) {
+              milestones.push({
+                title: 'Kemenangan Pertama',
+                date: dayjs(achievedGoals[0].achievedAt),
+                icon: 'emoji-events',
+                color: '#FFB800',
+                desc: `Hore! Goal "${achievedGoals[0].name}" berhasil kalian capai bersama.`
+              });
+            }
+
+            // Add Milestone for first big saving (e.g. total assets > 5M)
+            if (totalAssets > 5000000) {
+              milestones.push({
+                title: 'Kekuatan Finansial',
+                date: dayjs(), // Simplified
+                icon: 'account-balance',
+                color: '#10B981',
+                desc: 'Wow! Total aset kalian sudah menembus angka Rp 5.000.000.'
+              });
+            }
+
+            return milestones.sort((a,b) => b.date - a.date).map((m, idx) => (
+              <View key={idx} style={styles.milestoneItem}>
+                <View style={styles.milestoneLeft}>
+                  <View style={[styles.milestoneIconBg, { backgroundColor: m.color + '22' }]}>
+                    <MaterialIcons name={m.icon} size={18} color={m.color} />
+                  </View>
+                  {idx !== milestones.length - 1 && <View style={[styles.milestoneLine, { backgroundColor: theme.outlineVariant + '44' }]} />}
+                </View>
+                <View style={styles.milestoneRight}>
+                  <View style={styles.milestoneHeader}>
+                    <Text style={[styles.milestoneTitle, { color: theme.onSurface }]}>{m.title}</Text>
+                    <Text style={[styles.milestoneDate, { color: theme.onSurfaceVariant }]}>{m.date.format('DD MMM YY')}</Text>
+                  </View>
+                  <Text style={[styles.milestoneDesc, { color: theme.onSurfaceVariant }]}>{m.desc}</Text>
+                </View>
+              </View>
+            ));
+          })()}
+        </View>
       </ScrollView>
     </View>
   );
@@ -221,6 +277,17 @@ const styles = StyleSheet.create({
   mottoCard: { padding: 24, borderRadius: 24, alignItems: 'center' },
   mottoText: { textAlign: 'center', fontSize: 14, fontStyle: 'italic', lineHeight: 22, marginBottom: 12 },
   mottoAuthor: { fontSize: 11, fontWeight: 'bold' },
+  
+  timelineCard: { borderRadius: 28, padding: 24, marginBottom: 40 },
+  milestoneItem: { flexDirection: 'row', gap: 16 },
+  milestoneLeft: { alignItems: 'center' },
+  milestoneIconBg: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center', zIndex: 10 },
+  milestoneLine: { width: 2, flex: 1, marginVertical: 4 },
+  milestoneRight: { flex: 1, paddingBottom: 24 },
+  milestoneHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  milestoneTitle: { fontSize: 14, fontWeight: 'bold' },
+  milestoneDate: { fontSize: 10, fontWeight: '500' },
+  milestoneDesc: { fontSize: 11, lineHeight: 16 },
 });
 
 export default CoupleScreen;

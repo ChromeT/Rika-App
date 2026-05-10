@@ -10,6 +10,7 @@ export const AuthProvider = ({ children }) => {
   const [householdUsers, setHouseholdUsers] = useState([]); // ['Ayip', 'Ika']
   const [householdAvatars, setHouseholdAvatars] = useState({});
   const [customColors, setCustomColors] = useState([]);
+  const [householdData, setHouseholdData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const [avatar, setAvatar] = useState('person');
@@ -41,6 +42,7 @@ export const AuthProvider = ({ children }) => {
       unsubscribe = onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
+          setHouseholdData(data);
           setHouseholdUsers(data.users || []);
           if (data.avatars) {
             setHouseholdAvatars(data.avatars);
@@ -177,7 +179,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, householdUsers, householdAvatars, customColors, addCustomColor, loading, createHousehold, joinHousehold, loginWithData, logout, avatar, updateAvatar, lastReadNotif, markNotificationsAsRead }}>
+    <AuthContext.Provider value={{ user, householdUsers, householdAvatars, householdData, customColors, addCustomColor, loading, createHousehold, joinHousehold, loginWithData, logout, avatar, updateAvatar, lastReadNotif, markNotificationsAsRead }}>
       {children}
     </AuthContext.Provider>
   );
