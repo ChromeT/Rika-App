@@ -37,6 +37,32 @@ const DashboardScreen = ({ navigation, route }) => {
   const [fabOpen, setFabOpen] = useState(false);
   const fabAnim = useRef(new Animated.Value(0)).current;
 
+  // Toast States
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
+  const toastAnim = useRef(new Animated.Value(0)).current;
+
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    setToastVisible(true);
+    Animated.spring(toastAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 40,
+      friction: 7
+    }).start();
+
+    setTimeout(() => {
+      Animated.timing(toastAnim, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true
+      }).start(() => {
+        setToastVisible(false);
+      });
+    }, 3500);
+  };
+
   const scrollRef = useRef(null);
 
   // Fitur Tarik / Double Tap buat Refresh
@@ -427,7 +453,7 @@ const DashboardScreen = ({ navigation, route }) => {
       targetType: 'bill',
       targetId: selectedBill.id,
     });
-    Alert.alert('Terkirim!', `Notifikasi pengingat untuk "${selectedBill.name}" telah dikirim ke pasangan Anda!`);
+    showToast(`Terkirim! Notifikasi pengingat untuk "${selectedBill.name}" telah dikirim ke pasangan Anda.`);
   };
 
   const getStyles = (t) => StyleSheet.create({
@@ -545,6 +571,39 @@ const DashboardScreen = ({ navigation, route }) => {
     walletInfo: { flex: 1 },
     walletName: { fontSize: 13, fontWeight: 'bold', color: t.onSurface },
     walletBalance: { fontSize: 11, fontWeight: 'bold', color: t.primary, marginTop: 2 },
+    
+    // Toast Styles
+    toastContainer: {
+      position: 'absolute',
+      top: 60,
+      left: 24,
+      right: 24,
+      zIndex: 9999,
+      alignItems: 'center',
+    },
+    toastContent: {
+      backgroundColor: t.surfaceContainerHighest,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 16,
+      gap: 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.25,
+      shadowRadius: 16,
+      elevation: 10,
+      borderWidth: 1,
+      borderColor: t.outlineVariant + '33',
+      maxWidth: '100%',
+    },
+    toastText: {
+      color: t.onSurface,
+      fontSize: 13,
+      fontWeight: '600',
+      flexShrink: 1,
+    },
   });
 
   const styles = getStyles(theme);
@@ -1227,6 +1286,29 @@ const DashboardScreen = ({ navigation, route }) => {
           </View>
         </View>
       </Modal>
+
+      {/* Toast Notification */}
+      {toastVisible && (
+        <Animated.View 
+          style={[
+            styles.toastContainer, 
+            { 
+              opacity: toastAnim,
+              transform: [{
+                translateY: toastAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-20, 0]
+                })
+              }]
+            }
+          ]}
+        >
+          <View style={styles.toastContent}>
+            <MaterialIcons name="bolt" size={20} color={theme.primary} />
+            <Text style={styles.toastText}>{toastMsg}</Text>
+          </View>
+        </Animated.View>
+      )}
     </View>
   );
 };
