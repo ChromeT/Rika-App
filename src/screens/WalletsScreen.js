@@ -70,7 +70,7 @@ const WalletsScreen = () => {
         </LinearGradient>
 
         <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Dompet Saya</Text>
-        
+
         {myAccounts.length === 0 ? (
           <View style={[styles.emptyContainer, { backgroundColor: theme.surfaceContainerLow, marginBottom: 24 }]}>
             <MaterialIcons name="person-outline" size={32} color={theme.onSurfaceVariant + '44'} />
@@ -79,8 +79,8 @@ const WalletsScreen = () => {
         ) : (
           <View style={[styles.accountList, { marginBottom: 24 }]}>
             {myAccounts.map((acc) => (
-              <TouchableOpacity 
-                key={acc.id} 
+              <TouchableOpacity
+                key={acc.id}
                 style={[styles.accountCard, { backgroundColor: theme.surfaceContainerLow }]}
                 onPress={() => openActions(acc)}
               >
@@ -106,8 +106,8 @@ const WalletsScreen = () => {
             <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Dompet Pribadi Pasangan</Text>
             <View style={styles.accountList}>
               {partnerAccounts.map((acc) => (
-                <View 
-                  key={acc.id} 
+                <View
+                  key={acc.id}
                   style={[styles.accountCard, { backgroundColor: theme.surfaceContainerLow, opacity: 0.8 }]}
                 >
                   <View style={[styles.iconContainer, { backgroundColor: acc.color + '22' }]}>
@@ -129,7 +129,7 @@ const WalletsScreen = () => {
         )}
 
         {accounts.length === 0 && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.addBtn, { backgroundColor: theme.primary, marginTop: 20 }]}
             onPress={() => navigation.navigate('AddAccount')}
           >
@@ -147,18 +147,18 @@ const WalletsScreen = () => {
 
       {/* Action Modal */}
       <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
           onPress={() => setModalVisible(false)}
         >
           <View onStartShouldSetResponder={() => true} style={{ width: '100%' }}>
             <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
-              
+
               {!showConfirmDelete ? (
                 <>
                   <Text style={[styles.modalTitle, { color: theme.onSurface }]}>{selectedAccount?.name}</Text>
-                  
+
                   <TouchableOpacity style={styles.actionBtn} onPress={handleEdit}>
                     <MaterialIcons name="edit" size={20} color={theme.primary} />
                     <Text style={[styles.actionText, { color: theme.onSurface }]}>Edit Saldo / Nama</Text>
@@ -169,8 +169,8 @@ const WalletsScreen = () => {
                     <Text style={[styles.actionText, { color: theme.error }]}>Hapus Dompet</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
-                    style={[styles.cancelBtn, { backgroundColor: theme.surfaceContainerHighest }]} 
+                  <TouchableOpacity
+                    style={[styles.cancelBtn, { backgroundColor: theme.surfaceContainerHighest }]}
                     onPress={() => setModalVisible(false)}
                   >
                     <Text style={{ color: theme.onSurface, fontWeight: 'bold' }}>Batal</Text>
@@ -188,15 +188,15 @@ const WalletsScreen = () => {
                     </Text>
                   </View>
 
-                  <TouchableOpacity 
-                    style={[styles.submitBtn, { backgroundColor: theme.error }]} 
+                  <TouchableOpacity
+                    style={[styles.submitBtn, { backgroundColor: theme.error }]}
                     onPress={confirmDelete}
                   >
                     <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Ya, Hapus Sekarang</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
-                    style={[styles.cancelBtn, { backgroundColor: 'transparent' }]} 
+                  <TouchableOpacity
+                    style={[styles.cancelBtn, { backgroundColor: 'transparent' }]}
                     onPress={() => setShowConfirmDelete(false)}
                   >
                     <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Batal</Text>
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   accountBalance: { fontSize: 15, fontWeight: 'bold' },
   infoBox: { flexDirection: 'row', gap: 8, marginTop: 32, padding: 16, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 16 },
   infoText: { fontSize: 12, flex: 1, lineHeight: 18 },
-  
+
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 24 },
   modalContent: { borderRadius: 32, padding: 24 },
   modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },

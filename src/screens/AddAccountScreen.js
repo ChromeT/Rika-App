@@ -19,7 +19,7 @@ const AddAccountScreen = ({ route }) => {
   const navigation = useNavigation();
   const { theme } = useContext(ThemeContext);
   const { addAccount, updateAccount } = useContext(DataContext);
-  
+
   const editingAccount = route.params?.account;
   const isEditing = !!editingAccount;
 
@@ -42,7 +42,7 @@ const AddAccountScreen = ({ route }) => {
     const oldText = balanceRef.current || '';
     const oldSel = selectionRef.current.start;
     const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
-    
+
     const formatted = formatInput(val);
     setBalance(formatted);
     balanceRef.current = formatted;
@@ -70,7 +70,7 @@ const AddAccountScreen = ({ route }) => {
 
     setLoading(true);
     const selectedType = ACCOUNT_TYPES.find(t => t.id === type);
-    
+
     try {
       const rawBalance = balance.replace(/\./g, '');
       const accountData = {
@@ -139,26 +139,26 @@ const AddAccountScreen = ({ route }) => {
         />
 
         <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>JENIS SUMBER</Text>
-          <View style={styles.typeGrid}>
-            {ACCOUNT_TYPES.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                onPress={() => setType(item.id)}
-                style={[
-                  styles.typeItem,
-                  { backgroundColor: theme.surfaceContainerLow },
-                  type === item.id && { borderColor: theme.primary, borderWidth: 2 }
-                ]}
-              >
-                <MaterialIcons name={item.icon} size={24} color={type === item.id ? theme.primary : theme.onSurfaceVariant} />
-                <Text style={[styles.typeText, { color: type === item.id ? theme.onSurface : theme.onSurfaceVariant }]}>
-                  {item.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+        <View style={styles.typeGrid}>
+          {ACCOUNT_TYPES.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              onPress={() => setType(item.id)}
+              style={[
+                styles.typeItem,
+                { backgroundColor: theme.surfaceContainerLow },
+                type === item.id && { borderColor: theme.primary, borderWidth: 2 }
+              ]}
+            >
+              <MaterialIcons name={item.icon} size={24} color={type === item.id ? theme.primary : theme.onSurfaceVariant} />
+              <Text style={[styles.typeText, { color: type === item.id ? theme.onSurface : theme.onSurfaceVariant }]}>
+                {item.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-        </ScrollView>
+      </ScrollView>
     </View>
   );
 };

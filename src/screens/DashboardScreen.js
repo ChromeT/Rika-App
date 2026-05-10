@@ -13,7 +13,7 @@ const { width } = Dimensions.get('window');
 
 const DashboardScreen = ({ navigation, route }) => {
   const { theme } = useContext(ThemeContext);
-  const { transactions, getBalance, bills, addBill, updateBill, deleteBill, payBill, notifications, addNotification, goals, accounts, deleteTransaction } = useContext(DataContext);
+  const { transactions, getBalance, bills, addBill, updateBill, deleteBill, payBill, notifications, addNotification, goals, accounts, deleteTransaction, confirmSplitTransaction } = useContext(DataContext);
   const { user, householdUsers, avatar, lastReadNotif, markNotificationsAsRead } = useContext(AuthContext);
   
   const [filter, setFilter] = useState('Kita');
@@ -44,6 +44,10 @@ const DashboardScreen = ({ navigation, route }) => {
   const [txActionModalVisible, setTxActionModalVisible] = useState(false);
   const [txConfirmVisible, setTxConfirmVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  const [splitModalVisible, setSplitModalVisible] = useState(false);
+  const [selectedSplitTx, setSelectedSplitTx] = useState(null);
+  const [selectedSplitAccountId, setSelectedSplitAccountId] = useState(null);
   
   const [fabOpen, setFabOpen] = useState(false);
   const fabAnim = useRef(new Animated.Value(0)).current;
@@ -519,6 +523,27 @@ const DashboardScreen = ({ navigation, route }) => {
     showToast(`Terkirim! Notifikasi pengingat untuk "${selectedBill.name}" telah dikirim ke pasangan Anda.`);
   };
 
+  const handleConfirmSplit = async () => {
+    if (!selectedSplitAccountId) {
+      Alert.alert('Pilih Dompet', 'Pilih dompet yang ingin kamu gunakan untuk membayar patungan ini.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await confirmSplitTransaction(selectedSplitTx.id, selectedSplitAccountId);
+      setSplitModalVisible(false);
+      showToast(`Patungan "${selectedSplitTx.name}" berhasil dikonfirmasi!`);
+    } catch (e) {
+      Alert.alert('Gagal', 'Terjadi kesalahan saat mengonfirmasi patungan.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pendingSplits = (transactions || []).filter(tx => 
+    tx.status === 'pending_partner' && tx.owner !== myName
+  );
+
   const getStyles = (t) => StyleSheet.create({
     container: { flex: 1, backgroundColor: t.background },
     header: { 
@@ -710,30 +735,76 @@ const DashboardScreen = ({ navigation, route }) => {
         }
       >
         <View style={styles.heroSection}>
-          <Text style={styles.heroLabel}>Saldo kita</Text>
+          <Text style={styles.heroLabel}>Total Saldo {filter}</Text>
           <View style={styles.balanceRow}>
             <Text style={styles.currency}>Rp</Text>
-            <Text style={styles.balanceValue}>{formatMoney(currentBalance)}</Text>
+            <Text style={styles.balanceValue}>{formatMoney(getBalance(filter))}</Text>
           </View>
-          
+
           <View style={styles.toggleContainer}>
-            <TouchableOpacity style={filter === 'Kita' ? styles.toggleBtnActive : styles.toggleBtnInactive} onPress={() => setFilter('Kita')}>
+            <TouchableOpacity 
+              style={filter === 'Kita' ? styles.toggleBtnActive : styles.toggleBtnInactive}
+              onPress={() => setFilter('Kita')}
+            >
               <Text style={filter === 'Kita' ? styles.toggleTextActive : styles.toggleTextInactive}>Kita</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={filter === 'Saya' ? styles.toggleBtnActive : styles.toggleBtnInactive} onPress={() => setFilter('Saya')}>
-              <Text style={filter === 'Saya' ? styles.toggleTextActive : styles.toggleTextInactive}>{myName}</Text>
+            <TouchableOpacity 
+              style={filter === myName ? styles.toggleBtnActive : styles.toggleBtnInactive}
+              onPress={() => setFilter(myName)}
+            >
+              <Text style={filter === myName ? styles.toggleTextActive : styles.toggleTextInactive}>Saya</Text>
             </TouchableOpacity>
-            {hasPartner ? (
-              <TouchableOpacity style={filter === 'Pasangan' ? styles.toggleBtnActive : styles.toggleBtnInactive} onPress={() => setFilter('Pasangan')}>
-                <Text style={filter === 'Pasangan' ? styles.toggleTextActive : styles.toggleTextInactive}>{partnerName}</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.toggleBtnInactive} disabled>
-                <Text style={[styles.toggleTextInactive, { opacity: 0.5 }]}>Menunggu...</Text>
+            {hasPartner && (
+              <TouchableOpacity 
+                style={filter === partnerName ? styles.toggleBtnActive : styles.toggleBtnInactive}
+                onPress={() => setFilter(partnerName)}
+              >
+                <Text style={filter === partnerName ? styles.toggleTextActive : styles.toggleTextInactive}>{partnerName.split(' ')[0]}</Text>
               </TouchableOpacity>
             )}
           </View>
         </View>
+
+        {/* Pending Splits Confirmation Section */}
+        {pendingSplits.length > 0 && (
+          <View style={{ marginBottom: 32 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <MaterialIcons name="notification-important" size={20} color={theme.primary} />
+              <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.onSurface }}>Butuh Konfirmasi Kamu</Text>
+              <View style={{ backgroundColor: theme.error, borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 }}>
+                <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>{pendingSplits.length}</Text>
+              </View>
+            </View>
+            {pendingSplits.map(tx => (
+              <TouchableOpacity 
+                key={tx.id} 
+                style={{ 
+                  backgroundColor: theme.primaryContainer + '22', 
+                  borderRadius: 24, 
+                  padding: 16, 
+                  borderWidth: 1, 
+                  borderColor: theme.primary + '33',
+                  marginBottom: 12,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+                onPress={() => {
+                  setSelectedSplitTx(tx);
+                  setSplitModalVisible(true);
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.onSurface }}>{tx.name}</Text>
+                  <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>{tx.owner} minta patungan Rp {formatMoney(tx.partnerContrib)}</Text>
+                </View>
+                <View style={{ backgroundColor: theme.primary, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 }}>
+                  <Text style={{ color: theme.onPrimary, fontSize: 12, fontWeight: 'bold' }}>Konfirmasi</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* Wallets Section */}
         <View style={styles.walletSection}>
@@ -1576,6 +1647,72 @@ const DashboardScreen = ({ navigation, route }) => {
                 )}
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Split Confirmation Modal */}
+      <Modal visible={splitModalVisible} transparent animationType="slide" onRequestClose={() => setSplitModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { padding: 24, paddingBottom: 32 }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <View>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.onSurface }}>Konfirmasi Patungan</Text>
+                <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>Pilih dompet untuk bayar porsi kamu</Text>
+              </View>
+              <TouchableOpacity onPress={() => setSplitModalVisible(false)}>
+                <MaterialIcons name="close" size={24} color={theme.onSurfaceVariant} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ backgroundColor: theme.primaryContainer + '22', padding: 16, borderRadius: 20, marginBottom: 24 }}>
+              <Text style={{ fontSize: 12, color: theme.primary, fontWeight: 'bold', marginBottom: 4 }}>TRANSAKSI</Text>
+              <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.onSurface }}>{selectedSplitTx?.name}</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.primary + '1A' }}>
+                <Text style={{ color: theme.onSurfaceVariant }}>Beban Kamu</Text>
+                <Text style={{ fontWeight: 'bold', color: theme.primary, fontSize: 16 }}>Rp {formatMoney(selectedSplitTx?.partnerContrib || 0)}</Text>
+              </View>
+            </View>
+
+            <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 12, marginLeft: 4 }}>PILIH DOMPET KAMU</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 24 }}>
+              {(accounts || []).filter(acc => acc.owner === myName).map(acc => (
+                <TouchableOpacity 
+                  key={acc.id} 
+                  style={{ 
+                    padding: 12, 
+                    borderRadius: 16, 
+                    backgroundColor: selectedSplitAccountId === acc.id ? theme.primaryContainer + '66' : theme.surfaceContainerLow,
+                    borderWidth: 2,
+                    borderColor: selectedSplitAccountId === acc.id ? theme.primary : 'transparent',
+                    marginRight: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 10,
+                    minWidth: 140
+                  }}
+                  onPress={() => setSelectedSplitAccountId(acc.id)}
+                >
+                  <MaterialIcons name={acc.icon || 'payments'} size={20} color={selectedSplitAccountId === acc.id ? theme.primary : theme.onSurfaceVariant} />
+                  <View>
+                    <Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.onSurface }}>{acc.name}</Text>
+                    <Text style={{ fontSize: 10, color: theme.onSurfaceVariant }}>Rp {formatMoney(acc.balance)}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: theme.primary, padding: 18, borderRadius: 20, alignItems: 'center', opacity: (loading || !selectedSplitAccountId) ? 0.7 : 1 }}
+              disabled={loading || !selectedSplitAccountId}
+              onPress={handleConfirmSplit}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Konfirmasi Pembayaran</Text>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

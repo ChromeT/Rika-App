@@ -208,10 +208,10 @@ export const DataProvider = ({ children }) => {
     if (!user || !user.householdId) return;
     try {
       const accountRef = collection(db, 'households', user.householdId, 'accounts');
-      await addDoc(accountRef, { 
-        ...account, 
-        owner: ownerName, 
-        createdAt: new Date().toISOString() 
+      await addDoc(accountRef, {
+        ...account,
+        owner: ownerName,
+        createdAt: new Date().toISOString()
       });
     } catch (e) {
       console.error('Failed to migrate account for ' + ownerName, e);
@@ -241,27 +241,44 @@ export const DataProvider = ({ children }) => {
     if (!user || !user.householdId) return null;
     try {
       const txRef = collection(db, 'households', user.householdId, 'transactions');
-      const newTx = { 
-        ...tx, 
+      const newTx = {
+        ...tx,
         date: tx.date || new Date().toISOString(),
-        createdAt: new Date().toISOString() 
+        createdAt: new Date().toISOString()
       };
-      
+
       const docRef = await addDoc(txRef, newTx);
       
-      // Update saldo akun jika terpilih
+      // Update saldo akun secara cerdas
       if (tx.accountId) {
-        const account = accounts.find(a => a.id === tx.accountId);
-        if (account) {
-          const totalAmount = Number(tx.myContrib || 0) + Number(tx.partnerContrib || 0);
-          const newBalance = tx.type === 'income' 
-            ? (account.balance || 0) + totalAmount 
-            : (account.balance || 0) - totalAmount;
-          
-          await updateAccount(tx.accountId, { balance: newBalance });
+        const selectedAcc = accounts.find(a => a.id === tx.accountId);
+        if (selectedAcc) {
+          // Jika Dompet Bersama, potong total sekarang (karena sudah disepakati bersama)
+          if (selectedAcc.owner === 'Bersama') {
+            const total = Number(tx.myContrib || 0) + Number(tx.partnerContrib || 0);
+            const newBal = tx.type === 'income' ? (selectedAcc.balance || 0) + total : (selectedAcc.balance || 0) - total;
+            await updateAccount(tx.accountId, { balance: newBal });
+          } 
+          // Jika Patungan, potong porsi penginput DULU. Porsi pasangan nunggu konfirmasi.
+          else if (tx.isPatungan || tx.isJoint) {
+            const myPortion = Number(tx.myContrib || 0);
+            const newMyBal = tx.type === 'income' ? (selectedAcc.balance || 0) + myPortion : (selectedAcc.balance || 0) - myPortion;
+            await updateAccount(tx.accountId, { balance: newMyBal });
+
+            // Set status transaksi jadi pending_partner jika ada porsi pasangan
+            if (Number(tx.partnerContrib || 0) > 0) {
+              await updateDoc(docRef, { status: 'pending_partner' });
+            }
+          }
+          // Transaksi Pribadi Biasa
+          else {
+            const total = Number(tx.myContrib || 0) + Number(tx.partnerContrib || 0);
+            const newBal = tx.type === 'income' ? (selectedAcc.balance || 0) + total : (selectedAcc.balance || 0) - total;
+            await updateAccount(tx.accountId, { balance: newBal });
+          }
         }
       }
-      
+
       return docRef.id;
     } catch (e) {
       console.error('Failed to save transaction to Firebase', e);
@@ -278,7 +295,7 @@ export const DataProvider = ({ children }) => {
       if (tx.type === 'transfer') {
         const fromAcc = accounts.find(a => a.id === tx.fromAccountId);
         const toAcc = accounts.find(a => a.id === tx.toAccountId);
-        
+
         if (fromAcc) {
           await updateAccount(tx.fromAccountId, { balance: (fromAcc.balance || 0) + (tx.amount || 0) });
         }
@@ -289,8 +306,8 @@ export const DataProvider = ({ children }) => {
         const account = accounts.find(a => a.id === tx.accountId);
         if (account) {
           const totalAmount = Number(tx.myContrib || 0) + Number(tx.partnerContrib || 0);
-          const newBalance = tx.type === 'income' 
-            ? (account.balance || 0) - totalAmount 
+          const newBalance = tx.type === 'income'
+            ? (account.balance || 0) - totalAmount
             : (account.balance || 0) + totalAmount;
           await updateAccount(tx.accountId, { balance: newBalance });
         }
@@ -305,18 +322,18 @@ export const DataProvider = ({ children }) => {
 
   const updateTransaction = async (txId, updateData) => {
     if (!user || !user.householdId) return;
-    
+
     try {
       const txRef = doc(db, 'households', user.householdId, 'transactions', txId);
       const docSnap = await getDoc(txRef);
-      
+
       if (!docSnap.exists()) {
         Alert.alert('Error', 'Data transaksi lama tidak ditemukan di server.');
         throw new Error('Old transaction not found');
       }
 
       const oldTx = { id: docSnap.id, ...docSnap.data() };
-      
+
       // Alert buat bukti kalau angkanya bener
       // Alert.alert('Debug', 'Simpan nominal baru: ' + updateData.amount);
 
@@ -353,7 +370,7 @@ export const DataProvider = ({ children }) => {
       if (finalType === 'transfer') {
         const finalFromId = updateData.fromAccountId || oldTx.fromAccountId;
         const finalToId = updateData.toAccountId || oldTx.toAccountId;
-        
+
         if (balanceMap[finalFromId] !== undefined) balanceMap[finalFromId] -= finalAmount;
         if (balanceMap[finalToId] !== undefined) balanceMap[finalToId] += finalAmount;
 
@@ -468,12 +485,12 @@ export const DataProvider = ({ children }) => {
 
       // 2. Update Status Tagihan
       const billRef = doc(db, 'households', user.householdId, 'bills', billId);
-      
+
       if (bill.type === 'recurring') {
         // Geser dueDate ke bulan depan
         const oldDate = new Date(bill.dueDate);
         const nextDate = new Date(oldDate.setMonth(oldDate.getMonth() + 1)).toISOString();
-        await updateDoc(billRef, { 
+        await updateDoc(billRef, {
           dueDate: nextDate,
           lastPaidAt: new Date().toISOString()
         });
@@ -486,7 +503,7 @@ export const DataProvider = ({ children }) => {
           // Geser ke tenor berikutnya
           const oldDate = new Date(bill.dueDate);
           const nextDate = new Date(oldDate.setMonth(oldDate.getMonth() + 1)).toISOString();
-          await updateDoc(billRef, { 
+          await updateDoc(billRef, {
             currentTenor: nextTenor,
             dueDate: nextDate,
             lastPaidAt: new Date().toISOString()
@@ -527,10 +544,10 @@ export const DataProvider = ({ children }) => {
     if (!user || !user.householdId) return;
     try {
       const accountRef = collection(db, 'households', user.householdId, 'accounts');
-      const docRef = await addDoc(accountRef, { 
-        ...account, 
+      const docRef = await addDoc(accountRef, {
+        ...account,
         owner: user.name, // Set pemilik otomatis ke user yang login
-        createdAt: new Date().toISOString() 
+        createdAt: new Date().toISOString()
       });
       return docRef.id;
     } catch (e) {
@@ -604,6 +621,45 @@ export const DataProvider = ({ children }) => {
     }
   };
 
+  const confirmSplitTransaction = async (txId, partnerAccountId) => {
+    if (!user || !user.householdId) return;
+    try {
+      const tx = transactions.find(t => t.id === txId);
+      const acc = accounts.find(a => a.id === partnerAccountId);
+      if (!tx || !acc) return;
+
+      const partnerPortion = Number(tx.partnerContrib || 0);
+      const newBalance = tx.type === 'income' 
+        ? (acc.balance || 0) + partnerPortion 
+        : (acc.balance || 0) - partnerPortion;
+
+      // 1. Potong saldo dompet yang dipilih pasangan
+      await updateAccount(partnerAccountId, { balance: newBalance });
+
+      // 2. Update status transaksi jadi lunas & simpan ID dompet pasangan
+      const txRef = doc(db, 'households', user.householdId, 'transactions', txId);
+      await updateDoc(txRef, { 
+        status: 'completed', 
+        partnerAccountId: partnerAccountId,
+        confirmedAt: new Date().toISOString()
+      });
+
+      // 3. Kirim notifikasi balik
+      await addNotification({
+        title: 'Patungan Disetujui',
+        body: `${user.name} telah menyetujui patungan "${tx.name}" menggunakan dompet ${acc.name}.`,
+        icon: 'check-circle',
+        color: 'success',
+        sender: user.name,
+        targetType: 'transaction',
+        targetId: txId
+      });
+    } catch (e) {
+      console.error('Failed to confirm split', e);
+      throw e;
+    }
+  };
+
   const addTransfer = async (fromId, toId, amount) => {
     if (!user || !user.householdId) return;
     try {
@@ -673,7 +729,7 @@ export const DataProvider = ({ children }) => {
   const getBalance = (ownerFilter = 'Kita') => {
     let balance = 0;
     const safeAccounts = accounts || [];
-    
+
     safeAccounts.forEach(acc => {
       if (ownerFilter === 'Kita') {
         balance += (acc.balance || 0);
@@ -681,13 +737,13 @@ export const DataProvider = ({ children }) => {
         balance += (acc.balance || 0);
       }
     });
-    
+
     return balance;
   };
 
   return (
     <DataContext.Provider value={{
-      transactions, addTransaction, updateTransaction, deleteTransaction, addTransfer, getBalance,
+      transactions, addTransaction, updateTransaction, deleteTransaction, addTransfer, getBalance, confirmSplitTransaction,
       goals, addGoal, updateGoal, deleteGoal,
       bills, addBill, updateBill, deleteBill, payBill,
       accounts, addAccount, updateAccount, deleteAccount,

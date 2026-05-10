@@ -37,7 +37,7 @@ const TransactionScreen = ({ navigation, route }) => {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState('');
-  const [isKonta, setIsKonta] = useState(false); 
+  const [isKonta, setIsKonta] = useState(false);
   const [type, setType] = useState('expense');
   const [categoryObj, setCategoryObj] = useState(null);
   const [customCategory, setCustomCategory] = useState('');
@@ -54,7 +54,7 @@ const TransactionScreen = ({ navigation, route }) => {
   const handleAmountChange = (val) => {
     const oldText = amountRef.current || '';
     const oldSel = selectionRef.current.start;
-    
+
     let processedVal = val;
     const oldDigits = oldText.replace(/\D/g, '');
     const newDigits = val.replace(/\D/g, '');
@@ -85,7 +85,7 @@ const TransactionScreen = ({ navigation, route }) => {
   const handleMyContribChange = (val) => {
     const oldText = myContribRef.current || '';
     const oldSel = selectionMyRef.current.start;
-    
+
     let processedVal = val;
     const oldDigits = oldText.replace(/\D/g, '');
     const newDigits = val.replace(/\D/g, '');
@@ -116,7 +116,7 @@ const TransactionScreen = ({ navigation, route }) => {
   const handleTypeChange = (newType) => {
     setType(newType);
     setCategoryObj(null);
-    setCustomCategory(''); 
+    setCustomCategory('');
     setCustomIcon('star');
     if (newType === 'income') {
       setIsPatungan(false);
@@ -152,7 +152,7 @@ const TransactionScreen = ({ navigation, route }) => {
       setMyContrib(formattedContrib);
       myContribRef.current = formattedContrib;
       setSelectedAccountId(tx.type === 'transfer' ? tx.fromAccountId : tx.accountId);
-      
+
       const cat = (categories[tx.type] || []).find(c => c.name === tx.category);
       if (cat) {
         setCategoryObj(cat);
@@ -210,7 +210,7 @@ const TransactionScreen = ({ navigation, route }) => {
         setLoading(false);
         return;
       }
-      
+
       const numAmount = Number(rawAmount) || 0;
       let fMy = numAmount;
       let fPar = 0;
@@ -235,7 +235,7 @@ const TransactionScreen = ({ navigation, route }) => {
           fPar = 0;
         }
       }
-    
+
       if (isEditMode) {
         const txUpdate = {
           name: finalTxName,
@@ -265,7 +265,7 @@ const TransactionScreen = ({ navigation, route }) => {
           type,
           category: finalCategoryName,
           icon: finalIcon || (type === 'income' ? 'payments' : 'receipt'),
-          owner: user?.name || 'Saya', 
+          owner: user?.name || 'Saya',
           isJoint: isKonta,
           isPatungan: type === 'expense' ? (!isKonta && isPatungan) : false,
           myContrib: fMy,
@@ -286,9 +286,9 @@ const TransactionScreen = ({ navigation, route }) => {
       });
 
       // Langsung balik ke Dashboard biar terasa instant + Highlight
-      navigation.navigate('MainTabs', { 
+      navigation.navigate('MainTabs', {
         screen: 'Dashboard',
-        params: { highlightTxId: newId } 
+        params: { highlightTxId: newId }
       });
     } catch (e) {
       console.error(e);
@@ -309,7 +309,7 @@ const TransactionScreen = ({ navigation, route }) => {
     pageTitle: { fontSize: 24, fontWeight: 'bold', color: t.onSurface, letterSpacing: -0.5 },
     pageSubtitle: { fontSize: 14, color: t.onSurfaceVariant, marginTop: 4, marginBottom: 24 },
     formCard: { backgroundColor: t.surfaceContainerLow, borderRadius: 32, padding: 24, borderWidth: 1, borderColor: t.outlineVariant + '1A', overflow: 'hidden' },
-    
+
     typeToggleWrap: { flexDirection: 'row', backgroundColor: t.surfaceContainerLowest, borderRadius: 16, padding: 4, marginBottom: 24 },
     typeBtnAct: { flex: 1, backgroundColor: t.primaryContainer, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
     typeBtnIna: { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
@@ -319,13 +319,13 @@ const TransactionScreen = ({ navigation, route }) => {
     label: { fontSize: 10, fontWeight: 'bold', color: t.onSurfaceVariant, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 },
     nameInputWrapper: { marginBottom: 16 },
     nameInput: { backgroundColor: t.surfaceContainerLowest, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 16, fontSize: 16, fontWeight: 'bold', color: t.onSurface },
-    
+
     catScroll: { marginBottom: 16 },
     catBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: t.surfaceContainerLowest, borderWidth: 1, borderColor: t.outlineVariant + '1A', marginRight: 8 },
     catBtnAct: { backgroundColor: t.primary, borderColor: t.primary },
     catText: { fontSize: 12, color: t.onSurfaceVariant, fontWeight: 'bold' },
     catTextAct: { fontSize: 12, color: t.onPrimary, fontWeight: 'bold' },
-    
+
     customCatWrapper: { marginBottom: 24, backgroundColor: t.surfaceContainerLowest + '80', padding: 16, borderRadius: 24, borderWidth: 1, borderColor: t.primary + '33' },
     customCatInput: { backgroundColor: t.surfaceContainerLowest, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 16, fontSize: 14, fontWeight: 'bold', color: t.onSurface, borderWidth: 1, borderColor: t.outlineVariant + '33' },
     iconPickerScroll: { marginTop: 8 },
@@ -336,7 +336,7 @@ const TransactionScreen = ({ navigation, route }) => {
     nominalCurrency: { position: 'absolute', left: 20, zIndex: 10, color: t.primary, fontWeight: 'bold', fontSize: 20 },
     nominalInput: { backgroundColor: t.surfaceContainerLowest, borderRadius: 24, paddingVertical: 20, paddingLeft: 64, paddingRight: 24, fontSize: 30, fontWeight: 'bold', color: t.onSurface },
     inputAmount: { backgroundColor: t.surfaceContainerLowest, borderRadius: 24, paddingVertical: 20, paddingLeft: 64, paddingRight: 24, fontSize: 30, fontWeight: 'bold', color: t.onSurface },
-    
+
     switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: t.surfaceContainerLowest + '80', padding: 16, borderRadius: 24, borderWidth: 1, borderColor: t.outlineVariant + '1A', marginBottom: 24 },
     switchLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     switchIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: t.primaryContainer + '4D', justifyContent: 'center', alignItems: 'center' },
@@ -358,7 +358,7 @@ const TransactionScreen = ({ navigation, route }) => {
     pCurrencyDisabled: { position: 'absolute', left: 12, zIndex: 10, color: t.onSurfaceVariant + '80', fontSize: 10, fontWeight: 'bold' },
     pInfo: { flexDirection: 'row', gap: 8, backgroundColor: t.primary + '0D', padding: 12, borderRadius: 12, marginTop: 16 },
     pInfoText: { fontSize: 10, color: t.onSurfaceVariant, flex: 1 },
-    
+
     submitBtn: { borderRadius: 32, overflow: 'hidden' },
     submitGradient: { paddingVertical: 20, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12 },
     submitText: { color: t.onPrimary, fontWeight: 'bold', fontSize: 18 },
@@ -378,7 +378,7 @@ const TransactionScreen = ({ navigation, route }) => {
     txAmountNeg: { fontSize: 14, fontWeight: 'bold', color: t.error },
     txAmountPos: { fontSize: 14, fontWeight: 'bold', color: t.primary },
     txCatTag: { fontSize: 9, color: t.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
-    
+
     accountPickerTitle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 8 },
     accountScroll: { marginBottom: 24 },
     accountBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 20, backgroundColor: t.surfaceContainerLowest, borderWidth: 1, borderColor: t.outlineVariant + '1A', marginRight: 10 },
@@ -430,7 +430,7 @@ const TransactionScreen = ({ navigation, route }) => {
 
           <Text style={styles.label}>Nama Transaksi (Opsional)</Text>
           <View style={styles.nameInputWrapper}>
-            <TextInput 
+            <TextInput
               style={styles.nameInput}
               placeholder={type === 'expense' ? "Cth: Beli Kopi (Boleh kosong)" : "Cth: Gaji (Boleh kosong)"}
               placeholderTextColor={theme.surfaceContainerHighest}
@@ -449,8 +449,8 @@ const TransactionScreen = ({ navigation, route }) => {
             {currentCats.map(cat => {
               const isActive = categoryObj?.name === cat.name;
               return (
-                <TouchableOpacity 
-                  key={cat.name} 
+                <TouchableOpacity
+                  key={cat.name}
                   style={[styles.catBtn, isActive && styles.catBtnAct]}
                   onPress={() => {
                     setCategoryObj(cat);
@@ -462,8 +462,8 @@ const TransactionScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
               )
             })}
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={[styles.catBtn, categoryObj?.name === 'Lainnya' && styles.catBtnAct]}
               onPress={() => {
                 setCategoryObj({ name: 'Lainnya', icon: 'more-horiz' });
@@ -477,8 +477,8 @@ const TransactionScreen = ({ navigation, route }) => {
 
           {categoryObj?.name === 'Lainnya' && (
             <View style={styles.customCatWrapper}>
-              <Text style={[styles.label, {marginLeft: 0}]}>Tentukan Nama & Ikon Baru</Text>
-              <TextInput 
+              <Text style={[styles.label, { marginLeft: 0 }]}>Tentukan Nama & Ikon Baru</Text>
+              <TextInput
                 style={styles.customCatInput}
                 placeholder="Misal: Servis Motor"
                 placeholderTextColor={theme.surfaceContainerHighest}
@@ -498,7 +498,7 @@ const TransactionScreen = ({ navigation, route }) => {
           <Text style={styles.label}>Nominal Total</Text>
           <View style={styles.nominalInputWrapper}>
             <Text style={styles.nominalCurrency}>IDR</Text>
-            <TextInput 
+            <TextInput
               style={styles.inputAmount}
               placeholder="0"
               placeholderTextColor={theme.surfaceContainerHighest}
@@ -522,14 +522,14 @@ const TransactionScreen = ({ navigation, route }) => {
               <View>
                 <Text style={styles.switchTitle}>Uang Bersama?</Text>
                 <Text style={styles.switchSubtitle}>
-                  {type === 'income' 
-                    ? (isKonta ? 'Masuk ke tabungan Kita' : 'Hanya tabungan Pribadi') 
+                  {type === 'income'
+                    ? (isKonta ? 'Masuk ke tabungan Kita' : 'Hanya tabungan Pribadi')
                     : 'Serap dari saldo Kita 50:50'}
                 </Text>
               </View>
             </View>
-            <Switch 
-              value={isKonta} 
+            <Switch
+              value={isKonta}
               onValueChange={setIsKonta}
               trackColor={{ false: theme.surfaceContainerHighest, true: theme.primaryContainer }}
               thumbColor={isKonta ? theme.primary : theme.onSurfaceVariant}
@@ -545,8 +545,8 @@ const TransactionScreen = ({ navigation, route }) => {
                   </View>
                   <Text style={styles.pTitle}>Aktifkan Patungan</Text>
                 </View>
-                <Switch 
-                  value={isKonta ? false : isPatungan} 
+                <Switch
+                  value={isKonta ? false : isPatungan}
                   disabled={isKonta}
                   onValueChange={setIsPatungan}
                   trackColor={{ false: theme.surfaceContainerHighest, true: theme.primaryContainer }}
@@ -560,11 +560,11 @@ const TransactionScreen = ({ navigation, route }) => {
                     <Text style={styles.pLabel}>Kontribusi Saya</Text>
                     <View style={styles.pInputWrapper}>
                       <Text style={styles.pCurrency}>IDR</Text>
-                      <TextInput 
-                        style={styles.pInput} 
-                        placeholder="0" 
-                        keyboardType="numeric" 
-                        placeholderTextColor={theme.onSurfaceVariant} 
+                      <TextInput
+                        style={styles.pInput}
+                        placeholder="0"
+                        keyboardType="numeric"
+                        placeholderTextColor={theme.onSurfaceVariant}
                         value={myContrib}
                         onChangeText={handleMyContribChange}
                         selection={selectionMyState}
@@ -580,24 +580,24 @@ const TransactionScreen = ({ navigation, route }) => {
                     <Text style={styles.pLabel}>Beban Pasangan</Text>
                     <View style={styles.pInputWrapper}>
                       <Text style={styles.pCurrencyDisabled}>IDR</Text>
-                      <TextInput 
-                        style={styles.pInputDisabled} 
-                        value={formatMoney(calcPartnerContrib())} 
-                        editable={false} 
+                      <TextInput
+                        style={styles.pInputDisabled}
+                        value={formatMoney(calcPartnerContrib())}
+                        editable={false}
                       />
                     </View>
                   </View>
                 </View>
               )}
-              
+
               <View style={styles.pInfo}>
                 <MaterialIcons name="info" size={16} color={theme.primary} />
                 <Text style={styles.pInfoText}>
-                  {isKonta 
-                    ? 'Karena Bersama aktif, fitur Patungan dimatikan & beban terbagi 50:50.' 
-                    : (isPatungan 
-                        ? 'Kalkulasi uang Anda dan Pasangan (Beban Pasangan dihitung otomatis).' 
-                        : 'Nyalakan fitur ini jika transaksi pribadi ingin dibebankan parsial.')}
+                  {isKonta
+                    ? 'Karena Bersama aktif, fitur Patungan dimatikan & beban terbagi 50:50.'
+                    : (isPatungan
+                      ? 'Kalkulasi uang Anda dan Pasangan (Beban Pasangan dihitung otomatis).'
+                      : 'Nyalakan fitur ini jika transaksi pribadi ingin dibebankan parsial.')}
                 </Text>
               </View>
             </View>
@@ -609,13 +609,13 @@ const TransactionScreen = ({ navigation, route }) => {
               <Text style={{ color: theme.primary, fontSize: 12, fontWeight: "bold" }}>+ Baru</Text>
             </TouchableOpacity>
           </View>
-          
+
           {(() => {
             const myAccounts = (accounts || []).filter(acc => acc.owner === user?.name);
-            
+
             if (myAccounts.length === 0) {
               return (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.switchRow, { borderStyle: 'dashed', borderColor: theme.primary }]}
                   onPress={() => navigation.navigate("AddAccount")}
                 >
@@ -628,8 +628,8 @@ const TransactionScreen = ({ navigation, route }) => {
                 {myAccounts.map(acc => {
                   const isActive = selectedAccountId === acc.id;
                   return (
-                    <TouchableOpacity 
-                      key={acc.id} 
+                    <TouchableOpacity
+                      key={acc.id}
                       style={[styles.accountBtn, isActive && styles.accountBtnAct]}
                       onPress={() => setSelectedAccountId(acc.id)}
                     >
@@ -647,13 +647,13 @@ const TransactionScreen = ({ navigation, route }) => {
             );
           })()}
 
-          <TouchableOpacity 
-            style={[styles.submitBtn, { opacity: loading ? 0.7 : 1 }]} 
-            activeOpacity={0.8} 
+          <TouchableOpacity
+            style={[styles.submitBtn, { opacity: loading ? 0.7 : 1 }]}
+            activeOpacity={0.8}
             onPress={handleSave}
             disabled={loading}
           >
-            <LinearGradient colors={[theme.primary, theme.primaryContainer]} style={styles.submitGradient} start={{x:0, y:0}} end={{x:1, y:1}}>
+            <LinearGradient colors={[theme.primary, theme.primaryContainer]} style={styles.submitGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
               {loading ? (
                 <>
                   <ActivityIndicator color={theme.onPrimary} size="small" />
@@ -689,8 +689,8 @@ const TransactionScreen = ({ navigation, route }) => {
                       {tx.isPatungan ? 'PATUNGAN' : tx.isJoint ? 'KITA' : 'PRIBADI'}
                     </Text>
                     <Text style={styles.txTime}>
-                      {new Date(tx.date).toString() !== 'Invalid Date' 
-                        ? new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) 
+                      {new Date(tx.date).toString() !== 'Invalid Date'
+                        ? new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
                         : '-'}
                     </Text>
                   </View>
