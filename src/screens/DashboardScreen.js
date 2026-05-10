@@ -159,6 +159,7 @@ const DashboardScreen = ({ navigation, route }) => {
         setIsEditingBill(false);
         setBillName('');
         setBillAmount('');
+        billAmountRef.current = '';
         setBillDays('');
         setBillModalVisible(true);
       }
@@ -216,6 +217,46 @@ const DashboardScreen = ({ navigation, route }) => {
   const [billName, setBillName] = useState('');
   const [billAmount, setBillAmount] = useState('');
   const [billDays, setBillDays] = useState('');
+  const billAmountRef = useRef('');
+  const selectionBillRef = useRef({ start: 0, end: 0 });
+  const [selectionBill, setSelectionBill] = useState({ start: 0, end: 0 });
+
+  const formatInput = (val) => {
+    if (!val) return '';
+    const clean = val.replace(/\D/g, '');
+    return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
+  const handleBillAmountChange = (val) => {
+    const oldText = billAmountRef.current || '';
+    const oldSel = selectionBillRef.current.start;
+    
+    let processedVal = val;
+    const oldDigits = oldText.replace(/\D/g, '');
+    const newDigits = val.replace(/\D/g, '');
+
+    if (val.length < oldText.length && oldDigits === newDigits && oldSel > 0) {
+      processedVal = oldText.slice(0, oldSel - 2) + oldText.slice(oldSel);
+    }
+
+    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
+    const formatted = formatInput(processedVal);
+    setBillAmount(formatted);
+    billAmountRef.current = formatted;
+
+    let newPos = formatted.length;
+    let count = 0;
+    for (let i = formatted.length - 1; i >= 0; i--) {
+      if (count >= digitsAfter) break;
+      if (formatted[i] !== '.') {
+        count++;
+      }
+      newPos = i;
+    }
+
+    setSelectionBill({ start: newPos, end: newPos });
+    selectionBillRef.current = { start: newPos, end: newPos };
+  };
 
 
   const activeName = filter === 'Saya' ? myName : (filter === 'Pasangan' ? partnerName : 'Kita');
@@ -355,7 +396,9 @@ const DashboardScreen = ({ navigation, route }) => {
     setBillActionModalVisible(false);
     setIsEditingBill(true);
     setBillName(selectedBill.name);
-    setBillAmount(selectedBill.amount.toString());
+    const formatted = formatInput(selectedBill.amount.toString());
+    setBillAmount(formatted);
+    billAmountRef.current = formatted;
     
     // Hitung ulang hari sisa untuk diisi di form
     let currentDaysLeft = selectedBill.daysLeft;
@@ -1059,7 +1102,23 @@ const DashboardScreen = ({ navigation, route }) => {
             <TextInput style={styles.input} placeholder="Misal: Listrik" placeholderTextColor={theme.onSurfaceVariant} value={billName} onChangeText={setBillName} />
             
             <Text style={styles.inputLabel}>Nominal (Rp)</Text>
-            <TextInput style={styles.input} placeholder="0" keyboardType="numeric" placeholderTextColor={theme.onSurfaceVariant} value={billAmount} onChangeText={setBillAmount} />
+            <View style={{ position: 'relative', justifyContent: 'center', marginBottom: 16 }}>
+              <Text style={{ position: 'absolute', left: 16, zIndex: 10, color: theme.primary, fontWeight: 'bold', fontSize: 16 }}>Rp</Text>
+              <TextInput 
+                style={[styles.input, { paddingLeft: 44, marginBottom: 0 }]} 
+                placeholder="0" 
+                keyboardType="numeric" 
+                placeholderTextColor={theme.onSurfaceVariant} 
+                value={billAmount} 
+                onChangeText={handleBillAmountChange}
+                selection={selectionBill}
+                onSelectionChange={(e) => {
+                  const sel = e.nativeEvent.selection;
+                  setSelectionBill(sel);
+                  selectionBillRef.current = sel;
+                }}
+              />
+            </View>
             
             <Text style={styles.inputLabel}>Sisa Hari Jatuh Tempo</Text>
             <TextInput style={styles.input} placeholder="Misal: 14" keyboardType="numeric" placeholderTextColor={theme.onSurfaceVariant} value={billDays} onChangeText={setBillDays} />
