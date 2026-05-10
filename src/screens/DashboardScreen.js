@@ -13,7 +13,7 @@ const { width } = Dimensions.get('window');
 
 const DashboardScreen = ({ navigation, route }) => {
   const { theme } = useContext(ThemeContext);
-  const { transactions, getBalance, bills, addBill, updateBill, deleteBill, notifications, addNotification, goals, accounts, deleteTransaction } = useContext(DataContext);
+  const { transactions, getBalance, bills, addBill, updateBill, deleteBill, payBill, notifications, addNotification, goals, accounts, deleteTransaction } = useContext(DataContext);
   const { user, householdUsers, avatar, lastReadNotif, markNotificationsAsRead } = useContext(AuthContext);
   
   const [filter, setFilter] = useState('Kita');
@@ -161,6 +161,10 @@ const DashboardScreen = ({ navigation, route }) => {
         setBillAmount('');
         billAmountRef.current = '';
         setBillDays('');
+        setBillType('one-time');
+        setBillTotalTenor('12');
+        setBillIcon('receipt-long');
+        setBillColor('#6366F1');
         setBillModalVisible(true);
       }
       else if (action === 'transfer') navigation.navigate('Transfer');
@@ -217,9 +221,35 @@ const DashboardScreen = ({ navigation, route }) => {
   const [billName, setBillName] = useState('');
   const [billAmount, setBillAmount] = useState('');
   const [billDays, setBillDays] = useState('');
+  const [billType, setBillType] = useState('one-time'); // 'one-time', 'recurring', 'installment'
+  const [billTotalTenor, setBillTotalTenor] = useState('12');
+  const [billIcon, setBillIcon] = useState('receipt-long');
+  const [billColor, setBillColor] = useState('#6366F1');
+  const [isEditingBill, setIsEditingBill] = useState(false);
+  const [billModalVisible, setBillModalVisible] = useState(false);
+  const [billActionModalVisible, setBillActionModalVisible] = useState(false);
+  const [selectedBill, setSelectedBill] = useState(null);
+  
+  const [payBillModalVisible, setPayBillModalVisible] = useState(false);
+  const [selectedPayAccountId, setSelectedPayAccountId] = useState(null);
+
   const billAmountRef = useRef('');
   const selectionBillRef = useRef({ start: 0, end: 0 });
   const [selectionBill, setSelectionBill] = useState({ start: 0, end: 0 });
+
+  const billIcons = [
+    { name: 'receipt-long', label: 'Umum' },
+    { name: 'flash-on', label: 'Listrik' },
+    { name: 'wifi', label: 'Internet' },
+    { name: 'home', label: 'Sewa/KPR' },
+    { name: 'directions-car', label: 'Kendaraan' },
+    { name: 'subscriptions', label: 'Hiburan' },
+    { name: 'school', label: 'Pendidikan' },
+    { name: 'health-and-safety', label: 'Kesehatan' },
+    { name: 'shopping-cart', label: 'Cicilan' },
+  ];
+
+  const billColors = ['#6366F1', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EF4444', '#06B6D4'];
 
   const formatInput = (val) => {
     if (!val) return '';
@@ -352,12 +382,22 @@ const DashboardScreen = ({ navigation, route }) => {
     const rawAmount = billAmount.replace(/\./g, '');
     const numAmount = Number(rawAmount);
     
+    const billData = {
+      name: billName,
+      amount: numAmount,
+      dueDate,
+      type: billType,
+      icon: billIcon,
+      color: billColor,
+    };
+
+    if (billType === 'installment') {
+      billData.totalTenor = Number(billTotalTenor);
+      if (!isEditingBill) billData.currentTenor = 1;
+    }
+
     if (isEditingBill && selectedBill) {
-      updateBill(selectedBill.id, {
-        name: billName,
-        amount: numAmount,
-        dueDate,
-      });
+      updateBill(selectedBill.id, billData);
       addNotification({
         title: 'Tagihan Diperbarui',
         body: `${myName} mengubah detail tagihan "${billName}".`,
@@ -368,15 +408,11 @@ const DashboardScreen = ({ navigation, route }) => {
         targetId: selectedBill.id,
       });
     } else {
-      addBill({
-        name: billName,
-        amount: numAmount,
-        dueDate,
-      });
+      addBill(billData);
       addNotification({
         title: 'Tagihan Baru',
         body: `${myName} menambahkan tagihan baru: "${billName}" sebesar Rp ${formatMoney(numAmount)}.`,
-        icon: 'receipt-long',
+        icon: billIcon,
         color: 'primary',
         sender: myName,
         targetType: 'bill',
@@ -402,6 +438,10 @@ const DashboardScreen = ({ navigation, route }) => {
     const formatted = formatInput(selectedBill.amount.toString());
     setBillAmount(formatted);
     billAmountRef.current = formatted;
+    setBillType(selectedBill.type || 'one-time');
+    setBillTotalTenor(String(selectedBill.totalTenor || '12'));
+    setBillIcon(selectedBill.icon || 'receipt-long');
+    setBillColor(selectedBill.color || '#6366F1');
     
     // Hitung ulang hari sisa untuk diisi di form
     let currentDaysLeft = selectedBill.daysLeft;
@@ -442,45 +482,27 @@ const DashboardScreen = ({ navigation, route }) => {
 
   const handleMarkPaid = () => {
     setBillActionModalVisible(false);
+    // Langsung buka modal pilih dompet
     setTimeout(() => {
-      setConfirmConfig({
-        title: 'Tandai Lunas',
-        message: 'Apakah kamu ingin otomatis mencatat tagihan ini sebagai Pengeluaran?',
-        cancelText: 'Tidak, Hapus Saja',
-        confirmText: 'Ya, Catat!',
-        confirmColor: theme.primary,
-        onCancel: () => {
-          deleteBill(selectedBill.id);
-          addNotification({
-            title: 'Tagihan Lunas',
-            body: `${myName} menandai tagihan "${selectedBill.name}" telah lunas!`,
-            icon: 'check-circle',
-            color: 'primary',
-            sender: myName,
-            targetType: 'bill',
-          });
-          setConfirmVisible(false);
-        },
-        onConfirm: () => {
-          deleteBill(selectedBill.id);
-          addNotification({
-            title: 'Tagihan Lunas',
-            body: `${myName} menandai tagihan "${selectedBill.name}" telah lunas dan mencatatnya.`,
-            icon: 'check-circle',
-            color: 'primary',
-            sender: myName,
-            targetType: 'bill',
-          });
-          setConfirmVisible(false);
-          navigation.navigate('Transaksi', { 
-            type: 'expense', 
-            predefinedName: selectedBill.name, 
-            predefinedAmount: selectedBill.amount.toString() 
-          });
-        }
-      });
-      setConfirmVisible(true);
+      setPayBillModalVisible(true);
     }, 300);
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!selectedPayAccountId) {
+      Alert.alert('Pilih Dompet', 'Pilih dompet yang digunakan untuk membayar.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await payBill(selectedBill.id, selectedPayAccountId);
+      setPayBillModalVisible(false);
+      showToast(`Pembayaran tagihan "${selectedBill.name}" berhasil dicatat!`);
+    } catch (e) {
+      Alert.alert('Gagal', 'Terjadi kesalahan saat memproses pembayaran.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRemindBill = () => {
@@ -980,22 +1002,69 @@ const DashboardScreen = ({ navigation, route }) => {
                   inputRange: [0, 1],
                   outputRange: ['transparent', theme.primary + '33'],
                 });
+                
+                const billIconName = bill.icon || 'receipt-long';
+                const billColorVal = bill.color || theme.primary;
+
                 return (
                   <Animated.View key={bill.id} style={[{ borderRadius: 24 }, isHighlighted && { backgroundColor: bgColor }]}>
-                    <TouchableOpacity style={[styles.billCard, dynamicDaysLeft <= 3 && styles.billCardUrgent]} activeOpacity={0.8} onPress={() => handleBillClick(bill)}>
+                    <TouchableOpacity 
+                      style={[
+                        styles.billCard, 
+                        { borderColor: billColorVal + '33' },
+                        dynamicDaysLeft <= 3 && { backgroundColor: billColorVal + '1A', borderColor: billColorVal + '66' }
+                      ]} 
+                      activeOpacity={0.8} 
+                      onPress={() => handleBillClick(bill)}
+                    >
                       <View style={styles.billHeader}>
-                        <View style={styles.billIconBg}><MaterialIcons name="receipt-long" size={16} color={dynamicDaysLeft <= 3 ? theme.primary : theme.onSurfaceVariant} /></View>
-                        <Text style={[styles.billBadge, dynamicDaysLeft <= 3 ? styles.billBadgeUrgent : styles.billBadgeOk]}>{dynamicDaysLeft} HARI</Text>
+                        <View style={[styles.billIconBg, { backgroundColor: billColorVal + '1A' }]}>
+                          <MaterialIcons name={billIconName} size={16} color={billColorVal} />
+                        </View>
+                        <Text style={[
+                          styles.billBadge, 
+                          dynamicDaysLeft <= 3 
+                            ? { backgroundColor: theme.error, color: '#fff' } 
+                            : { backgroundColor: theme.surfaceContainerHigh, color: theme.onSurfaceVariant }
+                        ]}>
+                          {dynamicDaysLeft <= 0 ? 'HARI INI' : `${dynamicDaysLeft} HARI`}
+                        </Text>
                       </View>
-                      <Text style={styles.billTitle}>{bill.name}</Text>
-                      <Text style={styles.billPrice}>Rp {formatMoney(bill.amount)}</Text>
+                      <Text style={styles.billTitle} numberOfLines={1}>{bill.name}</Text>
+                      <Text style={[styles.billPrice, { color: billColorVal }]}>Rp {formatMoney(bill.amount)}</Text>
+                      
+                      {bill.type === 'installment' && (
+                        <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: theme.outlineVariant + '22' }}>
+                          <Text style={{ fontSize: 9, fontWeight: '900', color: theme.onSurfaceVariant }}>
+                            TENOR: {bill.currentTenor || 1}/{bill.totalTenor}
+                          </Text>
+                          <View style={{ height: 3, backgroundColor: theme.surfaceContainer, borderRadius: 2, marginTop: 4 }}>
+                            <View style={{ 
+                              height: '100%', 
+                              width: `${((bill.currentTenor || 1) / bill.totalTenor) * 100}%`, 
+                              backgroundColor: billColorVal, 
+                              borderRadius: 2 
+                            }} />
+                          </View>
+                        </View>
+                      )}
+                      
+                      {bill.type === 'recurring' && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                          <MaterialIcons name="autorenew" size={10} color={theme.onSurfaceVariant} />
+                          <Text style={{ fontSize: 9, color: theme.onSurfaceVariant, fontWeight: 'bold' }}>RUTIN</Text>
+                        </View>
+                      )}
                     </TouchableOpacity>
                   </Animated.View>
                 );
               })}
             </ScrollView>
           ) : (
-            <Text style={{ color: theme.onSurfaceVariant, fontSize: 12 }}>Belum ada tagihan tersimpan.</Text>
+            <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 24, padding: 24, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: theme.outlineVariant }}>
+              <MaterialIcons name="receipt-long" size={32} color={theme.onSurfaceVariant + '66'} />
+              <Text style={{ color: theme.onSurfaceVariant, fontSize: 12, marginTop: 8 }}>Belum ada tagihan tersimpan.</Text>
+            </View>
           )}
         </View>
 
@@ -1097,45 +1166,191 @@ const DashboardScreen = ({ navigation, route }) => {
 
       {/* Bill Modal */}
       <Modal visible={billModalVisible} transparent animationType="slide" onRequestClose={() => { setBillModalVisible(false); setIsEditingBill(false); }}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{isEditingBill ? 'Edit Tagihan' : 'Tambah Tagihan'}</Text>
-            
-            <Text style={styles.inputLabel}>Nama Tagihan</Text>
-            <TextInput style={styles.input} placeholder="Misal: Listrik" placeholderTextColor={theme.onSurfaceVariant} value={billName} onChangeText={setBillName} />
-            
-            <Text style={styles.inputLabel}>Nominal (Rp)</Text>
-            <View style={{ position: 'relative', justifyContent: 'center', marginBottom: 16 }}>
-              <Text style={{ position: 'absolute', left: 16, zIndex: 10, color: theme.primary, fontWeight: 'bold', fontSize: 16 }}>Rp</Text>
-              <TextInput 
-                style={[styles.input, { paddingLeft: 44, marginBottom: 0 }]} 
-                placeholder="0" 
-                keyboardType="numeric" 
-                placeholderTextColor={theme.onSurfaceVariant} 
-                value={billAmount} 
-                onChangeText={handleBillAmountChange}
-                selection={selectionBill}
-                onSelectionChange={(e) => {
-                  const sel = e.nativeEvent.selection;
-                  setSelectionBill(sel);
-                  selectionBillRef.current = sel;
-                }}
-              />
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => { setBillModalVisible(false); setIsEditingBill(false); }}>
+          <View style={[styles.modalContent, { maxHeight: '90%', padding: 0, overflow: 'hidden' }]}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={{ padding: 24 }}>
+                <Text style={styles.modalTitle}>{isEditingBill ? 'Edit Tagihan' : 'Tambah Tagihan'}</Text>
+                
+                <Text style={styles.inputLabel}>Tipe Tagihan</Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
+                  {[
+                    { id: 'one-time', label: 'Sekali', icon: 'history' },
+                    { id: 'recurring', label: 'Rutin', icon: 'autorenew' },
+                    { id: 'installment', label: 'Tenor', icon: 'calendar-today' }
+                  ].map(t => (
+                    <TouchableOpacity 
+                      key={t.id} 
+                      onPress={() => setBillType(t.id)}
+                      style={{ 
+                        flex: 1, 
+                        flexDirection: 'row', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        gap: 4, 
+                        paddingVertical: 10, 
+                        borderRadius: 12, 
+                        backgroundColor: billType === t.id ? theme.primaryContainer : theme.surfaceContainerLow,
+                        borderWidth: 1,
+                        borderColor: billType === t.id ? theme.primary : 'transparent'
+                      }}
+                    >
+                      <MaterialIcons name={t.icon} size={16} color={billType === t.id ? theme.onPrimaryContainer : theme.onSurfaceVariant} />
+                      <Text style={{ fontSize: 11, fontWeight: 'bold', color: billType === t.id ? theme.onPrimaryContainer : theme.onSurfaceVariant }}>{t.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {billType === 'installment' && (
+                  <>
+                    <Text style={styles.inputLabel}>Total Tenor (Bulan)</Text>
+                    <TextInput 
+                      style={styles.input} 
+                      placeholder="Misal: 12" 
+                      keyboardType="numeric" 
+                      placeholderTextColor={theme.onSurfaceVariant} 
+                      value={billTotalTenor} 
+                      onChangeText={setBillTotalTenor} 
+                    />
+                  </>
+                )}
+
+                <Text style={styles.inputLabel}>Nama Tagihan</Text>
+                <TextInput style={styles.input} placeholder="Misal: Listrik" placeholderTextColor={theme.onSurfaceVariant} value={billName} onChangeText={setBillName} />
+                
+                <Text style={styles.inputLabel}>Nominal (Rp)</Text>
+                <View style={{ position: 'relative', justifyContent: 'center', marginBottom: 16 }}>
+                  <Text style={{ position: 'absolute', left: 16, zIndex: 10, color: theme.primary, fontWeight: 'bold', fontSize: 16 }}>Rp</Text>
+                  <TextInput 
+                    style={[styles.input, { paddingLeft: 44, marginBottom: 0 }]} 
+                    placeholder="0" 
+                    keyboardType="numeric" 
+                    placeholderTextColor={theme.onSurfaceVariant} 
+                    value={billAmount} 
+                    onChangeText={handleBillAmountChange}
+                    selection={selectionBill}
+                    onSelectionChange={(e) => {
+                      const sel = e.nativeEvent.selection;
+                      setSelectionBill(sel);
+                      selectionBillRef.current = sel;
+                    }}
+                  />
+                </View>
+                
+                <Text style={styles.inputLabel}>Sisa Hari Jatuh Tempo</Text>
+                <TextInput style={styles.input} placeholder="Misal: 14" keyboardType="numeric" placeholderTextColor={theme.onSurfaceVariant} value={billDays} onChangeText={setBillDays} />
+                
+                <Text style={styles.inputLabel}>Icon & Warna</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+                  {billIcons.map(ic => (
+                    <TouchableOpacity 
+                      key={ic.name} 
+                      onPress={() => setBillIcon(ic.name)}
+                      style={{ 
+                        width: 44, 
+                        height: 44, 
+                        borderRadius: 12, 
+                        backgroundColor: billIcon === ic.name ? billColor : theme.surfaceContainerLow,
+                        justifyContent: 'center', 
+                        alignItems: 'center',
+                        marginRight: 8,
+                        borderWidth: 2,
+                        borderColor: billIcon === ic.name ? '#fff' : 'transparent'
+                      }}
+                    >
+                      <MaterialIcons name={ic.name} size={20} color={billIcon === ic.name ? '#fff' : theme.onSurfaceVariant} />
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
+                  {billColors.map(c => (
+                    <TouchableOpacity 
+                      key={c} 
+                      onPress={() => setBillColor(c)}
+                      style={{ 
+                        width: 32, 
+                        height: 32, 
+                        borderRadius: 16, 
+                        backgroundColor: c,
+                        borderWidth: 3,
+                        borderColor: billColor === c ? theme.onSurface : 'transparent'
+                      }}
+                    />
+                  ))}
+                </View>
+
+                <View style={styles.btnRow}>
+                  <TouchableOpacity style={styles.btnCancel} onPress={() => { setBillModalVisible(false); setIsEditingBill(false); }}>
+                    <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Batal</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.btnSave} onPress={handleSaveBill}>
+                    <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Simpan</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Pay Bill Modal (Wallet Selection) */}
+      <Modal visible={payBillModalVisible} transparent animationType="fade" onRequestClose={() => setPayBillModalVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setPayBillModalVisible(false)}>
+          <View style={[styles.modalContent, { padding: 0, overflow: 'hidden' }]}>
+            <View style={{ padding: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '33' }}>
+              <Text style={{ fontSize: 20, fontWeight: '900', color: theme.onSurface, marginBottom: 4 }}>Pilih Pembayaran</Text>
+              <Text style={{ fontSize: 13, color: theme.onSurfaceVariant }}>Tagihan: {selectedBill?.name}</Text>
             </View>
             
-            <Text style={styles.inputLabel}>Sisa Hari Jatuh Tempo</Text>
-            <TextInput style={styles.input} placeholder="Misal: 14" keyboardType="numeric" placeholderTextColor={theme.onSurfaceVariant} value={billDays} onChangeText={setBillDays} />
-            
-            <View style={styles.btnRow}>
-              <TouchableOpacity style={styles.btnCancel} onPress={() => { setBillModalVisible(false); setIsEditingBill(false); }}>
-                <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Batal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.btnSave} onPress={handleSaveBill}>
-                <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Simpan</Text>
-              </TouchableOpacity>
+            <View style={{ padding: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 12 }}>DOMPET SUMBER</Text>
+              <ScrollView style={{ maxHeight: 300 }}>
+                {accounts.map(acc => (
+                  <TouchableOpacity 
+                    key={acc.id} 
+                    onPress={() => setSelectedPayAccountId(acc.id)}
+                    style={{ 
+                      flexDirection: 'row', 
+                      alignItems: 'center', 
+                      gap: 12, 
+                      padding: 12, 
+                      borderRadius: 16, 
+                      backgroundColor: selectedPayAccountId === acc.id ? theme.primaryContainer : 'transparent',
+                      marginBottom: 8,
+                      borderWidth: 1,
+                      borderColor: selectedPayAccountId === acc.id ? theme.primary : theme.outlineVariant + '22'
+                    }}
+                  >
+                    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: acc.color + '1A', justifyContent: 'center', alignItems: 'center' }}>
+                      <MaterialIcons name={acc.icon || 'payments'} size={20} color={acc.color} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.onSurface }}>{acc.name}</Text>
+                      <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>Saldo: Rp {formatMoney(acc.balance)}</Text>
+                    </View>
+                    {selectedPayAccountId === acc.id && (
+                      <MaterialIcons name="check-circle" size={24} color={theme.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              
+              <View style={[styles.btnRow, { marginTop: 16 }]}>
+                <TouchableOpacity style={styles.btnCancel} onPress={() => setPayBillModalVisible(false)}>
+                  <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Batal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.btnSave, { opacity: loading ? 0.6 : 1 }]} 
+                  onPress={handleConfirmPayment}
+                  disabled={loading}
+                >
+                  {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: '#fff', fontWeight: 'bold' }}>Bayar Sekarang</Text>}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
 
       {/* Bill Action Modal */}

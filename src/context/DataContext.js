@@ -432,9 +432,84 @@ export const DataProvider = ({ children }) => {
     if (!user || !user.householdId) return;
     try {
       const billRef = doc(db, 'households', user.householdId, 'bills', billId);
-      await updateDoc(billRef, updateData);
+      // Remove undefined fields
+      const cleanData = Object.fromEntries(
+        Object.entries(updateData).filter(([, v]) => v !== undefined)
+      );
+      await updateDoc(billRef, cleanData);
     } catch (e) {
       console.error('Failed to update bill', e);
+    }
+  };
+
+  const payBill = async (billId, accountId) => {
+    if (!user || !user.householdId) return;
+    try {
+      const bill = bills.find(b => b.id === billId);
+      if (!bill) return;
+
+      const numAmount = Number(bill.amount);
+      const myName = user.name || 'User';
+
+      // 1. Buat Transaksi Pengeluaran
+      await addTransaction({
+        name: `Bayar Tagihan: ${bill.name}`,
+        amount: numAmount,
+        myContrib: numAmount,
+        partnerContrib: 0,
+        type: 'expense',
+        category: 'Tagihan',
+        icon: bill.icon || 'receipt-long',
+        color: bill.color || '#6366F1',
+        accountId: accountId,
+        owner: myName,
+        date: new Date().toISOString(),
+      });
+
+      // 2. Update Status Tagihan
+      const billRef = doc(db, 'households', user.householdId, 'bills', billId);
+      
+      if (bill.type === 'recurring') {
+        // Geser dueDate ke bulan depan
+        const oldDate = new Date(bill.dueDate);
+        const nextDate = new Date(oldDate.setMonth(oldDate.getMonth() + 1)).toISOString();
+        await updateDoc(billRef, { 
+          dueDate: nextDate,
+          lastPaidAt: new Date().toISOString()
+        });
+      } else if (bill.type === 'installment') {
+        const nextTenor = (bill.currentTenor || 1) + 1;
+        if (nextTenor > (bill.totalTenor || 1)) {
+          // Lunas permanen -> Hapus
+          await deleteDoc(billRef);
+        } else {
+          // Geser ke tenor berikutnya
+          const oldDate = new Date(bill.dueDate);
+          const nextDate = new Date(oldDate.setMonth(oldDate.getMonth() + 1)).toISOString();
+          await updateDoc(billRef, { 
+            currentTenor: nextTenor,
+            dueDate: nextDate,
+            lastPaidAt: new Date().toISOString()
+          });
+        }
+      } else {
+        // Sekali bayar -> Hapus
+        await deleteDoc(billRef);
+      }
+
+      // 3. Notifikasi
+      await addNotification({
+        title: 'Tagihan Terbayar',
+        body: `${myName} telah membayar tagihan "${bill.name}" sebesar Rp ${new Intl.NumberFormat('id-ID').format(numAmount)}.`,
+        icon: 'check-circle',
+        color: 'primary',
+        sender: myName,
+        targetType: 'bill',
+      });
+
+    } catch (e) {
+      console.error('Failed to pay bill', e);
+      throw e;
     }
   };
 
@@ -614,7 +689,7 @@ export const DataProvider = ({ children }) => {
     <DataContext.Provider value={{
       transactions, addTransaction, updateTransaction, deleteTransaction, addTransfer, getBalance,
       goals, addGoal, updateGoal, deleteGoal,
-      bills, addBill, updateBill, deleteBill,
+      bills, addBill, updateBill, deleteBill, payBill,
       accounts, addAccount, updateAccount, deleteAccount,
       notifications, addNotification,
       categories, addCategory, updateCategory, deleteCategory,
