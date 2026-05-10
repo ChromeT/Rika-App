@@ -33,6 +33,7 @@ export const EditGoalScreen = () => {
   const [memoryCaption, setMemoryCaption] = useState(goal?.memoryCaption || '');
   const [actualAmount, setActualAmount] = useState(String(goal?.actualAmount || 0));
   const [relatedTxIds, setRelatedTxIds] = useState(goal?.relatedTransactionIds || []);
+  const [targetDate, setTargetDate] = useState(goal?.targetDate || '');
   const [uploading, setUploading] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
 
@@ -183,6 +184,7 @@ export const EditGoalScreen = () => {
         const updateData = {
           name: name.trim(),
           targetAmount: Number(targetAmount.replace(/\./g, '')) || 0,
+          targetDate: targetDate || null,
         };
 
         if (isAchieved) {
@@ -198,7 +200,8 @@ export const EditGoalScreen = () => {
             updateData.mediaCount = 0;
           }
         } else {
-          updateData.description = description;
+          updateData.description = description.trim();
+          updateData.targetDate = targetDate || null;
           updateData.media = finalMediaList;
           if (finalMediaList.length > 0) {
             updateData.previewImage = finalMediaList[0].type === 'image' ? (finalMediaList[0].url || finalMediaList[0].uri) : null;
@@ -322,6 +325,18 @@ export const EditGoalScreen = () => {
                 }}
                 keyboardType="numeric"
                 style={{ color: theme.onSurface, fontSize: 16, fontWeight: 'bold', flex: 1 }}
+              />
+            </View>
+            <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>TARGET TANGGAL (ROADMAP)</Text>
+            <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
+              <MaterialIcons name="calendar-today" size={18} color={theme.primary} style={{ marginRight: 10 }} />
+              <TextInput 
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={theme.onSurfaceVariant}
+                value={targetDate}
+                onChangeText={setTargetDate}
+                style={{ color: theme.onSurface, fontSize: 15, flex: 1 }}
+                keyboardType="numeric"
               />
             </View>
           </>

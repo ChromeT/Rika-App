@@ -178,7 +178,7 @@ const CoupleScreen = ({ navigation }) => {
               { title: 'Perjalanan Dimulai', date: relationshipStart, icon: 'auto-awesome', color: theme.primary, desc: 'Kalian resmi memulai petualangan di Rika App.' },
             ];
 
-            // Add Milestone for first goal achieved
+            // Achieved goals
             const achievedGoals = goals.filter(g => g.status === 'achieved').sort((a,b) => new Date(a.achievedAt) - new Date(b.achievedAt));
             if (achievedGoals.length > 0) {
               milestones.push({
@@ -190,16 +190,22 @@ const CoupleScreen = ({ navigation }) => {
               });
             }
 
-            // Add Milestone for first big saving (e.g. total assets > 5M)
+            // High assets
             if (totalAssets > 5000000) {
-              milestones.push({
-                title: 'Kekuatan Finansial',
-                date: dayjs(), // Simplified
-                icon: 'account-balance',
-                color: '#10B981',
-                desc: 'Wow! Total aset kalian sudah menembus angka Rp 5.000.000.'
-              });
+              milestones.push({ title: 'Kekuatan Finansial', date: dayjs(), icon: 'account-balance', color: '#10B981', desc: 'Wow! Total aset kalian sudah menembus angka Rp 5.000.000.' });
             }
+
+            // Future Roadmap
+            const futureGoals = goals.filter(g => g.status !== 'achieved' && g.targetDate).sort((a,b) => new Date(a.targetDate) - new Date(b.targetDate));
+            futureGoals.forEach(g => {
+              milestones.push({
+                title: g.name,
+                date: dayjs(g.targetDate),
+                icon: 'rocket_launch',
+                color: theme.primary,
+                desc: `Target Roadmap: Rencana pencapaian goal ini.`,
+              });
+            });
 
             return milestones.sort((a,b) => b.date - a.date).map((m, idx) => (
               <View key={idx} style={styles.milestoneItem}>

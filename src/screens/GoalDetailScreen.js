@@ -8,7 +8,11 @@ import { ThemeContext } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
 import { AuthContext } from '../context/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { db } from '../config/firebase';
+
+dayjs.extend(relativeTime);
 import { doc, updateDoc, getDoc, deleteDoc } from 'firebase/firestore';
 
 const { width } = Dimensions.get('window');
@@ -151,6 +155,10 @@ const GoalDetailScreen = ({ route }) => {
   const progress = goal?.targetAmount > 0 ? Math.min((goal.currentAmount / goal.targetAmount) * 100, 100) : 0;
   const remaining = Math.max((goal?.targetAmount || 0) - (goal?.currentAmount || 0), 0);
 
+  const targetDate = goal?.targetDate ? dayjs(goal.targetDate) : null;
+  const daysLeft = targetDate ? targetDate.diff(dayjs(), 'day') : null;
+  const isOverdue = daysLeft !== null && daysLeft < 0;
+
   const handleAddFunding = async (amount) => {
     if (!goal) return;
     try {
@@ -243,6 +251,15 @@ const GoalDetailScreen = ({ route }) => {
           <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%' }} />
           <View style={{ position: 'absolute', bottom: 20, left: 20, right: 20 }}>
             <Text style={{ color: '#fff', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 }}>{goal.name}</Text>
+            {targetDate && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                <MaterialIcons name="event" size={14} color={isOverdue ? '#f2b8b5' : '#b2cad3'} />
+                <Text style={{ color: isOverdue ? '#f2b8b5' : '#b2cad3', fontSize: 12, fontWeight: 'bold' }}>
+                  {isOverdue ? 'Terlewat ' : 'Target: '} {targetDate.format('DD MMM YYYY')}
+                  {daysLeft !== null && !isOverdue && ` (${daysLeft} hari lagi)`}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
