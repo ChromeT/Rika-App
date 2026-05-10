@@ -1291,7 +1291,7 @@ const DashboardScreen = ({ navigation, route }) => {
               </View>
             </ScrollView>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
       {/* Pay Bill Modal (Wallet Selection) */}
