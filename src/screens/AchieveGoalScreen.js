@@ -72,11 +72,11 @@ export const AchieveGoalScreen = () => {
   const handleSave = async () => {
     if (!goal) return;
 
+    setUploading(true);
     let finalMediaList = mediaList;
 
     // Upload media to Cloudinary if any
     if (mediaList.length > 0) {
-      setUploading(true);
       try {
         const uploaded = await uploadMultipleToCloudinary(mediaList);
         if (uploaded.length === 0) {
@@ -91,7 +91,6 @@ export const AchieveGoalScreen = () => {
         Alert.alert('Upload gagal', 'Terjadi kesalahan saat mengupload media: ' + e.message);
         return;
       }
-      setUploading(false);
     }
 
     const updateData = {
@@ -105,10 +104,14 @@ export const AchieveGoalScreen = () => {
 
     try {
       await updateGoal(goal.id, updateData);
-      Alert.alert('Berhasil', 'Goal telah ditandai sebagai tercapai!', [
-        { text: 'OK', onPress: () => navigation.goBack() }
-      ]);
+      setUploading(false);
+      
+      // Pop all screens (including GoalDetail) to return to MainTabs
+      navigation.popToTop();
+      // Then switch to the Goals tab with the achieved filter
+      navigation.navigate('Goals', { activeTab: 'achieved' });
     } catch (e) {
+      setUploading(false);
       console.error('Save goal error:', e);
       Alert.alert('Gagal', 'Tidak dapat menyimpan perubahan goal');
     }

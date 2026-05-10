@@ -1,10 +1,10 @@
-import React, { useContext, useState, useMemo } from 'react';
+import React, { useContext, useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, FlatList, Dimensions, ActivityIndicator, TextInput, Alert, Modal } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { ThemeContext } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
 import { AuthContext } from '../context/AuthContext';
@@ -54,6 +54,7 @@ export const AddGoalScreen = () => {
   const [mediaList, setMediaList] = useState([]);
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState('');
 
   const pickMedia = async () => {
     try {
@@ -94,53 +95,64 @@ export const AddGoalScreen = () => {
   };
 
   const handleSave = async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || uploading) return;
     
-    let finalMediaList = mediaList;
+    console.log('--- HandleSave Start ---');
+    setUploading(true);
+    setLoadingMsg(mediaList.length > 0 ? 'Mengupload media...' : 'Menyimpan goal...');
     
-    // Upload media to Cloudinary if any
-    if (mediaList.length > 0) {
-      setUploading(true);
-      try {
+    try {
+      let finalMediaList = mediaList;
+      
+      // Upload media to Cloudinary if any
+      if (mediaList.length > 0) {
         console.log('Mulai upload', mediaList.length, 'media');
         const uploaded = await uploadMultipleToCloudinary(mediaList);
         console.log('Upload selesai, berhasil', uploaded.length, 'item');
-        if (uploaded.length === 0) {
+        if (uploaded.length === 0 && mediaList.length > 0) {
           setUploading(false);
           Alert.alert('Upload gagal', 'Tidak ada media yang berhasil diupload. Cek koneksi internet Anda.');
           return;
         }
         finalMediaList = uploaded;
-      } catch (e) {
-        setUploading(false);
-        console.error('Upload error:', e);
-        Alert.alert('Upload gagal', 'Terjadi kesalahan saat mengupload media: ' + e.message);
-        return;
       }
-      setUploading(false);
-    }
-    
-    const firstMedia = finalMediaList.length > 0 ? finalMediaList[0] : null;
-    const previewImage = firstMedia?.type === 'image' ? firstMedia.url : null;
-    
-    const newGoalId = await addGoal({
-      name: name.trim(),
-      description: description.trim(),
-      targetAmount: Number(target) || 0,
-      previewImage,
-      media: finalMediaList,
-      status: 'active',
-      currentAmount: 0,
-      achieved: false
-    });
-    if (newGoalId) {
-      await sendGoalNotification({
-        title: 'Goal baru',
-        body: `${user?.name || 'Saya'} menambahkan goal “${name.trim()}”.`,
-        goalId: newGoalId,
+      
+      setLoadingMsg('Menyimpan goal...');
+      console.log('Menyimpan ke Firestore...');
+      
+      const firstMedia = finalMediaList.length > 0 ? finalMediaList[0] : null;
+      const previewImage = firstMedia?.type === 'image' ? (firstMedia.url || firstMedia.uri) : null;
+      
+      const newGoalId = await addGoal({
+        name: name.trim(),
+        description: description.trim(),
+        targetAmount: Number(target) || 0,
+        previewImage,
+        media: finalMediaList,
+        status: 'active',
+        currentAmount: 0,
+        achieved: false
       });
+      
+      console.log('Goal tersimpan, ID:', newGoalId);
+      
+      if (newGoalId) {
+        setLoadingMsg('Mengirim notifikasi...');
+        await sendGoalNotification({
+          title: 'Goal baru',
+          body: `${user?.name || 'Saya'} menambahkan goal “${name.trim()}”.`,
+          goalId: newGoalId,
+        });
+      }
+      
+      console.log('Selesai, menutup layar');
+      setUploading(false);
+      navigation.goBack();
+    } catch (e) {
+      setUploading(false);
+      console.error('Save goal error:', e);
+      Alert.alert('Gagal', 'Terjadi kesalahan saat menyimpan goal: ' + e.message);
     }
-    navigation.goBack();
   };
   return (
     <View style={{ flex: 1, backgroundColor: safeTheme.background }}>
@@ -149,19 +161,28 @@ export const AddGoalScreen = () => {
           <MaterialIcons name="close" size={24} color={safeTheme.onSurface} />
         </TouchableOpacity>
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: safeTheme.onSurface }}>Goal Baru</Text>
-        <TouchableOpacity onPress={handleSave} style={{ backgroundColor: safeTheme.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 }}>
-          <Text style={{ color: safeTheme.onPrimary, fontWeight: 'bold' }}>Simpan</Text>
+        <TouchableOpacity 
+          onPress={handleSave} 
+          disabled={uploading} 
+          style={{ backgroundColor: uploading ? safeTheme.outlineVariant : safeTheme.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, minWidth: 80, alignItems: 'center' }}
+        >
+          {uploading ? (
+            <ActivityIndicator size="small" color={safeTheme.onPrimary} />
+          ) : (
+            <Text style={{ color: safeTheme.onPrimary, fontWeight: 'bold' }}>Simpan</Text>
+          )}
         </TouchableOpacity>
       </View>
 
+      {uploading && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}>
+          <ActivityIndicator size="large" color="#fff" />
+          <Text style={{ color: '#fff', marginTop: 12, fontSize: 14 }}>{loadingMsg}</Text>
+        </View>
+      )}
+
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         {/* Media List with Captions */}
-        {uploading && (
-          <View style={{ padding: 20, alignItems: "center" }}>
-            <ActivityIndicator size="large" color={safeTheme.primary} />
-            <Text style={{ color: safeTheme.onSurfaceVariant, marginTop: 8 }}>Mengupload media...</Text>
-          </View>
-        )}
         {mediaList.map((m, i) => (
           <View key={i} style={{ marginBottom: 12, backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 16, overflow: 'hidden' }}>
             {m.type === 'video' ? (
@@ -263,8 +284,17 @@ const GoalsScreen = () => {
   const { goals, addGoal, updateGoal, deleteGoal, addNotification, transactions } = useContext(DataContext);
   const { user } = useContext(AuthContext);
   const navigation = useNavigation();
+  const route = useRoute();
   
   const [activeTab, setActiveTab] = useState('active'); // 'active' or 'achieved'
+  
+  useEffect(() => {
+    if (route.params?.activeTab) {
+      setActiveTab(route.params.activeTab);
+      // Reset params so it doesn't trigger again on subsequent focuses
+      navigation.setParams({ activeTab: undefined });
+    }
+  }, [route.params?.activeTab]);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState(null);
   const [editName, setEditName] = useState('');

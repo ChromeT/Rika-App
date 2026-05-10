@@ -139,7 +139,7 @@ const MemoryDetailScreen = ({ route }) => {
   const navigation = useNavigation();
   const { theme } = useContext(ThemeContext);
   const { user, householdUsers } = useContext(AuthContext);
-  const { addNotification } = useContext(DataContext);
+  const { goals, addNotification } = useContext(DataContext);
   const householdId = user?.householdId;
   
   const partnerName = householdUsers?.find(u => u !== (user?.name || ''));
@@ -147,7 +147,7 @@ const MemoryDetailScreen = ({ route }) => {
   
   console.log('MemoryDetail: goalId:', goalId, 'householdId:', householdId, 'user:', user);
 
-  const [goal, setGoal] = useState(null);
+  const goal = goals.find(g => g.id === goalId);
   const [memories, setMemories] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [capsules, setCapsules] = useState([]);
@@ -155,7 +155,7 @@ const MemoryDetailScreen = ({ route }) => {
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
   const [capsuleSheetVisible, setCapsuleSheetVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!goal);
 
   // Data fetching
   const loadData = async () => {
@@ -167,28 +167,11 @@ const MemoryDetailScreen = ({ route }) => {
     }
 
     try {
-      // 1. Goal document
-      const goalRef = doc(db, 'households', householdId, 'goals', goalId);
-      const goalSnap = await getDoc(goalRef);
-      
-      console.log('Goal exists:', goalSnap.exists);
-      
-      if (goalSnap.exists()) {
-        const goalData = { id: goalSnap.id, ...goalSnap.data() };
-        setGoal(goalData);
-        console.log('Goal loaded:', goalData.name, 'media count:', goalData.media?.length);
-        
-        // Get memories from goal.media field
-        if (goalData.media && goalData.media.length > 0) {
-          setMemories(goalData.media);
-        }
-      } else {
-        setGoal({ name: 'Goal Tidak Ditemukan' });
-        setLoading(false);
-        return;
+      // Goal is now handled via context, we just need to update local memories if goal exists
+      if (goal && goal.media) {
+        setMemories(goal.media);
       }
-
-      // 2. Listen for changes (optional - in case media is updated later)
+      
       setLoading(false);
 
       const unsubTx = onSnapshot(
@@ -220,7 +203,6 @@ const MemoryDetailScreen = ({ route }) => {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('useFocusEffect triggered, loading:', loading);
       const cleanup = loadData();
       return () => {
         if (cleanup && typeof cleanup.then === 'function') {
@@ -229,8 +211,18 @@ const MemoryDetailScreen = ({ route }) => {
           });
         }
       };
-    }, [goalId, householdId])
+    }, [goalId, householdId, goal])
   );
+
+  // Sync memories and loading state when goal changes
+  useEffect(() => {
+    if (goal) {
+      setLoading(false);
+      if (goal.media) {
+        setMemories(goal.media);
+      }
+    }
+  }, [goal]);
 
   // Render Helpers
   if (!householdId) {
