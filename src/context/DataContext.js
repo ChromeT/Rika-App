@@ -817,28 +817,29 @@ export const DataProvider = ({ children }) => {
     }
 
     try {
-      const SERVER_KEY = 'YOUR_FIREBASE_SERVER_KEY'; 
-      
-      await fetch('https://fcm.googleapis.com/fcm/send', {
+      // Panggil API Route Vercel kita
+      const response = await fetch('/api/send-push', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `key=${SERVER_KEY}`,
         },
         body: JSON.stringify({
-          to: targetToken,
-          notification: {
-            title: title,
-            body: body,
-            sound: 'default',
-          },
+          token: targetToken,
+          title: title,
+          body: body,
           data: {
-            type: 'split_confirmation',
+            click_action: '/',
+            type: 'notification'
           }
         }),
       });
+
+      const result = await response.json();
+      if (!result.success) {
+        console.error('Push API Error:', result.error);
+      }
     } catch (error) {
-      console.error('Failed to send push notification:', error);
+      console.error('Failed to send push notification via API:', error);
     }
   };
 
