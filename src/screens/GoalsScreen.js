@@ -143,8 +143,8 @@ export const AddGoalScreen = () => {
     navigation.goBack();
   };
   return (
-    <View style={{ flex: 1, backgroundColor: safeTheme.background, padding: 16 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+    <View style={{ flex: 1, backgroundColor: safeTheme.background }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: safeTheme.outlineVariant + '22' }}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <MaterialIcons name="close" size={24} color={safeTheme.onSurface} />
         </TouchableOpacity>
@@ -154,103 +154,106 @@ export const AddGoalScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Media List with Captions */}
-          {uploading && (
-            <View style={{ padding: 20, alignItems: "center" }}>
-              <ActivityIndicator size="large" color={safeTheme.primary} />
-              <Text style={{ color: safeTheme.onSurfaceVariant, marginTop: 8 }}>Mengupload media...</Text>
-            </View>
-          )}
-      {mediaList.map((m, i) => (
-        <View key={i} style={{ marginBottom: 12, backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 16, overflow: 'hidden' }}>
-          {m.type === 'video' ? (
-            <View style={{ width: '100%', height: 120, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
-              <Video
-                source={{ uri: m.uri }}
-                style={{ width: '100%', height: 120 }}
-                resizeMode={ResizeMode.COVER}
-                shouldPlay={false}
-                isLooping={false}
-              />
-              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                <MaterialIcons name="play-circle-filled" size={48} color="rgba(255,255,255,0.9)" />
+      <ScrollView contentContainerStyle={{ padding: 16 }}>
+        {/* Media List with Captions */}
+        {uploading && (
+          <View style={{ padding: 20, alignItems: "center" }}>
+            <ActivityIndicator size="large" color={safeTheme.primary} />
+            <Text style={{ color: safeTheme.onSurfaceVariant, marginTop: 8 }}>Mengupload media...</Text>
+          </View>
+        )}
+        {mediaList.map((m, i) => (
+          <View key={i} style={{ marginBottom: 12, backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 16, overflow: 'hidden' }}>
+            {m.type === 'video' ? (
+              <View style={{ width: '100%', height: 120, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+                <Video
+                  source={{ uri: m.uri }}
+                  style={{ width: '100%', height: 120 }}
+                  resizeMode={ResizeMode.COVER}
+                  shouldPlay={false}
+                  isLooping={false}
+                />
+                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                  <MaterialIcons name="play-circle-filled" size={48} color="rgba(255,255,255,0.9)" />
+                </View>
               </View>
-            </View>
-          ) : (
-            <Image source={{ uri: m.uri }} style={{ width: '100%', height: 120 }} />
-          )}
-          <TouchableOpacity onPress={() => removeMedia(i)} style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 14, padding: 4 }}>
-            <MaterialIcons name="close" size={16} color="#fff" />
-          </TouchableOpacity>
-          <TextInput
-            style={{ padding: 10, color: safeTheme.onSurface, fontSize: 13 }}
-            placeholder={m.type === 'video' ? "Keterangan video ini... (opsional)" : "Keterangan gambar ini... (opsional)"}
-            placeholderTextColor={safeTheme.onSurfaceVariant + '80'}
-            value={m.caption}
-            onChangeText={(t) => updateCaption(i, t)}
-          />
-        </View>
-      ))}
+            ) : (
+              <Image source={{ uri: m.uri }} style={{ width: '100%', height: 120 }} />
+            )}
+            <TouchableOpacity onPress={() => removeMedia(i)} style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 14, padding: 4 }}>
+              <MaterialIcons name="close" size={16} color="#fff" />
+            </TouchableOpacity>
+            <TextInput
+              style={{ padding: 10, color: safeTheme.onSurface, fontSize: 13 }}
+              placeholder={m.type === 'video' ? "Keterangan video ini... (opsional)" : "Keterangan gambar ini... (opsional)"}
+              placeholderTextColor={safeTheme.onSurfaceVariant + '80'}
+              value={m.caption}
+              onChangeText={(t) => updateCaption(i, t)}
+            />
+          </View>
+        ))}
 
-      <TouchableOpacity onPress={pickMedia} style={{ height: 56, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: safeTheme.primary + '66', justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 16 }}>
-        <MaterialIcons name="add-photo-alternate" size={20} color={safeTheme.primary} />
-        <Text style={{ color: safeTheme.primary, fontWeight: '700', fontSize: 13 }}>+ Tambah Foto/Video ({mediaList.length})</Text>
-      </TouchableOpacity>
-
-      <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>LINK GAMBAR (PASTI BERFUNGSI)</Text>
-      <Text style={{ fontSize: 10, color: safeTheme.onSurfaceVariant, marginBottom: 12 }}>Copy link gambar dari Google Images, Unsplash, dll.</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-        <View style={{ flex: 1, backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 12, marginRight: 8 }}>
-          <TextInput 
-            placeholder="https://contoh.com/gambar.jpg"
-            placeholderTextColor={safeTheme.onSurfaceVariant}
-            value={imageUrl}
-            onChangeText={setImageUrl}
-            style={{ color: safeTheme.onSurface, fontSize: 14 }}
-            autoCapitalize="none"
-            keyboardType="url"
-          />
-        </View>
-        <TouchableOpacity onPress={handleUrlSubmit} style={{ backgroundColor: safeTheme.primaryContainer, padding: 12, borderRadius: 12 }}>
-          <MaterialIcons name="check" size={20} color={safeTheme.onPrimaryContainer} />
+        <TouchableOpacity onPress={pickMedia} style={{ height: 56, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: safeTheme.primary + '66', justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+          <MaterialIcons name="add-photo-alternate" size={20} color={safeTheme.primary} />
+          <Text style={{ color: safeTheme.primary, fontWeight: '700', fontSize: 13 }}>+ Tambah Foto/Video ({mediaList.length})</Text>
         </TouchableOpacity>
-      </View>
 
-      <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>NAMA GOAL</Text>
-      <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16 }}>
-        <TextInput 
-          placeholder="Contoh: Liburan ke Jepang" 
-          placeholderTextColor={safeTheme.onSurfaceVariant}
-          value={name}
-          onChangeText={setName}
-          style={{ color: safeTheme.onSurface, fontSize: 16 }}
-        />
-      </View>
+        <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>LINK GAMBAR (PASTI BERFUNGSI)</Text>
+        <Text style={{ fontSize: 10, color: safeTheme.onSurfaceVariant, marginBottom: 12 }}>Copy link gambar dari Google Images, Unsplash, dll.</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+          <View style={{ flex: 1, backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 12, marginRight: 8 }}>
+            <TextInput 
+              placeholder="https://contoh.com/gambar.jpg"
+              placeholderTextColor={safeTheme.onSurfaceVariant}
+              value={imageUrl}
+              onChangeText={setImageUrl}
+              style={{ color: safeTheme.onSurface, fontSize: 14 }}
+              autoCapitalize="none"
+              keyboardType="url"
+            />
+          </View>
+          <TouchableOpacity onPress={handleUrlSubmit} style={{ backgroundColor: safeTheme.primaryContainer, padding: 12, borderRadius: 12 }}>
+            <MaterialIcons name="check" size={20} color={safeTheme.onPrimaryContainer} />
+          </TouchableOpacity>
+        </View>
 
-      <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>DESKRIPSI (OPSIONAL)</Text>
-      <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16, height: 80 }}>
-        <TextInput 
-          placeholder="Ceritakan tentang goal ini..." 
-          placeholderTextColor={safeTheme.onSurfaceVariant}
-          value={description}
-          onChangeText={setDescription}
-          multiline
-          style={{ color: safeTheme.onSurface, fontSize: 14 }}
-        />
-      </View>
+        <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>NAMA GOAL</Text>
+        <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <TextInput 
+            placeholder="Contoh: Liburan ke Jepang" 
+            placeholderTextColor={safeTheme.onSurfaceVariant}
+            value={name}
+            onChangeText={setName}
+            style={{ color: safeTheme.onSurface, fontSize: 16 }}
+          />
+        </View>
 
-      <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>TARGET NOMINAL (RP)</Text>
-      <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16 }}>
-        <TextInput 
-          placeholder="0" 
-          placeholderTextColor={safeTheme.onSurfaceVariant}
-          value={target}
-          onChangeText={setTarget}
-          keyboardType="numeric"
-          style={{ color: safeTheme.onSurface, fontSize: 16, fontWeight: 'bold' }}
-        />
-      </View>
+        <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>DESKRIPSI (OPSIONAL)</Text>
+        <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16, height: 80 }}>
+          <TextInput 
+            placeholder="Ceritakan tentang goal ini..." 
+            placeholderTextColor={safeTheme.onSurfaceVariant}
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            style={{ color: safeTheme.onSurface, fontSize: 14 }}
+          />
+        </View>
+
+        <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>TARGET NOMINAL (RP)</Text>
+        <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16 }}>
+          <TextInput 
+            placeholder="0" 
+            placeholderTextColor={safeTheme.onSurfaceVariant}
+            value={target}
+            onChangeText={setTarget}
+            keyboardType="numeric"
+            style={{ color: safeTheme.onSurface, fontSize: 16, fontWeight: 'bold' }}
+          />
+        </View>
+      </ScrollView>
     </View>
+
   );
 };
 
