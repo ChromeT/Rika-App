@@ -1161,10 +1161,15 @@ const DashboardScreen = ({ navigation, route }) => {
 
       {/* Bill Modal */}
       <Modal visible={billModalVisible} transparent animationType="slide" onRequestClose={() => { setBillModalVisible(false); setIsEditingBill(false); }}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => { setBillModalVisible(false); setIsEditingBill(false); }}>
-          <View style={[styles.modalContent, { maxHeight: '90%', padding: 0, overflow: 'hidden' }]}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={{ padding: 24 }}>
+        <View style={[styles.modalOverlay, { justifyContent: 'flex-end' }]}>
+          <TouchableOpacity 
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
+            activeOpacity={1} 
+            onPress={() => { setBillModalVisible(false); setIsEditingBill(false); }} 
+          />
+          <View style={[styles.modalContent, { maxHeight: '90%', padding: 0, overflow: 'hidden', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }]}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <View style={{ padding: 24, paddingBottom: 40 }}>
                 <Text style={styles.modalTitle}>{isEditingBill ? 'Edit Tagihan' : 'Tambah Tagihan'}</Text>
                 
                 <Text style={styles.inputLabel}>Tipe Tagihan</Text>
@@ -1291,8 +1296,13 @@ const DashboardScreen = ({ navigation, route }) => {
 
       {/* Pay Bill Modal (Wallet Selection) */}
       <Modal visible={payBillModalVisible} transparent animationType="fade" onRequestClose={() => setPayBillModalVisible(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setPayBillModalVisible(false)}>
-          <View style={[styles.modalContent, { padding: 0, overflow: 'hidden' }]}>
+        <View style={[styles.modalOverlay, { justifyContent: 'flex-end' }]}>
+          <TouchableOpacity 
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
+            activeOpacity={1} 
+            onPress={() => setPayBillModalVisible(false)} 
+          />
+          <View style={[styles.modalContent, { padding: 0, overflow: 'hidden', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }]}>
             <View style={{ padding: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '33' }}>
               <Text style={{ fontSize: 20, fontWeight: '900', color: theme.onSurface, marginBottom: 4 }}>Pilih Pembayaran</Text>
               <Text style={{ fontSize: 13, color: theme.onSurfaceVariant }}>Tagihan: {selectedBill?.name}</Text>
