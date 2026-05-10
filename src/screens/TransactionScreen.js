@@ -13,7 +13,7 @@ const TransactionScreen = ({ navigation, route }) => {
 
   const [amount, setAmount] = useState('');
   const [name, setName] = useState('');
-  const [isKonta, setIsKonta] = useState(true); 
+  const [isKonta, setIsKonta] = useState(false); 
   const [type, setType] = useState('expense');
 
   // Baca parameter navigasi (misal: dari FAB Pemasukan atau Tagihan Lunas)
