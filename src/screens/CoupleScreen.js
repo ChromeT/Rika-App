@@ -207,7 +207,7 @@ const CoupleScreen = ({ navigation }) => {
               .filter(g => g.status !== 'achieved' && g.targetDate)
               .sort((a,b) => new Date(a.targetDate) - new Date(b.targetDate))
               .map(g => ({
-                title: `Mimpi: ${g.name}`,
+                title: `Goal: ${g.name}`,
                 date: dayjs(g.targetDate),
                 icon: 'auto_awesome',
                 color: theme.primary,
