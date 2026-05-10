@@ -1193,8 +1193,19 @@ const DashboardScreen = ({ navigation, route }) => {
 
       {/* Confirm Modal */}
       <Modal visible={confirmVisible} transparent animationType="fade" onRequestClose={() => setConfirmVisible(false)}>
-        <View style={styles.modalOverlay}>
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setConfirmVisible(false)}
+        >
           <View style={[styles.modalContent, { padding: 24 }]}>
+            <TouchableOpacity 
+              onPress={() => setConfirmVisible(false)} 
+              style={{ position: 'absolute', right: 16, top: 16, zIndex: 10, padding: 4 }}
+            >
+              <MaterialIcons name="close" size={20} color={theme.onSurfaceVariant} />
+            </TouchableOpacity>
+
             <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 12, textAlign: 'center' }}>{confirmConfig.title}</Text>
             <Text style={{ fontSize: 14, color: theme.onSurfaceVariant, marginBottom: 24, textAlign: 'center', lineHeight: 20 }}>{confirmConfig.message}</Text>
             <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -1215,7 +1226,7 @@ const DashboardScreen = ({ navigation, route }) => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
 
       {/* Notification Popover */}
