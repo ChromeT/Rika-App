@@ -18,9 +18,46 @@ const formatMoney = (v) => new Intl.NumberFormat('id-ID', { maximumFractionDigit
 // --- Add Funding Modal ---
 const AddFundingModal = ({ visible, onClose, onSave, theme, currentAmount }) => {
   const [amount, setAmount] = useState('');
+  const selectionRef = useRef({ start: 0, end: 0 });
+  const [selectionState, setSelectionState] = useState({ start: 0, end: 0 });
+  const amountRef = useRef('');
+
+  const formatInput = (val) => {
+    if (!val) return '';
+    const clean = val.replace(/\D/g, '').toString();
+    return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
+  const handleAmountChange = (val) => {
+    const oldText = amountRef.current || '';
+    const oldSel = selectionRef.current.start;
+    
+    let processedVal = val;
+    if (val.length === oldText.length - 1 && oldText[oldSel - 1] === '.') {
+      processedVal = oldText.slice(0, oldSel - 2) + oldText.slice(oldSel);
+    }
+
+    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
+    const formatted = formatInput(processedVal);
+    setAmount(formatted);
+    amountRef.current = formatted;
+
+    let newPos = formatted.length;
+    let count = 0;
+    for (let i = formatted.length - 1; i >= 0; i--) {
+      if (count >= digitsAfter) break;
+      if (formatted[i] !== '.') {
+        count++;
+      }
+      newPos = i;
+    }
+
+    setSelectionState({ start: newPos, end: newPos });
+    selectionRef.current = { start: newPos, end: newPos };
+  };
 
   const handleSave = () => {
-    const numAmount = Number(amount);
+    const numAmount = Number(amount.replace(/\./g, ''));
     if (!numAmount || numAmount <= 0) {
       Alert.alert('Error', 'Masukkan nominal yang valid');
       return;
@@ -43,14 +80,23 @@ const AddFundingModal = ({ visible, onClose, onSave, theme, currentAmount }) => 
             <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 20 }}>Tambah Dana</Text>
           
           <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>NOMINAL (RP)</Text>
-          <TextInput
-            style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 16, padding: 16, color: theme.onSurface, fontSize: 24, fontWeight: 'bold', marginBottom: 24 }}
-            placeholder="0"
-            placeholderTextColor={theme.onSurfaceVariant}
-            keyboardType="numeric"
-            value={amount}
-            onChangeText={setAmount}
-          />
+          <View style={{ position: 'relative', justifyContent: 'center', marginBottom: 24 }}>
+            <Text style={{ position: 'absolute', left: 20, zIndex: 10, color: theme.primary, fontWeight: 'bold', fontSize: 20 }}>IDR</Text>
+            <TextInput
+              style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 24, paddingVertical: 20, paddingLeft: 64, paddingRight: 24, color: theme.onSurface, fontSize: 30, fontWeight: 'bold' }}
+              placeholder="0"
+              placeholderTextColor={theme.onSurfaceVariant}
+              keyboardType="numeric"
+              value={amount}
+              onChangeText={handleAmountChange}
+              selection={selectionState}
+              onSelectionChange={(e) => {
+                const sel = e.nativeEvent.selection;
+                setSelectionState(sel);
+                selectionRef.current = sel;
+              }}
+            />
+          </View>
 
           <TouchableOpacity onPress={handleSave} style={{ backgroundColor: theme.primary, padding: 16, borderRadius: 16, alignItems: 'center' }}>
             <Text style={{ color: theme.onPrimary, fontWeight: 'bold', fontSize: 16 }}>Simpan</Text>

@@ -62,16 +62,19 @@ export const AddGoalScreen = () => {
   };
 
   const handleTargetChange = (val) => {
-    // 1. Ambil jumlah angka di KANAN kursor dari teks LAMA
     const oldText = targetRef.current || '';
     const oldSel = selectionTargetRef.current.start;
-    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
     
-    const formatted = formatInput(val);
+    let processedVal = val;
+    if (val.length === oldText.length - 1 && oldText[oldSel - 1] === '.') {
+      processedVal = oldText.slice(0, oldSel - 2) + oldText.slice(oldSel);
+    }
+
+    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
+    const formatted = formatInput(processedVal);
     setTarget(formatted);
     targetRef.current = formatted;
 
-    // 2. Cari posisi baru dari KANAN di teks baru
     let newPos = formatted.length;
     let count = 0;
     for (let i = formatted.length - 1; i >= 0; i--) {
@@ -355,16 +358,19 @@ const GoalsScreen = () => {
   };
 
   const handleEditTargetChange = (val) => {
-    // 1. Ambil jumlah angka di KANAN kursor dari teks LAMA
     const oldText = editTargetRef.current || '';
     const oldSel = selectionEditTargetRef.current.start;
-    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
     
-    const formatted = formatInput(val);
+    let processedVal = val;
+    if (val.length === oldText.length - 1 && oldText[oldSel - 1] === '.') {
+      processedVal = oldText.slice(0, oldSel - 2) + oldText.slice(oldSel);
+    }
+
+    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
+    const formatted = formatInput(processedVal);
     setEditTarget(formatted);
     editTargetRef.current = formatted;
 
-    // 2. Cari posisi baru dari KANAN di teks baru
     let newPos = formatted.length;
     let count = 0;
     for (let i = formatted.length - 1; i >= 0; i--) {

@@ -52,16 +52,20 @@ const TransactionScreen = ({ navigation, route }) => {
   };
 
   const handleAmountChange = (val) => {
-    // 1. Ambil jumlah angka di KANAN kursor dari teks LAMA (PENTING!)
     const oldText = amountRef.current || '';
     const oldSel = selectionRef.current.start;
-    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
     
-    const formatted = formatInput(val);
+    let processedVal = val;
+    // Fix: Jika user menghapus titik, hapus juga angka di depannya
+    if (val.length === oldText.length - 1 && oldText[oldSel - 1] === '.') {
+      processedVal = oldText.slice(0, oldSel - 2) + oldText.slice(oldSel);
+    }
+
+    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
+    const formatted = formatInput(processedVal);
     setAmount(formatted);
     amountRef.current = formatted;
 
-    // 2. Cari posisi baru dari KANAN di teks baru agar jumlah angka di kanan tetap sama
     let newPos = formatted.length;
     let count = 0;
     for (let i = formatted.length - 1; i >= 0; i--) {
@@ -79,9 +83,14 @@ const TransactionScreen = ({ navigation, route }) => {
   const handleMyContribChange = (val) => {
     const oldText = myContribRef.current || '';
     const oldSel = selectionMyRef.current.start;
-    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
     
-    const formatted = formatInput(val);
+    let processedVal = val;
+    if (val.length === oldText.length - 1 && oldText[oldSel - 1] === '.') {
+      processedVal = oldText.slice(0, oldSel - 2) + oldText.slice(oldSel);
+    }
+
+    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
+    const formatted = formatInput(processedVal);
     setMyContrib(formatted);
     myContribRef.current = formatted;
 

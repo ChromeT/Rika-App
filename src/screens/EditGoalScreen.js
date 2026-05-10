@@ -35,6 +35,76 @@ export const EditGoalScreen = () => {
   const [relatedTxIds, setRelatedTxIds] = useState(goal?.relatedTransactionIds || []);
   const [uploading, setUploading] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+
+  // Currency & Cursor Logic
+  const targetRef = useRef(String(goal?.targetAmount || 0).replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
+  const actualRef = useRef(String(goal?.actualAmount || 0).replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
+  const selectionTargetRef = useRef({ start: 0, end: 0 });
+  const selectionActualRef = useRef({ start: 0, end: 0 });
+  const [selectionTarget, setSelectionTarget] = useState({ start: 0, end: 0 });
+  const [selectionActual, setSelectionActual] = useState({ start: 0, end: 0 });
+
+  const formatInput = (val) => {
+    if (!val) return '';
+    const clean = val.replace(/\D/g, '').toString();
+    return clean.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
+  const handleTargetAmountChange = (val) => {
+    const oldText = targetRef.current || '';
+    const oldSel = selectionTargetRef.current.start;
+    let processedVal = val;
+    if (val.length === oldText.length - 1 && oldText[oldSel - 1] === '.') {
+      processedVal = oldText.slice(0, oldSel - 2) + oldText.slice(oldSel);
+    }
+    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
+    const formatted = formatInput(processedVal);
+    setTargetAmount(formatted);
+    targetRef.current = formatted;
+    let newPos = formatted.length;
+    let count = 0;
+    for (let i = formatted.length - 1; i >= 0; i--) {
+      if (count >= digitsAfter) break;
+      if (formatted[i] !== '.') count++;
+      newPos = i;
+    }
+    setSelectionTarget({ start: newPos, end: newPos });
+    selectionTargetRef.current = { start: newPos, end: newPos };
+  };
+
+  const handleActualAmountChange = (val) => {
+    const oldText = actualRef.current || '';
+    const oldSel = selectionActualRef.current.start;
+    let processedVal = val;
+    if (val.length === oldText.length - 1 && oldText[oldSel - 1] === '.') {
+      processedVal = oldText.slice(0, oldSel - 2) + oldText.slice(oldSel);
+    }
+    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
+    const formatted = formatInput(processedVal);
+    setActualAmount(formatted);
+    actualRef.current = formatted;
+    let newPos = formatted.length;
+    let count = 0;
+    for (let i = formatted.length - 1; i >= 0; i--) {
+      if (count >= digitsAfter) break;
+      if (formatted[i] !== '.') count++;
+      newPos = i;
+    }
+    setSelectionActual({ start: newPos, end: newPos });
+    selectionActualRef.current = { start: newPos, end: newPos };
+  };
+
+  // Format initial values
+  useEffect(() => {
+    if (goal) {
+      const ft = formatInput(String(goal.targetAmount || 0));
+      setTargetAmount(ft);
+      targetRef.current = ft;
+      const fa = formatInput(String(goal.actualAmount || 0));
+      setActualAmount(fa);
+      actualRef.current = fa;
+    }
+  }, [goal]);
   
   const recentTxs = Array.isArray(transactions) ? transactions.slice(0, 30) : [];
 
@@ -106,12 +176,12 @@ export const EditGoalScreen = () => {
       try {
         const updateData = {
           name: name.trim(),
-          targetAmount: Number(targetAmount) || 0,
+          targetAmount: Number(targetAmount.replace(/\./g, '')) || 0,
         };
 
         if (isAchieved) {
           updateData.memoryCaption = memoryCaption;
-          updateData.actualAmount = Number(actualAmount) || 0;
+          updateData.actualAmount = Number(actualAmount.replace(/\./g, '')) || 0;
           updateData.relatedTransactionIds = relatedTxIds;
           updateData.media = finalMediaList;
           if (finalMediaList.length > 0) {
@@ -233,12 +303,19 @@ export const EditGoalScreen = () => {
         {!isAchieved && (
           <>
             <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>TARGET NOMINAL (RP)</Text>
-            <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ color: theme.primary, fontWeight: 'bold', marginRight: 8 }}>IDR</Text>
               <TextInput 
                 value={targetAmount}
-                onChangeText={setTargetAmount}
+                onChangeText={handleTargetAmountChange}
+                selection={selectionTarget}
+                onSelectionChange={(e) => {
+                  const sel = e.nativeEvent.selection;
+                  setSelectionTarget(sel);
+                  selectionTargetRef.current = sel;
+                }}
                 keyboardType="numeric"
-                style={{ color: theme.onSurface, fontSize: 16, fontWeight: 'bold' }}
+                style={{ color: theme.onSurface, fontSize: 16, fontWeight: 'bold', flex: 1 }}
               />
             </View>
           </>
@@ -248,12 +325,19 @@ export const EditGoalScreen = () => {
         {isAchieved && (
           <>
             <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>PENGELUARAN RIIL (RP)</Text>
-            <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ color: theme.primary, fontWeight: 'bold', marginRight: 8 }}>IDR</Text>
               <TextInput 
                 value={actualAmount}
-                onChangeText={setActualAmount}
+                onChangeText={handleActualAmountChange}
+                selection={selectionActual}
+                onSelectionChange={(e) => {
+                  const sel = e.nativeEvent.selection;
+                  setSelectionActual(sel);
+                  selectionActualRef.current = sel;
+                }}
                 keyboardType="numeric"
-                style={{ color: theme.onSurface, fontSize: 16, fontWeight: 'bold' }}
+                style={{ color: theme.onSurface, fontSize: 16, fontWeight: 'bold', flex: 1 }}
               />
             </View>
           </>
