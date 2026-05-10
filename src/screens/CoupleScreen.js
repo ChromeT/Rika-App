@@ -165,7 +165,7 @@ const CoupleScreen = ({ navigation }) => {
         >
           <MaterialIcons name="auto-awesome" size={24} color={theme.primary} style={{ marginBottom: 8 }} />
           <Text style={[styles.mottoText, { color: theme.onSurface }]}>
-            "Seribu kali memilih, seribu kali aku akan memilihmu kembali."
+            "Gak apa-apa, kita mulai dari awal, ya?"
           </Text>
           <Text style={[styles.mottoAuthor, { color: theme.primary }]}>— SORE</Text>
         </TouchableOpacity>
