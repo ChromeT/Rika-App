@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Modal, Alert, TextInput } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,7 +16,14 @@ const { width } = Dimensions.get('window');
 const formatMoney = (v) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v || 0);
 
 // --- Add Funding Modal ---
-const AddFundingModal = ({ visible, onClose, onSave, theme, currentAmount }) => {
+const AddFundingModal = ({ visible, onClose, onSave, theme: providedTheme, currentAmount }) => {
+  const theme = providedTheme || {
+    surface: '#0b0f10',
+    onSurface: '#dde7eb',
+    onSurfaceVariant: '#a3adb1',
+    primary: '#b2cad3',
+    surfaceContainerLow: '#141b1d',
+  };
   const [amount, setAmount] = useState('');
   const selectionRef = useRef({ start: 0, end: 0 });
   const [selectionState, setSelectionState] = useState({ start: 0, end: 0 });
@@ -116,7 +123,20 @@ const GoalDetailScreen = ({ route }) => {
   const { goalId } = route.params;
   const navigation = useNavigation();
   const { theme } = useContext(ThemeContext);
-  const { goals, updateGoal, addNotification } = useContext(DataContext);
+  const safeTheme = theme || {
+    background: '#0b0f10',
+    surface: '#0b0f10',
+    surfaceContainerLow: '#141b1d',
+    surfaceContainer: '#141b1d',
+    surfaceContainerHighest: '#1a1a1a',
+    onSurface: '#dde7eb',
+    onSurfaceVariant: '#a3adb1',
+    primary: '#b2cad3',
+    onPrimary: '#1a1a1a',
+    outlineVariant: '#40494d',
+    error: '#f2b8b5'
+  };
+  const { goals, updateGoal, deleteGoal, addNotification } = useContext(DataContext);
   const { user, householdUsers } = useContext(AuthContext);
   
   const partnerName = householdUsers?.find(u => u !== (user?.name || ''));
@@ -168,14 +188,14 @@ const GoalDetailScreen = ({ route }) => {
 
   if (!goal) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: theme.onSurfaceVariant }}>Goal tidak ditemukan</Text>
+      <View style={{ flex: 1, backgroundColor: safeTheme.background, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: safeTheme.onSurfaceVariant }}>Goal tidak ditemukan</Text>
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
+    <View style={{ flex: 1, backgroundColor: safeTheme.background }}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Hero Image */}
         <View style={{ height: 200, position: 'relative' }}>
@@ -207,74 +227,74 @@ const GoalDetailScreen = ({ route }) => {
         <View style={{ padding: 20 }}>
           {/* Description */}
           {goal.description ? (
-            <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 16, padding: 16, marginBottom: 20 }}>
-              <Text style={{ color: theme.onSurface, fontSize: 14, lineHeight: 22 }}>{goal.description}</Text>
+            <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 16, padding: 16, marginBottom: 20 }}>
+              <Text style={{ color: safeTheme.onSurface, fontSize: 14, lineHeight: 22 }}>{goal.description}</Text>
             </View>
           ) : null}
 
           {/* Progress Card */}
-          <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 24, padding: 20, marginBottom: 20 }}>
+          <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 24, padding: 20, marginBottom: 20 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
               <View>
-                <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>TERKUMPUL</Text>
-                <Text style={{ fontSize: 28, fontWeight: '900', color: theme.primary }}>Rp {formatMoney(goal.currentAmount)}</Text>
+                <Text style={{ fontSize: 12, color: safeTheme.onSurfaceVariant }}>TERKUMPUL</Text>
+                <Text style={{ fontSize: 28, fontWeight: '900', color: safeTheme.primary }}>Rp {formatMoney(goal.currentAmount)}</Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>TARGET</Text>
-                <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.onSurface }}>Rp {formatMoney(goal.targetAmount)}</Text>
+                <Text style={{ fontSize: 12, color: safeTheme.onSurfaceVariant }}>TARGET</Text>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', color: safeTheme.onSurface }}>Rp {formatMoney(goal.targetAmount)}</Text>
               </View>
             </View>
             
-            <View style={{ height: 10, backgroundColor: theme.surfaceContainerHighest, borderRadius: 5, marginBottom: 12 }}>
-              <View style={{ height: '100%', width: `${progress}%`, backgroundColor: theme.primary, borderRadius: 5 }} />
+            <View style={{ height: 10, backgroundColor: safeTheme.surfaceContainerHighest, borderRadius: 5, marginBottom: 12 }}>
+              <View style={{ height: '100%', width: `${progress}%`, backgroundColor: safeTheme.primary, borderRadius: 5 }} />
             </View>
             
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>{progress.toFixed(0)}% tercapai</Text>
-              <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>Sisa Rp {formatMoney(remaining)}</Text>
+              <Text style={{ fontSize: 12, color: safeTheme.onSurfaceVariant }}>{progress.toFixed(0)}% tercapai</Text>
+              <Text style={{ fontSize: 12, color: safeTheme.onSurfaceVariant }}>Sisa Rp {formatMoney(remaining)}</Text>
             </View>
           </View>
 
           {/* Action Buttons */}
           <TouchableOpacity 
             onPress={() => setFundingModalVisible(true)}
-            style={{ backgroundColor: theme.primary, padding: 16, borderRadius: 16, alignItems: 'center', marginBottom: 12 }}
+            style={{ backgroundColor: safeTheme.primary, padding: 16, borderRadius: 16, alignItems: 'center', marginBottom: 12 }}
           >
-            <Text style={{ color: theme.onPrimary, fontWeight: 'bold', fontSize: 16 }}>Tambah Dana</Text>
+            <Text style={{ color: safeTheme.onPrimary, fontWeight: 'bold', fontSize: 16 }}>Tambah Dana</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
             onPress={handleMarkAchieved}
-            style={{ backgroundColor: theme.primaryContainer, padding: 16, borderRadius: 16, alignItems: 'center' }}
+            style={{ backgroundColor: safeTheme.primaryContainer, padding: 16, borderRadius: 16, alignItems: 'center' }}
           >
-            <Text style={{ color: theme.onPrimaryContainer, fontWeight: 'bold', fontSize: 16 }}>Tandai Tercapai</Text>
+            <Text style={{ color: safeTheme.onPrimaryContainer, fontWeight: 'bold', fontSize: 16 }}>Tandai Tercapai</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      <AddFundingModal 
+      <AddFundingModal
         visible={fundingModalVisible}
         onClose={() => setFundingModalVisible(false)}
         onSave={handleAddFunding}
-        theme={theme}
+        theme={safeTheme}
       />
 
       {/* Custom Delete Confirmation Modal */}
       <Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => setDeleteModalVisible(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <View style={{ backgroundColor: theme.surface, borderRadius: 24, padding: 24, width: '100%', maxWidth: 400, alignItems: 'center' }}>
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: theme.error + '1A', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
-              <MaterialIcons name="delete-outline" size={32} color={theme.error} />
+          <View style={{ backgroundColor: safeTheme.surface, borderRadius: 24, padding: 24, width: '100%', maxWidth: 400, alignItems: 'center' }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: safeTheme.error + '1A', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+              <MaterialIcons name="delete-outline" size={32} color={safeTheme.error} />
             </View>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 8, textAlign: 'center' }}>Hapus Goal</Text>
-            <Text style={{ fontSize: 14, color: theme.onSurfaceVariant, textAlign: 'center', marginBottom: 24 }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: safeTheme.onSurface, marginBottom: 8, textAlign: 'center' }}>Hapus Goal</Text>
+            <Text style={{ fontSize: 14, color: safeTheme.onSurfaceVariant, textAlign: 'center', marginBottom: 24 }}>
               Apakah kamu yakin ingin menghapus goal "{goal?.name}"? Tindakan ini tidak dapat dibatalkan.
             </Text>
             <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
-              <TouchableOpacity onPress={() => setDeleteModalVisible(false)} style={{ flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: theme.surfaceContainerHighest, alignItems: 'center' }}>
-                <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 16 }}>Batal</Text>
+              <TouchableOpacity onPress={() => setDeleteModalVisible(false)} style={{ flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: safeTheme.surfaceContainerHighest, alignItems: 'center' }}>
+                <Text style={{ color: safeTheme.onSurface, fontWeight: 'bold', fontSize: 16 }}>Batal</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleDeleteConfirm} style={{ flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: theme.error, alignItems: 'center' }}>
+              <TouchableOpacity onPress={handleDeleteConfirm} style={{ flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: safeTheme.error, alignItems: 'center' }}>
                 <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Hapus</Text>
               </TouchableOpacity>
             </View>
