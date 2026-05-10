@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { AuthContext } from './AuthContext';
 import { db } from '../config/firebase';
-import { collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, getDoc, deleteField } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 
@@ -253,28 +253,33 @@ export const DataProvider = ({ children }) => {
       if (tx.accountId) {
         const selectedAcc = accounts.find(a => a.id === tx.accountId);
         if (selectedAcc) {
-          // Jika Dompet Bersama, potong total sekarang (karena sudah disepakati bersama)
+          // KASUS 1: Menggunakan Dompet Bersama (Potong total langsung)
           if (selectedAcc.owner === 'Bersama') {
             const total = Number(tx.myContrib || 0) + Number(tx.partnerContrib || 0);
             const newBal = tx.type === 'income' ? (selectedAcc.balance || 0) + total : (selectedAcc.balance || 0) - total;
             await updateAccount(tx.accountId, { balance: newBal });
+            // Jika dompet bersama, status langsung completed
+            await updateDoc(docRef, { status: 'completed' });
           } 
-          // Jika Patungan, potong porsi penginput DULU. Porsi pasangan nunggu konfirmasi.
+          // KASUS 2: Split (Uang Bersama/Patungan) menggunakan Dompet Pribadi
           else if (tx.isPatungan || tx.isJoint) {
             const myPortion = Number(tx.myContrib || 0);
             const newMyBal = tx.type === 'income' ? (selectedAcc.balance || 0) + myPortion : (selectedAcc.balance || 0) - myPortion;
             await updateAccount(tx.accountId, { balance: newMyBal });
 
-            // Set status transaksi jadi pending_partner jika ada porsi pasangan
+            // Set status jadi pending_partner jika porsi pasangan > 0
             if (Number(tx.partnerContrib || 0) > 0) {
               await updateDoc(docRef, { status: 'pending_partner' });
+            } else {
+              await updateDoc(docRef, { status: 'completed' });
             }
           }
-          // Transaksi Pribadi Biasa
+          // KASUS 3: Transaksi Pribadi Biasa
           else {
             const total = Number(tx.myContrib || 0) + Number(tx.partnerContrib || 0);
             const newBal = tx.type === 'income' ? (selectedAcc.balance || 0) + total : (selectedAcc.balance || 0) - total;
             await updateAccount(tx.accountId, { balance: newBal });
+            await updateDoc(docRef, { status: 'completed' });
           }
         }
       }
@@ -305,11 +310,28 @@ export const DataProvider = ({ children }) => {
       } else if (tx.accountId) {
         const account = accounts.find(a => a.id === tx.accountId);
         if (account) {
-          const totalAmount = Number(tx.myContrib || 0) + Number(tx.partnerContrib || 0);
-          const newBalance = tx.type === 'income'
-            ? (account.balance || 0) - totalAmount
-            : (account.balance || 0) + totalAmount;
-          await updateAccount(tx.accountId, { balance: newBalance });
+          const isSplit = tx.isPatungan || tx.isJoint;
+          if (account.owner === 'Bersama' || !isSplit) {
+            // Revert total dari satu dompet
+            const totalAmount = Number(tx.myContrib || 0) + Number(tx.partnerContrib || 0);
+            const newBalance = tx.type === 'income' ? (account.balance || 0) - totalAmount : (account.balance || 0) + totalAmount;
+            await updateAccount(tx.accountId, { balance: newBalance });
+          } else {
+            // Revert porsi masing-masing
+            const myPortion = Number(tx.myContrib || 0);
+            const newMyBal = tx.type === 'income' ? (account.balance || 0) - myPortion : (account.balance || 0) + myPortion;
+            await updateAccount(tx.accountId, { balance: newMyBal });
+
+            if (tx.status === 'completed') {
+              const partnerPortion = Number(tx.partnerContrib || 0);
+              const pAccId = tx.partnerAccountId;
+              const partnerAcc = accounts.find(a => pAccId ? a.id === pAccId : (a.owner !== user?.name && a.owner !== 'Bersama'));
+              if (partnerAcc) {
+                const newPartBal = tx.type === 'income' ? (partnerAcc.balance || 0) - partnerPortion : (partnerAcc.balance || 0) + partnerPortion;
+                await updateAccount(partnerAcc.id, { balance: newPartBal });
+              }
+            }
+          }
         }
       }
 
@@ -352,12 +374,24 @@ export const DataProvider = ({ children }) => {
           balanceMap[oldTx.toAccountId] -= (oldTx.amount || 0);
         }
       } else if (oldTx.accountId) {
-        if (balanceMap[oldTx.accountId] !== undefined) {
-          const oldTotal = Number(oldTx.myContrib || 0) + Number(oldTx.partnerContrib || 0);
-          if (oldTx.type === 'income') {
-            balanceMap[oldTx.accountId] -= oldTotal;
+        const oldAcc = accounts.find(a => a.id === oldTx.accountId);
+        if (oldAcc) {
+          const wasSplit = oldTx.isPatungan || oldTx.isJoint;
+          if (oldAcc.owner === 'Bersama' || !wasSplit) {
+            const oldTotal = Number(oldTx.myContrib || 0) + Number(oldTx.partnerContrib || 0);
+            balanceMap[oldTx.accountId] = oldTx.type === 'income' ? balanceMap[oldTx.accountId] - oldTotal : balanceMap[oldTx.accountId] + oldTotal;
           } else {
-            balanceMap[oldTx.accountId] += oldTotal;
+            const oldMy = Number(oldTx.myContrib || 0);
+            balanceMap[oldTx.accountId] = oldTx.type === 'income' ? balanceMap[oldTx.accountId] - oldMy : balanceMap[oldTx.accountId] + oldMy;
+
+            if (oldTx.status === 'completed') {
+              const oldPar = Number(oldTx.partnerContrib || 0);
+              const pAccId = oldTx.partnerAccountId;
+              const partnerAcc = accounts.find(a => pAccId ? a.id === pAccId : (a.owner !== user?.name && a.owner !== 'Bersama'));
+              if (partnerAcc && balanceMap[partnerAcc.id] !== undefined) {
+                balanceMap[partnerAcc.id] = oldTx.type === 'income' ? balanceMap[partnerAcc.id] - oldPar : balanceMap[partnerAcc.id] + oldPar;
+              }
+            }
           }
         }
       }
@@ -401,7 +435,27 @@ export const DataProvider = ({ children }) => {
         }
       });
 
-      await updateDoc(txRef, { ...cleanUpdateData, updatedAt: new Date().toISOString() });
+      // Tentukan status baru
+      let newStatus = 'completed';
+      const finalAcc = accounts.find(a => a.id === (updateData.accountId || oldTx.accountId));
+      const finalIsSplit = updateData.isPatungan || updateData.isJoint || oldTx.isPatungan || oldTx.isJoint;
+      const finalPartnerContrib = updateData.partnerContrib !== undefined ? Number(updateData.partnerContrib) : Number(oldTx.partnerContrib || 0);
+
+      if (finalAcc && finalAcc.owner !== 'Bersama' && finalIsSplit && finalPartnerContrib > 0) {
+        newStatus = 'pending_partner';
+        // Reset partnerAccountId karena butuh konfirmasi ulang ke dompet baru
+        cleanUpdateData.partnerAccountId = deleteField();
+      }
+
+      await updateDoc(txRef, { ...cleanUpdateData, status: newStatus, updatedAt: new Date().toISOString() });
+      
+      // 5. Dorong semua perubahan saldo map ke Firestore
+      for (const accId in balanceMap) {
+        const currentAcc = accounts.find(a => a.id === accId);
+        if (currentAcc && currentAcc.balance !== balanceMap[accId]) {
+          await updateAccount(accId, { balance: balanceMap[accId] });
+        }
+      }
       console.log('Transaction updated successfully:', txId);
     } catch (e) {
       console.error('Failed to update transaction', e);

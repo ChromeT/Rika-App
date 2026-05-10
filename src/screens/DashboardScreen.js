@@ -796,7 +796,9 @@ const DashboardScreen = ({ navigation, route }) => {
               >
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.onSurface }}>{tx.name}</Text>
-                  <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>{tx.owner} minta patungan Rp {formatMoney(tx.partnerContrib)}</Text>
+                  <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>
+                    {tx.isJoint ? 'Bagi rata 50:50' : 'Patungan Custom'} • Rp {formatMoney(tx.partnerContrib)}
+                  </Text>
                 </View>
                 <View style={{ backgroundColor: theme.primary, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 }}>
                   <Text style={{ color: theme.onPrimary, fontSize: 12, fontWeight: 'bold' }}>Konfirmasi</Text>
@@ -1657,7 +1659,9 @@ const DashboardScreen = ({ navigation, route }) => {
           <View style={[styles.modalContent, { padding: 24, paddingBottom: 32 }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <View>
-                <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.onSurface }}>Konfirmasi Patungan</Text>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.onSurface }}>
+                  {selectedSplitTx?.isJoint ? 'Uang Bersama (50:50)' : 'Konfirmasi Patungan'}
+                </Text>
                 <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>Pilih dompet untuk bayar porsi kamu</Text>
               </View>
               <TouchableOpacity onPress={() => setSplitModalVisible(false)}>

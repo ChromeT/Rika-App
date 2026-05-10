@@ -517,20 +517,19 @@ const TransactionScreen = ({ navigation, route }) => {
           <View style={styles.switchRow}>
             <View style={styles.switchLeft}>
               <View style={styles.switchIcon}>
-                <MaterialIcons name={type === 'income' ? 'account-balance-wallet' : 'account-tree'} size={20} color={theme.primary} />
+                <MaterialIcons name="group" size={20} color={theme.primary} />
               </View>
               <View>
-                <Text style={styles.switchTitle}>Uang Bersama?</Text>
-                <Text style={styles.switchSubtitle}>
-                  {type === 'income'
-                    ? (isKonta ? 'Masuk ke tabungan Kita' : 'Hanya tabungan Pribadi')
-                    : 'Serap dari saldo Kita 50:50'}
-                </Text>
+                <Text style={styles.switchTitle}>Uang Bersama? (50:50)</Text>
+                <Text style={styles.switchSubtitle}>Bagi rata beban transaksi</Text>
               </View>
             </View>
             <Switch
               value={isKonta}
-              onValueChange={setIsKonta}
+              onValueChange={(val) => {
+                setIsKonta(val);
+                if (val) setIsPatungan(false);
+              }}
               trackColor={{ false: theme.surfaceContainerHighest, true: theme.primaryContainer }}
               thumbColor={isKonta ? theme.primary : theme.onSurfaceVariant}
             />
@@ -541,52 +540,63 @@ const TransactionScreen = ({ navigation, route }) => {
               <View style={styles.patunganHeader}>
                 <View style={styles.pHeaderLeft}>
                   <View style={styles.pIcon}>
-                    <MaterialIcons name="group" size={20} color={theme.primary} />
+                    <MaterialIcons name="pie-chart" size={20} color={theme.primary} />
                   </View>
-                  <Text style={styles.pTitle}>Aktifkan Patungan</Text>
+                  <Text style={styles.pTitle}>Patungan Custom</Text>
                 </View>
                 <Switch
-                  value={isKonta ? false : isPatungan}
-                  disabled={isKonta}
-                  onValueChange={setIsPatungan}
+                  value={isPatungan}
+                  onValueChange={(val) => {
+                    setIsPatungan(val);
+                    if (val) setIsKonta(false);
+                  }}
                   trackColor={{ false: theme.surfaceContainerHighest, true: theme.primaryContainer }}
-                  thumbColor={(isPatungan && !isKonta) ? theme.primary : theme.onSurfaceVariant}
+                  thumbColor={isPatungan ? theme.primary : theme.onSurfaceVariant}
                 />
               </View>
 
-              {(!isKonta && isPatungan) && (
+              {(isKonta || isPatungan) && (
                 <View style={styles.pSplitRow}>
-                  <View style={styles.pCol}>
-                    <Text style={styles.pLabel}>Kontribusi Saya</Text>
-                    <View style={styles.pInputWrapper}>
-                      <Text style={styles.pCurrency}>IDR</Text>
-                      <TextInput
-                        style={styles.pInput}
-                        placeholder="0"
-                        keyboardType="numeric"
-                        placeholderTextColor={theme.onSurfaceVariant}
-                        value={myContrib}
-                        onChangeText={handleMyContribChange}
-                        selection={selectionMyState}
-                        onSelectionChange={(e) => {
-                          const sel = e.nativeEvent.selection;
-                          setSelectionMyState(sel);
-                          selectionMyRef.current = sel;
-                        }}
-                      />
+                  {isKonta ? (
+                    <View style={{ flex: 1, backgroundColor: theme.surfaceContainerLow, padding: 12, borderRadius: 16, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 12, color: theme.primary, fontWeight: 'bold' }}>BAGI RATA 50:50</Text>
+                      <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.onSurface }}>Rp {formatMoney((Number(amount.replace(/\./g, '')) || 0) / 2)} / orang</Text>
                     </View>
-                  </View>
-                  <View style={styles.pCol}>
-                    <Text style={styles.pLabel}>Beban Pasangan</Text>
-                    <View style={styles.pInputWrapper}>
-                      <Text style={styles.pCurrencyDisabled}>IDR</Text>
-                      <TextInput
-                        style={styles.pInputDisabled}
-                        value={formatMoney(calcPartnerContrib())}
-                        editable={false}
-                      />
-                    </View>
-                  </View>
+                  ) : (
+                    <>
+                      <View style={styles.pCol}>
+                        <Text style={styles.pLabel}>Kontribusi Saya</Text>
+                        <View style={styles.pInputWrapper}>
+                          <Text style={styles.pCurrency}>IDR</Text>
+                          <TextInput
+                            style={styles.pInput}
+                            placeholder="0"
+                            keyboardType="numeric"
+                            placeholderTextColor={theme.onSurfaceVariant}
+                            value={myContrib}
+                            onChangeText={handleMyContribChange}
+                            selection={selectionMyState}
+                            onSelectionChange={(e) => {
+                              const sel = e.nativeEvent.selection;
+                              setSelectionMyState(sel);
+                              selectionMyRef.current = sel;
+                            }}
+                          />
+                        </View>
+                      </View>
+                      <View style={styles.pCol}>
+                        <Text style={styles.pLabel}>Beban Pasangan</Text>
+                        <View style={styles.pInputWrapper}>
+                          <Text style={styles.pCurrencyDisabled}>IDR</Text>
+                          <TextInput
+                            style={styles.pInputDisabled}
+                            value={formatMoney(calcPartnerContrib())}
+                            editable={false}
+                          />
+                        </View>
+                      </View>
+                    </>
+                  )}
                 </View>
               )}
 
@@ -594,10 +604,10 @@ const TransactionScreen = ({ navigation, route }) => {
                 <MaterialIcons name="info" size={16} color={theme.primary} />
                 <Text style={styles.pInfoText}>
                   {isKonta
-                    ? 'Karena Bersama aktif, fitur Patungan dimatikan & beban terbagi 50:50.'
+                    ? 'Saldo Anda & Pasangan akan terpotong otomatis 50:50.'
                     : (isPatungan
-                      ? 'Kalkulasi uang Anda dan Pasangan (Beban Pasangan dihitung otomatis).'
-                      : 'Nyalakan fitur ini jika transaksi pribadi ingin dibebankan parsial.')}
+                      ? 'Porsi pasangan akan ditagihkan untuk konfirmasi.'
+                      : 'Nyalakan fitur ini jika ingin beban dibagi dengan pasangan.')}
                 </Text>
               </View>
             </View>
