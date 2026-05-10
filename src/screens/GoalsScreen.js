@@ -66,8 +66,13 @@ export const AddGoalScreen = () => {
     const oldSel = selectionTargetRef.current.start;
     
     let processedVal = val;
-    if (val.length === oldText.length - 1 && oldText[oldSel - 1] === '.') {
-      processedVal = oldText.slice(0, oldSel - 2) + oldText.slice(oldSel);
+    const oldDigits = oldText.replace(/\D/g, '');
+    const newDigits = val.replace(/\D/g, '');
+
+    // Jika panjang berkurang tapi digit sama, berarti user hapus titik.
+    // Kita paksa hapus 1 digit di depan posisi titik tadi.
+    if (val.length < oldText.length && oldDigits === newDigits && oldSel > 0) {
+      processedVal = val.slice(0, oldSel - 2) + val.slice(oldSel - 1);
     }
 
     const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
@@ -362,8 +367,11 @@ const GoalsScreen = () => {
     const oldSel = selectionEditTargetRef.current.start;
     
     let processedVal = val;
-    if (val.length === oldText.length - 1 && oldText[oldSel - 1] === '.') {
-      processedVal = oldText.slice(0, oldSel - 2) + oldText.slice(oldSel);
+    const oldDigits = oldText.replace(/\D/g, '');
+    const newDigits = val.replace(/\D/g, '');
+
+    if (val.length < oldText.length && oldDigits === newDigits && oldSel > 0) {
+      processedVal = val.slice(0, oldSel - 2) + val.slice(oldSel - 1);
     }
 
     const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
