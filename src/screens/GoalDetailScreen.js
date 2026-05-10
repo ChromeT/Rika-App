@@ -322,39 +322,61 @@ const GoalDetailScreen = ({ route }) => {
               <MaterialIcons name="timeline" size={20} color={safeTheme.primary} />
             </View>
 
-            {goal.history && goal.history.length > 0 ? (
-              <View style={{ paddingLeft: 8 }}>
-                {goal.history.slice().reverse().map((item, idx) => (
-                  <View key={idx} style={{ flexDirection: 'row', marginBottom: 24 }}>
-                    {/* Line & Dot */}
-                    <View style={{ alignItems: 'center', marginRight: 16 }}>
-                      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: safeTheme.primary, zIndex: 10, borderWidth: 3, borderColor: safeTheme.background }} />
-                      {idx !== goal.history.length - 1 && (
-                        <View style={{ width: 2, flex: 1, backgroundColor: safeTheme.outlineVariant + '44', marginVertical: -4 }} />
-                      )}
-                    </View>
-                    
-                    {/* Content */}
-                    <View style={{ flex: 1, backgroundColor: safeTheme.surfaceContainerLow, padding: 16, borderRadius: 20, borderWidth: 1, borderColor: safeTheme.outlineVariant + '11' }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <Text style={{ fontSize: 14, fontWeight: 'bold', color: safeTheme.onSurface }}>+ Rp {formatMoney(item.amount)}</Text>
-                        <Text style={{ fontSize: 10, color: safeTheme.onSurfaceVariant }}>
-                          {new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                        </Text>
+            {(() => {
+              const displayHistory = Array.isArray(goal.history) ? [...goal.history] : [];
+              // Jika tidak ada history tapi sudah ada saldo, tambahkan entry awal virtual
+              if (displayHistory.length === 0 && (goal.currentAmount || 0) > 0) {
+                displayHistory.push({
+                  amount: goal.currentAmount,
+                  user: 'Langkah Awal',
+                  date: goal.createdAt || new Date().toISOString(),
+                  isVirtual: true
+                });
+              }
+
+              if (displayHistory.length > 0) {
+                return (
+                  <View style={{ paddingLeft: 8 }}>
+                    {displayHistory.slice().reverse().map((item, idx) => (
+                      <View key={idx} style={{ flexDirection: 'row', marginBottom: 24 }}>
+                        {/* Line & Dot */}
+                        <View style={{ alignItems: 'center', marginRight: 16 }}>
+                          <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: item.isVirtual ? safeTheme.onSurfaceVariant : safeTheme.primary, zIndex: 10, borderWidth: 3, borderColor: safeTheme.background }} />
+                          {idx !== displayHistory.length - 1 && (
+                            <View style={{ width: 2, flex: 1, backgroundColor: safeTheme.outlineVariant + '44', marginVertical: -4 }} />
+                          )}
+                        </View>
+                        
+                        {/* Content */}
+                        <View style={{ flex: 1, backgroundColor: safeTheme.surfaceContainerLow, padding: 16, borderRadius: 20, borderWidth: 1, borderColor: safeTheme.outlineVariant + '11' }}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                            <Text style={{ fontSize: 14, fontWeight: 'bold', color: safeTheme.onSurface }}>
+                              {item.isVirtual ? 'Saldo Awal' : `+ Rp ${formatMoney(item.amount)}`}
+                            </Text>
+                            <Text style={{ fontSize: 10, color: safeTheme.onSurfaceVariant }}>
+                              {new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                            </Text>
+                          </View>
+                          <Text style={{ fontSize: 11, color: safeTheme.onSurfaceVariant }}>
+                            {item.isVirtual ? 'Tercatat sebelumnya' : `Oleh `}
+                            {!item.isVirtual && <Text style={{ fontWeight: 'bold', color: safeTheme.primary }}>{item.user}</Text>}
+                          </Text>
+                        </View>
                       </View>
-                      <Text style={{ fontSize: 11, color: safeTheme.onSurfaceVariant }}>Oleh <Text style={{ fontWeight: 'bold', color: safeTheme.primary }}>{item.user}</Text></Text>
-                    </View>
+                    ))}
                   </View>
-                ))}
-              </View>
-            ) : (
-              <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 24, padding: 32, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: safeTheme.outlineVariant }}>
-                <MaterialIcons name="flag" size={32} color={safeTheme.onSurfaceVariant + '44'} />
-                <Text style={{ color: safeTheme.onSurfaceVariant, fontSize: 12, marginTop: 8, textAlign: 'center' }}>
-                  Belum ada riwayat menabung.{"\n"}Yuk mulai langkah pertamamu!
-                </Text>
-              </View>
-            )}
+                );
+              }
+
+              return (
+                <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 24, padding: 32, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: safeTheme.outlineVariant }}>
+                  <MaterialIcons name="flag" size={32} color={safeTheme.onSurfaceVariant + '44'} />
+                  <Text style={{ color: safeTheme.onSurfaceVariant, fontSize: 12, marginTop: 8, textAlign: 'center' }}>
+                    Belum ada riwayat menabung.{"\n"}Yuk mulai langkah pertamamu!
+                  </Text>
+                </View>
+              );
+            })()}
           </View>
         </View>
       </ScrollView>

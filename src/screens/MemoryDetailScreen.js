@@ -421,24 +421,58 @@ const MemoryDetailScreen = ({ route }) => {
 
         {/* --- ESTIMASI VS RIIL --- */}
         <View style={{ padding: 16, marginTop: 16 }}>
-          <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>ESTIMASI VS RIIL</Text>
-          <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 20, padding: 20 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
-              <View style={{ alignItems: 'center' }}>
-                <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, marginBottom: 4 }}>TARGET</Text>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: theme.primary }}>Rp {formatMoney(goal.targetAmount)}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, textTransform: 'uppercase' }}>ESTIMASI VS RIIL</Text>
+            <View style={{ backgroundColor: (goal.actualAmount || 0) <= goal.targetAmount ? '#10B981' + '22' : theme.error + '22', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+              <Text style={{ fontSize: 10, fontWeight: 'bold', color: (goal.actualAmount || 0) <= goal.targetAmount ? '#10B981' : theme.error }}>
+                {(goal.actualAmount || 0) <= goal.targetAmount ? 'DI BAWAH BUDGET' : 'MELEBIHI BUDGET'}
+              </Text>
+            </View>
+          </View>
+          
+          <View style={{ backgroundColor: theme.surfaceContainer, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: theme.outlineVariant + '33' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 36, fontWeight: '900', color: theme.onSurface, letterSpacing: -1 }}>
+                  {Math.round(((goal.actualAmount || 0) / (goal.targetAmount || 1)) * 100)}%
+                </Text>
+                <Text style={{ fontSize: 11, color: theme.onSurfaceVariant, fontWeight: 'bold' }}>DARI TARGET AWAL</Text>
               </View>
-              <View style={{ alignItems: 'center' }}>
-                <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, marginBottom: 4 }}>RIIL</Text>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: theme.error }}>Rp {formatMoney(goal.actualAmount || 0)}</Text>
+              <View style={{ height: 50, width: 2, backgroundColor: theme.outlineVariant + '33', marginHorizontal: 20 }} />
+              <View style={{ flex: 1.5 }}>
+                <View style={{ marginBottom: 8 }}>
+                  <Text style={{ fontSize: 10, color: theme.onSurfaceVariant }}>ESTIMASI</Text>
+                  <Text style={{ fontSize: 15, fontWeight: 'bold', color: theme.onSurface }}>Rp {formatMoney(goal.targetAmount)}</Text>
+                </View>
+                <View>
+                  <Text style={{ fontSize: 10, color: theme.onSurfaceVariant }}>RIIL (AKTUAL)</Text>
+                  <Text style={{ fontSize: 15, fontWeight: 'bold', color: (goal.actualAmount || 0) <= goal.targetAmount ? '#10B981' : theme.error }}>
+                    Rp {formatMoney(goal.actualAmount || 0)}
+                  </Text>
+                </View>
               </View>
             </View>
-            <View style={{ height: 6, backgroundColor: theme.surfaceContainerHighest, borderRadius: 3, marginBottom: 8 }}>
-              <View style={{ height: '100%', width: `${Math.min(((goal.actualAmount || 0) / (goal.targetAmount || 1)) * 100, 100)}%`, backgroundColor: theme.primary, borderRadius: 3 }} />
+
+            <View style={{ height: 12, backgroundColor: theme.surfaceContainerHighest, borderRadius: 6, marginBottom: 12, overflow: 'hidden' }}>
+              <View style={{ 
+                height: '100%', 
+                width: `${Math.min(((goal.actualAmount || 0) / (goal.targetAmount || 1)) * 100, 100)}%`, 
+                backgroundColor: (goal.actualAmount || 0) <= goal.targetAmount ? theme.primary : theme.error, 
+                borderRadius: 6 
+              }} />
             </View>
-            <Text style={{ fontSize: 11, color: theme.onSurfaceVariant, textAlign: 'center' }}>
-              {goal.actualAmount > goal.targetAmount ? 'Melebihi ' : 'Hemat '} Rp {formatMoney(Math.abs((goal.actualAmount || 0) - goal.targetAmount))} ({Math.round(((goal.actualAmount || 0) / (goal.targetAmount || 1)) * 100)}%)
-            </Text>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center', marginTop: 8 }}>
+              <MaterialIcons 
+                name={(goal.actualAmount || 0) <= goal.targetAmount ? "sentiment-very-satisfied" : "sentiment-neutral"} 
+                size={16} 
+                color={(goal.actualAmount || 0) <= goal.targetAmount ? '#10B981' : theme.onSurfaceVariant} 
+              />
+              <Text style={{ fontSize: 12, color: theme.onSurfaceVariant, textAlign: 'center', fontWeight: '500' }}>
+                {(goal.actualAmount || 0) <= goal.targetAmount ? 'Hemat ' : 'Selisih '} 
+                <Text style={{ fontWeight: 'bold', color: theme.onSurface }}>Rp {formatMoney(Math.abs((goal.actualAmount || 0) - goal.targetAmount))}</Text>
+              </Text>
+            </View>
           </View>
         </View>
 
