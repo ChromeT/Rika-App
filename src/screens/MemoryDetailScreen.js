@@ -483,7 +483,7 @@ const MemoryDetailScreen = ({ route }) => {
             {[
               { label: 'Total Pengeluaran', value: `Rp ${formatMoney(totalExpense)}`, icon: 'shopping-cart' },
               { label: 'Lama Menabung', value: `${durationMonths} bln ${durationDays} hr`, icon: 'date-range' },
-              { label: 'Transaksi Terkait', value: `${transactions.length} buah`, icon: 'receipt' },
+              { label: 'Transaksi Terkait', value: `${relatedTransactions.length} buah`, icon: 'receipt' },
               { label: 'Rata-rata/Bulan', value: `Rp ${formatMoney(avgSave)}`, icon: 'savings' },
             ].map((item, i) => (
               <View key={i} style={{ width: '48%', backgroundColor: theme.surfaceContainerLow, borderRadius: 16, padding: 16 }}>
