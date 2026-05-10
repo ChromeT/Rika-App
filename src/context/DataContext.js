@@ -15,7 +15,7 @@ const safeDate = (dateStr) => {
 export const DataContext = createContext();
 
 export const DataProvider = ({ children }) => {
-  const { user } = useContext(AuthContext);
+  const { user, householdUsers, householdData } = useContext(AuthContext);
   const [transactions, setTransactions] = useState([]);
   const [goals, setGoals] = useState([]);
   const [bills, setBills] = useState([]);
