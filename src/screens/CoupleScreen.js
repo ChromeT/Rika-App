@@ -228,14 +228,14 @@ const CoupleScreen = ({ navigation }) => {
               .sort((a,b) => new Date(a.targetDate) - new Date(b.targetDate))
               .map(g => {
                 const info = getGoalStatusInfo(g);
+                const tDate = dayjs(g.targetDate);
                 return {
                   id: g.id,
                   title: g.name,
-                  date: targetDate,
+                  date: tDate,
                   icon: info.icon,
                   color: info.color,
                   desc: g.description || `Target Roadmap: Rencana pencapaian goal ini.`,
-                  dateLabel: `${isOverdue ? 'Terlewat ' : 'Target: '}${targetDate.format('DD MMM YYYY')}`,
                   isFuture: true,
                   badge: info.badge,
                   progress: info.progress,
