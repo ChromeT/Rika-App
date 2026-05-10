@@ -271,11 +271,13 @@ export const DataProvider = ({ children }) => {
             if (Number(tx.partnerContrib || 0) > 0) {
               await updateDoc(docRef, { status: 'pending_partner' });
               
-              // KIRIM PUSH NOTIFICATION KE PASANGAN
-              const partnerName = householdUsers.find(u => u !== user?.name);
-              if (partnerName) {
-                sendPushNotification(partnerName, 'Butuh Konfirmasi!', `${user?.name} baru saja input patungan: ${tx.name}`);
-              }
+              // KIRIM NOTIFIKASI (Akan memicu Push HP otomatis via addNotification)
+              await addNotification({
+                title: 'Butuh Konfirmasi!',
+                message: `${user?.name} baru saja input patungan: ${tx.name}`,
+                type: 'split_pending',
+                txId: docRef.id
+              });
             } else {
               await updateDoc(docRef, { status: 'completed' });
             }
@@ -474,6 +476,12 @@ export const DataProvider = ({ children }) => {
     try {
       const notifRef = collection(db, 'households', user.householdId, 'notifications');
       await addDoc(notifRef, { ...notif, createdAt: new Date().toISOString() });
+      
+      // OTOMATIS KIRIM PUSH KE PASANGAN (kecuali jika notif ini untuk diri sendiri)
+      const partnerName = householdUsers.find(u => u !== user?.name);
+      if (partnerName) {
+        sendPushNotification(partnerName, notif.title || 'Rika App', notif.message || 'Ada kabar baru buat kamu!');
+      }
     } catch (e) {
       console.error('Failed to send notification', e);
     }
@@ -703,12 +711,7 @@ export const DataProvider = ({ children }) => {
         updatedAt: new Date().toISOString()
       });
 
-      // KIRIM PUSH NOTIFICATION KE INISIATOR
-      if (tx.owner && tx.owner !== user.name) {
-        sendPushNotification(tx.owner, 'Patungan Dibayar!', `${user.name} baru saja mengonfirmasi pembayaran untuk ${tx.name}`);
-      }
-
-      // 3. Kirim notifikasi balik
+      // 3. Kirim notifikasi balik (Akan memicu push otomatis)
       await addNotification({
         title: 'Patungan Disetujui',
         body: `${user.name} telah menyetujui patungan "${tx.name}" menggunakan dompet ${acc.name}.`,
