@@ -8,8 +8,9 @@ import { AuthContext } from '../context/AuthContext';
 
 const TransactionScreen = ({ navigation, route }) => {
   const { theme } = useContext(ThemeContext);
-  const { addTransaction, transactions, categories, addCategory, addNotification } = useContext(DataContext);
+  const { addTransaction, transactions, categories, addCategory, addNotification, accounts } = useContext(DataContext);
   const { user, avatar } = useContext(AuthContext);
+  const [selectedAccountId, setSelectedAccountId] = useState(null);
 
   const [amount, setAmount] = useState('');
   const [name, setName] = useState('');
@@ -28,6 +29,16 @@ const TransactionScreen = ({ navigation, route }) => {
       setAmount(route.params.predefinedAmount);
     }
   }, [route?.params?.type, route?.params?.predefinedName, route?.params?.predefinedAmount]);
+  
+  // AUTO-SELECT dompet pertama
+  useEffect(() => {
+    if (accounts.length > 0 && !selectedAccountId) {
+      const myAccounts = accounts.filter(a => a.owner === user?.name);
+      if (myAccounts.length > 0) {
+        setSelectedAccountId(myAccounts[0].id);
+      }
+    }
+  }, [accounts, user, selectedAccountId]);
   
   // Category States
   const [categoryObj, setCategoryObj] = useState(null);
@@ -90,8 +101,8 @@ const TransactionScreen = ({ navigation, route }) => {
 
     const finalTxName = name.trim() ? name.trim() : finalCategoryName;
 
-    if (!amount || !finalCategoryName) {
-      Alert.alert('Data belum lengkap', 'Pastikan kategori dan nominal terisi dengan benar!');
+    if (!amount || !finalCategoryName || !selectedAccountId) {
+      Alert.alert('Data belum lengkap', 'Pastikan nominal, kategori, dan dompet sumber sudah dipilih!');
       return;
     }
     
@@ -131,6 +142,7 @@ const TransactionScreen = ({ navigation, route }) => {
       isPatungan: type === 'expense' ? (!isKonta && isPatungan) : false,
       myContrib: fMy,
       partnerContrib: fPar,
+      accountId: selectedAccountId,
     });
 
     addNotification({
@@ -241,6 +253,14 @@ const TransactionScreen = ({ navigation, route }) => {
     txAmountNeg: { fontSize: 14, fontWeight: 'bold', color: t.error },
     txAmountPos: { fontSize: 14, fontWeight: 'bold', color: t.primary },
     txCatTag: { fontSize: 9, color: t.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
+    
+    accountPickerTitle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 8 },
+    accountScroll: { marginBottom: 24 },
+    accountBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 20, backgroundColor: t.surfaceContainerLowest, borderWidth: 1, borderColor: t.outlineVariant + '1A', marginRight: 10 },
+    accountBtnAct: { borderColor: t.primary, borderWidth: 2 },
+    accountIcon: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+    accountName: { fontSize: 13, fontWeight: 'bold' },
+    accountBalance: { fontSize: 10, fontWeight: '500' },
   });
 
   const styles = getStyles(theme);
@@ -451,6 +471,50 @@ const TransactionScreen = ({ navigation, route }) => {
               </View>
             </View>
           )}
+
+          <View style={styles.accountPickerTitle}>
+            <Text style={[styles.label, { marginBottom: 0 }]}>Sumber Dana (Pilih Dompet)</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("AddAccount")}>
+              <Text style={{ color: theme.primary, fontSize: 12, fontWeight: "bold" }}>+ Baru</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {(() => {
+            const myAccounts = (accounts || []).filter(acc => acc.owner === user?.name);
+            
+            if (myAccounts.length === 0) {
+              return (
+                <TouchableOpacity 
+                  style={[styles.switchRow, { borderStyle: 'dashed', borderColor: theme.primary }]}
+                  onPress={() => navigation.navigate("AddAccount")}
+                >
+                  <Text style={{ color: theme.primary, fontWeight: 'bold', flex: 1, textAlign: 'center' }}>+ Belum ada dompet pribadi. Klik untuk tambah.</Text>
+                </TouchableOpacity>
+              );
+            }
+            return (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.accountScroll}>
+                {myAccounts.map(acc => {
+                  const isActive = selectedAccountId === acc.id;
+                  return (
+                    <TouchableOpacity 
+                      key={acc.id} 
+                      style={[styles.accountBtn, isActive && styles.accountBtnAct]}
+                      onPress={() => setSelectedAccountId(acc.id)}
+                    >
+                      <View style={[styles.accountIcon, { backgroundColor: acc.color + '22' }]}>
+                        <MaterialIcons name={acc.icon || 'payments'} size={18} color={acc.color || theme.primary} />
+                      </View>
+                      <View>
+                        <Text style={[styles.accountName, { color: theme.onSurface }]}>{acc.name}</Text>
+                        <Text style={[styles.accountBalance, { color: theme.onSurfaceVariant }]}>Rp {formatMoney(acc.balance)}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            );
+          })()}
 
           <TouchableOpacity style={styles.submitBtn} activeOpacity={0.8} onPress={handleSave}>
             <LinearGradient colors={[theme.primary, theme.primaryContainer]} style={styles.submitGradient} start={{x:0, y:0}} end={{x:1, y:1}}>

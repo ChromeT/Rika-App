@@ -12,7 +12,7 @@ const CHART_COLORS = [
   '#6366f1', '#ec4899', '#10b981', '#f59e0b', '#3b82f6', '#facc15', '#ef4444'
 ];
 
-export const exportToXLS = async (transactions, period = 'Laporan', userName = 'User', filters = { user: 'Kita', type: 'Semua' }) => {
+export const exportToXLS = async (transactions, period = 'Laporan', userName = 'User', filters = { user: 'Kita', type: 'Semua' }, accounts = []) => {
   try {
     const { user: filterUser, type: filterType } = filters;
     
@@ -68,7 +68,7 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
     if (filterType === 'Semua') rows.push(['Saldo Akhir', totalIncome - totalExpense]);
 
     rows.push([], ['DETAIL TRANSAKSI']);
-    rows.push(['Tanggal', 'Keterangan', 'Kategori', 'Tipe', 'Oleh', 'Total Nominal']);
+    rows.push(['Tanggal', 'Keterangan', 'Kategori', 'Sumber', 'Tipe', 'Oleh', 'Total Nominal']);
 
     filtered.forEach(tx => {
       const total = (tx.myContrib || 0) + (tx.partnerContrib || 0);
@@ -78,6 +78,10 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
         dateStr,
         tx.name || '-',
         tx.category || '-',
+        (() => {
+          const acc = (accounts || []).find(a => a.id === tx.accountId);
+          return acc ? acc.name : 'Tunai';
+        })(),
         tx.type === 'income' ? 'Pemasukan' : 'Pengeluaran',
         tx.owner || '-',
         total
@@ -110,7 +114,7 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
   }
 };
 
-export const exportToPDF = async (transactions, period = 'Laporan', userName = 'User', filters = { user: 'Kita', type: 'Semua' }) => {
+export const exportToPDF = async (transactions, period = 'Laporan', userName = 'User', filters = { user: 'Kita', type: 'Semua' }, accounts = []) => {
   try {
     const { user: filterUser, type: filterType } = filters;
     
@@ -173,11 +177,14 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
     filtered.forEach(tx => {
       const amount = (tx.myContrib || 0) + (tx.partnerContrib || 0);
       const date = new Date(tx.date).toLocaleDateString('id-ID');
+      const acc = (accounts || []).find(a => a.id === tx.accountId);
+      const walletName = acc ? acc.name : 'Tunai';
       txRows += `
         <tr>
           <td>${date}</td>
           <td>${tx.name || '-'}</td>
           <td>${tx.category || '-'}</td>
+          <td>${walletName}</td>
           <td>${tx.owner || '-'}</td>
           <td style="color:${tx.type === 'income' ? '#059669' : '#dc2626'}">${tx.type === 'income' ? 'Masuk' : 'Keluar'}</td>
           <td style="text-align:right;">${formatMoney(amount)}</td>
@@ -228,6 +235,7 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
               <th>Tanggal</th>
               <th>Keterangan</th>
               <th>Kategori</th>
+              <th>Sumber</th>
               <th>User</th>
               <th>Tipe</th>
               <th style="text-align:right;">Nominal (Rp)</th>

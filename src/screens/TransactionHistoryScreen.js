@@ -7,7 +7,7 @@ import { AuthContext } from '../context/AuthContext';
 
 const TransactionHistoryScreen = () => {
   const { theme } = useContext(ThemeContext);
-  const { transactions } = useContext(DataContext);
+  const { transactions, accounts } = useContext(DataContext);
   const { user, householdUsers, avatar } = useContext(AuthContext);
 
   const myName = user?.name || 'Saya';
@@ -161,19 +161,16 @@ const TransactionHistoryScreen = () => {
                       <View style={styles.txCatBadge}>
                         <Text style={styles.txCatText}>{tx.category}</Text>
                       </View>
+                      <View style={styles.txWallet}>
+                        <MaterialIcons name="account-balance-wallet" size={10} color={theme.onSurfaceVariant} />
+                        <Text style={styles.txWalletName}>
+                          {(() => {
+                            const acc = (accounts || []).find(a => a.id === tx.accountId);
+                            return acc ? acc.name : 'Tunai';
+                          })()}
+                        </Text>
+                      </View>
                       <Text style={styles.txOwner}>{tx.owner}</Text>
-                  {tx.date && new Date(tx.date).toString() === 'Invalid Date' ? (
-                    <View style={[styles.jointBadge, { backgroundColor: 'rgba(255,0,0,0.1)' }]}>
-                      <MaterialIcons name="warning" size={10} color="red" />
-                      <Text style={[styles.jointText, { color: 'red' }]}>Invalid</Text>
-                    </View>
-                  ) : null}
-                      {tx.isJoint && (
-                        <View style={styles.jointBadge}>
-                          <MaterialIcons name="people" size={10} color={theme.primary} />
-                          <Text style={styles.jointText}>Bareng</Text>
-                        </View>
-                      )}
                     </View>
                   </View>
                   <Text style={[styles.txAmount, { color: tx.type === 'income' ? theme.primary : theme.error }]}>
@@ -256,6 +253,8 @@ const getStyles = (t) => StyleSheet.create({
   txCatBadge: { backgroundColor: t.secondaryContainer, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
   txCatText: { fontSize: 10, color: t.onSecondaryContainer, fontWeight: '700' },
   txOwner: { fontSize: 10, color: t.onSurfaceVariant },
+  txWallet: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: t.surfaceContainerHigh, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  txWalletName: { fontSize: 10, color: t.onSurfaceVariant, fontWeight: 'bold' },
   jointBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: t.primary + '1A', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
   jointText: { fontSize: 9, color: t.primary, fontWeight: '700' },
   txAmount: { fontSize: 13, fontWeight: '900', letterSpacing: -0.3, flexShrink: 0 },

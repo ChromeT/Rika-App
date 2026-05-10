@@ -14,7 +14,7 @@ const { width } = Dimensions.get('window');
 
 const DashboardScreen = () => {
   const { theme } = useContext(ThemeContext);
-  const { transactions, getBalance, bills, addBill, updateBill, deleteBill, notifications, addNotification, goals } = useContext(DataContext);
+  const { transactions, getBalance, bills, addBill, updateBill, deleteBill, notifications, addNotification, goals, accounts } = useContext(DataContext);
   const { user, householdUsers, avatar, lastReadNotif, markNotificationsAsRead } = useContext(AuthContext);
   
   const navigation = useNavigation();
@@ -169,7 +169,21 @@ const DashboardScreen = () => {
     return true; // Semua Waktu
   });
 
-  const filteredTx = filteredByTime.filter(tx => filter === 'Kita' || tx.owner === activeName);
+  const filteredTx = filteredByTime.filter(tx => {
+    if (filter === 'Kita') return true;
+    if (filter === 'Saya') return tx.owner === myName;
+    if (filter === 'Pasangan') return tx.owner !== myName;
+    return true;
+  });
+  
+  const safeAccounts = accounts || [];
+  const filteredAccounts = safeAccounts.filter(acc => {
+    if (filter === 'Kita') return true;
+    if (filter === 'Saya') return acc.owner === myName;
+    if (filter === 'Pasangan') return acc.owner === partnerName;
+    return true;
+  });
+
   const currentBalance = getBalance(activeName);
 
   const formatMoney = (amount) => {
@@ -454,6 +468,8 @@ const DashboardScreen = () => {
     txMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
     txBadge: { fontSize: 10, backgroundColor: t.secondaryContainer, color: t.onSecondaryContainer, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 },
     txTime: { fontSize: 10, color: t.onSurfaceVariant },
+    txWallet: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: t.surfaceContainerHigh, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+    txWalletName: { fontSize: 10, color: t.onSurfaceVariant, fontWeight: 'bold' },
     txAmountNeg: { fontSize: 14, fontWeight: 'bold', color: t.error },
     txAmountPos: { fontSize: 14, fontWeight: 'bold', color: t.primary },
 
@@ -465,6 +481,17 @@ const DashboardScreen = () => {
     btnRow: { flexDirection: 'row', gap: 12, marginTop: 8 },
     btnCancel: { flex: 1, padding: 16, borderRadius: 16, alignItems: 'center', backgroundColor: t.surfaceContainerHighest },
     btnSave: { flex: 1, padding: 16, borderRadius: 16, alignItems: 'center', backgroundColor: t.primary },
+
+    walletSection: { marginBottom: 24, marginTop: 8 },
+    walletHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+    walletTitle: { fontSize: 16, fontWeight: 'bold', color: t.onSurface },
+    walletSeeAll: { fontSize: 12, fontWeight: 'bold', color: t.primary },
+    walletScroll: { paddingRight: 24 },
+    walletCard: { backgroundColor: t.surfaceContainerLow, borderRadius: 20, padding: 16, marginRight: 12, minWidth: 150, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: t.outlineVariant + '1A' },
+    walletIcon: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+    walletInfo: { flex: 1 },
+    walletName: { fontSize: 13, fontWeight: 'bold', color: t.onSurface },
+    walletBalance: { fontSize: 11, fontWeight: 'bold', color: t.primary, marginTop: 2 },
   });
 
   const styles = getStyles(theme);
@@ -521,6 +548,55 @@ const DashboardScreen = () => {
           </View>
         </View>
 
+        {/* Wallets Section */}
+        <View style={styles.walletSection}>
+          <View style={styles.walletHeader}>
+            <Text style={styles.walletTitle}>Dompet Kita</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Wallets')}>
+              <Text style={styles.walletSeeAll}>Kelola</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.walletScroll}>
+            {filteredAccounts.length === 0 ? (
+              filter === 'Pasangan' ? (
+                <View style={[styles.walletCard, { backgroundColor: theme.surfaceContainerLow, minWidth: 180, justifyContent: 'center', alignItems: 'center' }]}>
+                  <MaterialIcons name="account-balance-wallet" size={20} color={theme.onSurfaceVariant} style={{ opacity: 0.5 }} />
+                  <Text style={[styles.walletName, { color: theme.onSurfaceVariant, textAlign: 'center', marginTop: 4 }]}>
+                    {partnerName} belum punya dompet
+                  </Text>
+                </View>
+              ) : (
+                <TouchableOpacity 
+                  style={[styles.walletCard, { borderStyle: 'dashed', borderColor: theme.primary, backgroundColor: 'transparent', minWidth: 180 }]}
+                  onPress={() => navigation.navigate('AddAccount')}
+                >
+                  <View style={[styles.walletIcon, { backgroundColor: theme.primary + '1A' }]}>
+                    <MaterialIcons name="add" size={20} color={theme.primary} />
+                  </View>
+                  <Text style={[styles.walletName, { color: theme.primary }]}>Tambah Dompet</Text>
+                </TouchableOpacity>
+              )
+            ) : (
+              filteredAccounts.map(acc => (
+                <TouchableOpacity 
+                  key={acc.id} 
+                  style={styles.walletCard}
+                  onPress={() => navigation.navigate('Wallets')}
+                >
+                  <View style={[styles.walletIcon, { backgroundColor: acc.color + '1A' }]}>
+                    <MaterialIcons name={acc.icon || 'payments'} size={18} color={acc.color || theme.primary} />
+                  </View>
+                  <View style={styles.walletInfo}>
+                    <Text style={styles.walletName} numberOfLines={1}>{acc.name}</Text>
+                    <Text style={styles.walletBalance}>Rp {new Intl.NumberFormat('id-ID').format(acc.balance || 0)}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
+        </View>
+
         <View style={styles.bentoRow}>
           <View style={styles.chartCard}>
             <View style={styles.cardHeader}>
@@ -530,13 +606,13 @@ const DashboardScreen = () => {
               </View>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <TouchableOpacity 
-                  onPress={() => exportToPDF(filteredTx, timeFilter, user?.name || 'User')} 
+                  onPress={() => exportToPDF(filteredTx, timeFilter, user?.name || 'User', { user: filter, type: 'Semua' }, accounts)} 
                   style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: theme.primary + '1A', justifyContent: 'center', alignItems: 'center' }}
                 >
                   <MaterialIcons name="picture-as-pdf" size={20} color={theme.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  onPress={() => exportToXLS(filteredTx, timeFilter, user?.name || 'User')} 
+                  onPress={() => exportToXLS(filteredTx, timeFilter, user?.name || 'User', { user: filter, type: 'Semua' }, accounts)} 
                   style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: theme.primary + '1A', justifyContent: 'center', alignItems: 'center' }}
                 >
                   <MaterialIcons name="table-view" size={20} color={theme.primary} />
@@ -755,7 +831,16 @@ const DashboardScreen = () => {
                     <Text style={styles.txName}>{tx.name}</Text>
                     <View style={styles.txMeta}>
                       <Text style={styles.txBadge}>{tx.category}</Text>
-                      <Text style={styles.txTime}>{tx.owner} • {(new Date(tx.date).toString() !== 'Invalid Date' ? new Date(tx.date).toLocaleDateString('id-ID') : '-')}</Text>
+                      <View style={styles.txWallet}>
+                        <MaterialIcons name="account-balance-wallet" size={10} color={theme.onSurfaceVariant} />
+                        <Text style={styles.txWalletName}>
+                          {(() => {
+                            const acc = (accounts || []).find(a => a.id === tx.accountId);
+                            return acc ? acc.name : 'Tunai';
+                          })()}
+                        </Text>
+                      </View>
+                      <Text style={styles.txTime}>{(new Date(tx.date).toString() !== 'Invalid Date' ? new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : '-')}</Text>
                     </View>
                   </View>
                 </View>

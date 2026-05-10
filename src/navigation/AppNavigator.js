@@ -21,6 +21,8 @@ import { AddGoalScreen } from '../screens/GoalsScreen';
 import AchieveGoalScreen from '../screens/AchieveGoalScreen';
 import EditGoalScreen from '../screens/EditGoalScreen';
 import CategoriesScreen from '../screens/CategoriesScreen';
+import WalletsScreen from '../screens/WalletsScreen';
+import AddAccountScreen from '../screens/AddAccountScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -171,6 +173,16 @@ const MainStack = () => {
         name="Categories"
         component={CategoriesScreen}
         options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="Wallets"
+        component={WalletsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="AddAccount"
+        component={AddAccountScreen}
+        options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
       />
     </Stack.Navigator>
   );
