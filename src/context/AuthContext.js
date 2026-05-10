@@ -29,7 +29,11 @@ export const AuthProvider = ({ children }) => {
           if (permission === 'granted') {
             // Register service worker secara manual untuk memastikan lokasi benar
             const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-            console.log('Service Worker terdaftar:', registration.scope);
+            console.log('Service Worker terdaftar, menunggu status aktif...');
+            
+            // Tunggu sampai Service Worker benar-benar aktif (Ready)
+            await navigator.serviceWorker.ready;
+            console.log('Service Worker sudah aktif dan siap!');
 
             const token = await getToken(messaging, {
               vapidKey: 'BAUK0mQIyvfLwX4_W6oBFchmwIrkb60lr7eGK7u_qOVJDODAjfBb7e3zKrXt5mcKPzMtxZCvV9FpHc132PrJm3M',
