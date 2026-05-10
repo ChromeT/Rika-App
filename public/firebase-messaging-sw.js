@@ -1,5 +1,5 @@
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.1.1/firebase-messaging-compat.js');
 
 firebase.initializeApp({
   apiKey: "AIzaSyDuXQF0MFebmXuOZxs9Z_1HMG6Tgtr3lXc",
@@ -12,13 +12,19 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Fetch listener agar service worker dianggap "aktif" secara sempurna oleh browser
+self.addEventListener('fetch', (event) => {
+  // Biarkan request lewat seperti biasa
+});
+
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
   const notificationTitle = payload.notification.title || 'Rika App Notification';
   const notificationOptions = {
     body: payload.notification.body || 'Ada pesan baru untukmu.',
     icon: 'https://rika-app.vercel.app/assets/favicon.png',
-    badge: 'https://rika-app.vercel.app/assets/favicon.png'
+    badge: 'https://rika-app.vercel.app/assets/favicon.png',
+    data: payload.data
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
