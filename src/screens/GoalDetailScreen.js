@@ -37,7 +37,7 @@ const AddFundingModal = ({ visible, onClose, onSave, theme, currentAmount }) => 
     const newDigits = val.replace(/\D/g, '');
 
     if (val.length < oldText.length && oldDigits === newDigits && oldSel > 0) {
-      processedVal = val.slice(0, oldSel - 2) + val.slice(oldSel - 1);
+      processedVal = oldText.slice(0, oldSel - 2) + oldText.slice(oldSel);
     }
 
     const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;

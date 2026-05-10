@@ -72,7 +72,7 @@ export const AddGoalScreen = () => {
     // Jika panjang berkurang tapi digit sama, berarti user hapus titik.
     // Kita paksa hapus 1 digit di depan posisi titik tadi.
     if (val.length < oldText.length && oldDigits === newDigits && oldSel > 0) {
-      processedVal = val.slice(0, oldSel - 2) + val.slice(oldSel - 1);
+      processedVal = oldText.slice(0, oldSel - 2) + oldText.slice(oldSel);
     }
 
     const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
@@ -329,6 +329,19 @@ export const AddGoalScreen = () => {
 // --- Main Goals Screen ---
 const GoalsScreen = () => {
   const { theme } = useContext(ThemeContext);
+  const safeTheme = theme || {
+    background: '#0b0f10',
+    surface: '#0b0f10',
+    surfaceContainerLow: '#141b1d',
+    surfaceContainer: '#141b1d',
+    surfaceContainerHighest: '#1a1a1a',
+    onSurface: '#dde7eb',
+    onSurfaceVariant: '#a3adb1',
+    primary: '#b2cad3',
+    onPrimary: '#1a1a1a',
+    outlineVariant: '#40494d',
+    error: '#f2b8b5'
+  };
   const { goals, addGoal, updateGoal, deleteGoal, addNotification, transactions } = useContext(DataContext);
   const { user } = useContext(AuthContext);
   const navigation = useNavigation();
@@ -371,7 +384,7 @@ const GoalsScreen = () => {
     const newDigits = val.replace(/\D/g, '');
 
     if (val.length < oldText.length && oldDigits === newDigits && oldSel > 0) {
-      processedVal = val.slice(0, oldSel - 2) + val.slice(oldSel - 1);
+      processedVal = oldText.slice(0, oldSel - 2) + oldText.slice(oldSel);
     }
 
     const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
@@ -548,13 +561,13 @@ const GoalsScreen = () => {
     const progress = item.targetAmount > 0 ? Math.min((item.currentAmount / item.targetAmount) * 100, 100) : 0;
     
     return (
-      <View style={{ marginBottom: 16, backgroundColor: theme.surfaceContainerLow, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: theme.outlineVariant + '22' }}>
+      <View style={{ marginBottom: 16, backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: safeTheme.outlineVariant + '22' }}>
         <TouchableOpacity 
           onPress={() => navigation.navigate('GoalDetail', { goalId: item.id })}
           activeOpacity={0.8}
         >
           {/* Cover Image */}
-          <View style={{ height: 120, backgroundColor: theme.surfaceContainer }}>
+          <View style={{ height: 120, backgroundColor: safeTheme.surfaceContainer }}>
             {item.previewImage ? (
               <Image source={{ uri: item.previewImage }} style={{ width: '100%', height: '100%' }} />
             ) : item.media && item.media.length > 0 && item.media[0].type === 'video' ? (
@@ -563,27 +576,27 @@ const GoalsScreen = () => {
               </View>
             ) : (
               <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
-                <MaterialIcons name="landscape" size={40} color={theme.onSurfaceVariant + '55'} />
+                <MaterialIcons name="landscape" size={40} color={safeTheme.onSurfaceVariant + '55'} />
               </View>
             )}
           </View>
         
           {/* Content */}
           <View style={{ padding: 16 }}>
-            <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.onSurface, marginBottom: 4 }} numberOfLines={1}>{item.name}</Text>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', color: safeTheme.onSurface, marginBottom: 4 }} numberOfLines={1}>{item.name}</Text>
           {item.description ? (
-            <Text style={{ fontSize: 12, color: theme.onSurfaceVariant, marginBottom: 12 }} numberOfLines={2}>{item.description}</Text>
+            <Text style={{ fontSize: 12, color: safeTheme.onSurfaceVariant, marginBottom: 12 }} numberOfLines={2}>{item.description}</Text>
           ) : null}
           
           {/* Progress Bar */}
-          <View style={{ height: 6, backgroundColor: theme.surfaceContainerHighest, borderRadius: 3, marginBottom: 12 }}>
-            <View style={{ height: '100%', width: `${progress}%`, backgroundColor: theme.primary, borderRadius: 3 }} />
+          <View style={{ height: 6, backgroundColor: safeTheme.surfaceContainerHighest, borderRadius: 3, marginBottom: 12 }}>
+            <View style={{ height: '100%', width: `${progress}%`, backgroundColor: safeTheme.primary, borderRadius: 3 }} />
           </View>
           
 {/* Amount Row */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.primary }}>Rp {formatMoney(item.currentAmount)}</Text>
-            <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>target: Rp {formatMoney(item.targetAmount)}</Text>
+            <Text style={{ fontSize: 14, fontWeight: 'bold', color: safeTheme.primary }}>Rp {formatMoney(item.currentAmount)}</Text>
+            <Text style={{ fontSize: 12, color: safeTheme.onSurfaceVariant }}>target: Rp {formatMoney(item.targetAmount)}</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -598,7 +611,7 @@ const GoalsScreen = () => {
       style={{ flex: 1, margin: 4, height: 180, borderRadius: 16, overflow: 'hidden' }}
       activeOpacity={0.8}
     >
-      <View style={{ flex: 1, backgroundColor: theme.surfaceContainerLow }}>
+      <View style={{ flex: 1, backgroundColor: safeTheme.surfaceContainerLow }}>
         {item.previewImage ? (
           <Image source={{ uri: item.previewImage }} style={{ width: '100%', height: '100%' }} />
         ) : item.media && item.media.length > 0 && item.media[0].type === 'video' ? (
@@ -607,7 +620,7 @@ const GoalsScreen = () => {
           </View>
         ) : (
           <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
-            <MaterialIcons name="emoji-events" size={40} color={theme.primary + '88'} />
+            <MaterialIcons name="emoji-events" size={40} color={safeTheme.primary + '88'} />
           </View>
         )}
         
@@ -653,46 +666,46 @@ const GoalsScreen = () => {
           )}
 
         <ScrollView style={{ flex: 1, marginTop: 100 }} contentContainerStyle={{ paddingBottom: 40 }}>
-          <View style={{ backgroundColor: theme.surface, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, marginHorizontal: 16 }}>
+          <View style={{ backgroundColor: safeTheme.surface, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, marginHorizontal: 16 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface }}>
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: safeTheme.onSurface }}>
                 {isEditAchieved ? 'Edit Kenangan' : 'Edit Goal'}
               </Text>
               <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <MaterialIcons name="close" size={24} color={theme.onSurfaceVariant} />
+                <MaterialIcons name="close" size={24} color={safeTheme.onSurfaceVariant} />
               </TouchableOpacity>
             </View>
 
             {/* Nama Goal */}
-            <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>NAMA GOAL</Text>
-            <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>NAMA GOAL</Text>
+            <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16 }}>
               <TextInput 
                 value={editName}
                 onChangeText={setEditName}
-                style={{ color: theme.onSurface, fontSize: 16 }}
+                style={{ color: safeTheme.onSurface, fontSize: 16 }}
               />
             </View>
 
             {/* Deskripsi / Keterangan */}
-            <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>
+            <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>
               {isEditAchieved ? 'KETERANGAN' : 'DESKRIPSI'}
             </Text>
-            <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16, height: 80 }}>
+            <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16, height: 80 }}>
               <TextInput 
                 value={isEditAchieved ? editMemoryCaption : editDescription}
                 onChangeText={isEditAchieved ? setEditMemoryCaption : setEditDescription}
                 multiline
                 placeholder={isEditAchieved ? "Ceritakan momen ini..." : "Ceritakan tentang goal ini..."}
-                placeholderTextColor={theme.onSurfaceVariant}
-                style={{ color: theme.onSurface, fontSize: 14 }}
+                placeholderTextColor={safeTheme.onSurfaceVariant}
+                style={{ color: safeTheme.onSurface, fontSize: 14 }}
               />
             </View>
 
             {/* Target Nominal (h untuk aktif) */}
             {!isEditAchieved && (
               <>
-                <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>TARGET NOMINAL (RP)</Text>
-                <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>TARGET NOMINAL (RP)</Text>
+                <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16 }}>
                   <TextInput 
                     value={editTarget}
                     onChangeText={handleEditTargetChange}
@@ -703,16 +716,16 @@ const GoalsScreen = () => {
                       selectionEditTargetRef.current = sel;
                     }}
                     keyboardType="numeric"
-                    style={{ color: theme.onSurface, fontSize: 16, fontWeight: 'bold' }}
+                    style={{ color: safeTheme.onSurface, fontSize: 16, fontWeight: 'bold' }}
                   />
                 </View>
               </>
             )}
 
             {/* Media List - Both active and achieved can edit */}
-            <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 12 }}>FOTO / VIDEO</Text>
+            <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 12 }}>FOTO / VIDEO</Text>
             {editMediaList.map((m, i) => (
-              <View key={i} style={{ marginBottom: 10, backgroundColor: theme.surfaceContainerLow, borderRadius: 12, overflow: 'hidden' }}>
+              <View key={i} style={{ marginBottom: 10, backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, overflow: 'hidden' }}>
                 {m.type === 'video' ? (
                   <View style={{ width: '100%', height: 100, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
                     <MaterialIcons name="play-circle-filled" size={40} color="rgba(255,255,255,0.8)" />
@@ -724,39 +737,39 @@ const GoalsScreen = () => {
                   <MaterialIcons name="close" size={14} color="#fff" />
                 </TouchableOpacity>
                 <TextInput
-                  style={{ padding: 8, color: theme.onSurface, fontSize: 12 }}
+                  style={{ padding: 8, color: safeTheme.onSurface, fontSize: 12 }}
                   placeholder="Keterangan..."
-                  placeholderTextColor={theme.onSurfaceVariant}
+                  placeholderTextColor={safeTheme.onSurfaceVariant}
                   value={m.caption}
                   onChangeText={(t) => handleUpdateEditMediaCaption(i, t)}
                 />
               </View>
             ))}
-            <TouchableOpacity onPress={handlePickEditMedia} style={{ height: 40, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.primary + '66', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
-              <Text style={{ color: theme.primary, fontSize: 12, fontWeight: '600' }}>+ Tambah Media</Text>
+            <TouchableOpacity onPress={handlePickEditMedia} style={{ height: 40, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: safeTheme.primary + '66', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ color: safeTheme.primary, fontSize: 12, fontWeight: '600' }}>+ Tambah Media</Text>
             </TouchableOpacity>
 
             {/* Related Transactions - Only for achieved */}
             {isEditAchieved && (
               <>
-                <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>TRANSAKSI TERKAIT</Text>
-                <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, marginBottom: 12 }}>Pilih transaksi yang relevan</Text>
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>TRANSAKSI TERKAIT</Text>
+                <Text style={{ fontSize: 10, color: safeTheme.onSurfaceVariant, marginBottom: 12 }}>Pilih transaksi yang relevan</Text>
                 {recentTxs.map(tx => {
                   const isSelected = editRelatedTxIds.includes(tx.id);
                   const total = (tx.myContrib || 0) + (tx.partnerContrib || 0);
                   return (
                     <TouchableOpacity key={tx.id} onPress={() => handleToggleEditTx(tx.id)}
                       style={{ flexDirection: 'row', alignItems: 'center', padding: 10, marginBottom: 6, borderRadius: 10,
-                        backgroundColor: isSelected ? theme.primary + '1A' : theme.surfaceContainerLow,
-                        borderWidth: 1.5, borderColor: isSelected ? theme.primary : theme.outlineVariant + '22' }}>
-                      <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: tx.type === 'income' ? theme.primary + '1A' : theme.error + '1A', justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
-                        <MaterialIcons name={tx.icon || 'receipt'} size={14} color={tx.type === 'income' ? theme.primary : theme.error} />
+                        backgroundColor: isSelected ? safeTheme.primary + '1A' : safeTheme.surfaceContainerLow,
+                        borderWidth: 1.5, borderColor: isSelected ? safeTheme.primary : safeTheme.outlineVariant + '22' }}>
+                      <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: tx.type === 'income' ? safeTheme.primary + '1A' : safeTheme.error + '1A', justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
+                        <MaterialIcons name={tx.icon || 'receipt'} size={14} color={tx.type === 'income' ? safeTheme.primary : safeTheme.error} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurface }} numberOfLines={1}>{tx.name}</Text>
-                        <Text style={{ fontSize: 9, color: theme.onSurfaceVariant }}>{new Date(tx.date).toString() !== 'Invalid Date' ? new Date(tx.date).toLocaleDateString('id-ID') : '-'}</Text>
+                        <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurface }} numberOfLines={1}>{tx.name}</Text>
+                        <Text style={{ fontSize: 9, color: safeTheme.onSurfaceVariant }}>{new Date(tx.date).toString() !== 'Invalid Date' ? new Date(tx.date).toLocaleDateString('id-ID') : '-'}</Text>
                       </View>
-                      <Text style={{ fontSize: 11, fontWeight: '900', color: tx.type === 'income' ? theme.primary : theme.error }}>
+                      <Text style={{ fontSize: 11, fontWeight: '900', color: tx.type === 'income' ? safeTheme.primary : safeTheme.error }}>
                         {tx.type === 'income' ? '+' : '-'}Rp {formatMoney(total)}
                       </Text>
                     </TouchableOpacity>
@@ -765,8 +778,8 @@ const GoalsScreen = () => {
               </>
             )}
 
-            <TouchableOpacity onPress={handleSaveEdit} style={{ backgroundColor: theme.primary, padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 16 }}>
-              <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Simpan Perubahan</Text>
+            <TouchableOpacity onPress={handleSaveEdit} style={{ backgroundColor: safeTheme.primary, padding: 16, borderRadius: 16, alignItems: 'center', marginTop: 16 }}>
+              <Text style={{ color: safeTheme.onPrimary, fontWeight: 'bold' }}>Simpan Perubahan</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -775,28 +788,28 @@ const GoalsScreen = () => {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
+    <View style={{ flex: 1, backgroundColor: safeTheme.background }}>
       {/* Header */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, backgroundColor: theme.surface }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', color: theme.primary }}>Goals</Text>
-        <TouchableOpacity onPress={handleAddGoal} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.primary, justifyContent: 'center', alignItems: 'center' }}>
-          <MaterialIcons name="add" size={24} color={theme.onPrimary} />
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, backgroundColor: safeTheme.surface }}>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', color: safeTheme.primary }}>Goals</Text>
+        <TouchableOpacity onPress={handleAddGoal} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: safeTheme.primary, justifyContent: 'center', alignItems: 'center' }}>
+          <MaterialIcons name="add" size={24} color={safeTheme.onPrimary} />
         </TouchableOpacity>
       </View>
 
       {/* Tabs */}
-      <View style={{ flexDirection: 'row', backgroundColor: theme.surface, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '22' }}>
+      <View style={{ flexDirection: 'row', backgroundColor: safeTheme.surface, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: safeTheme.outlineVariant + '22' }}>
         <TouchableOpacity 
           onPress={() => setActiveTab('active')}
-          style={{ paddingVertical: 12, marginRight: 24, borderBottomWidth: activeTab === 'active' ? 2 : 0, borderBottomColor: theme.primary }}
+          style={{ paddingVertical: 12, marginRight: 24, borderBottomWidth: activeTab === 'active' ? 2 : 0, borderBottomColor: safeTheme.primary }}
         >
-          <Text style={{ fontSize: 14, fontWeight: activeTab === 'active' ? 'bold' : '500', color: activeTab === 'active' ? theme.primary : theme.onSurfaceVariant }}>Ingin dicapai</Text>
+          <Text style={{ fontSize: 14, fontWeight: activeTab === 'active' ? 'bold' : '500', color: activeTab === 'active' ? safeTheme.primary : safeTheme.onSurfaceVariant }}>Ingin dicapai</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           onPress={() => setActiveTab('achieved')}
-          style={{ paddingVertical: 12, borderBottomWidth: activeTab === 'achieved' ? 2 : 0, borderBottomColor: theme.primary }}
+          style={{ paddingVertical: 12, borderBottomWidth: activeTab === 'achieved' ? 2 : 0, borderBottomColor: safeTheme.primary }}
         >
-          <Text style={{ fontSize: 14, fontWeight: activeTab === 'achieved' ? 'bold' : '500', color: activeTab === 'achieved' ? theme.primary : theme.onSurfaceVariant }}>Telah tercapai</Text>
+          <Text style={{ fontSize: 14, fontWeight: activeTab === 'achieved' ? 'bold' : '500', color: activeTab === 'achieved' ? safeTheme.primary : safeTheme.onSurfaceVariant }}>Telah tercapai</Text>
         </TouchableOpacity>
       </View>
 
@@ -810,9 +823,9 @@ const GoalsScreen = () => {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={{ alignItems: 'center', paddingTop: 60 }}>
-              <MaterialIcons name="flag" size={60} color={theme.onSurfaceVariant + '44'} />
-              <Text style={{ color: theme.onSurfaceVariant, marginTop: 16, fontSize: 16 }}>Belum ada goal aktif</Text>
-              <Text style={{ color: theme.onSurfaceVariant + '88', marginTop: 4, fontSize: 12 }}>Tekan + untuk membuat goal baru</Text>
+              <MaterialIcons name="flag" size={60} color={safeTheme.onSurfaceVariant + '44'} />
+              <Text style={{ color: safeTheme.onSurfaceVariant, marginTop: 16, fontSize: 16 }}>Belum ada goal aktif</Text>
+              <Text style={{ color: safeTheme.onSurfaceVariant + '88', marginTop: 4, fontSize: 12 }}>Tekan + untuk membuat goal baru</Text>
             </View>
           }
         />
@@ -829,8 +842,8 @@ const GoalsScreen = () => {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={{ alignItems: 'center', paddingTop: 60 }}>
-              <MaterialIcons name="emoji-events" size={60} color={theme.onSurfaceVariant + '44'} />
-              <Text style={{ color: theme.onSurfaceVariant, marginTop: 16, fontSize: 16 }}>Belum ada goal tercapai</Text>
+              <MaterialIcons name="emoji-events" size={60} color={safeTheme.onSurfaceVariant + '44'} />
+              <Text style={{ color: safeTheme.onSurfaceVariant, marginTop: 16, fontSize: 16 }}>Belum ada goal tercapai</Text>
             </View>
           }
         />
