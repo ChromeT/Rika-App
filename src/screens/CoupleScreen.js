@@ -14,7 +14,7 @@ const { width } = Dimensions.get('window');
 
 const CoupleScreen = ({ navigation }) => {
   const { theme } = useContext(ThemeContext);
-  const { user, householdUsers, householdAvatars, householdData } = useContext(AuthContext);
+  const { user, householdUsers, householdAvatars, householdData, avatar } = useContext(AuthContext);
   const { getBalance, goals, transactions } = useContext(DataContext);
 
   const myName = user?.name || 'Saya';
@@ -63,7 +63,7 @@ const CoupleScreen = ({ navigation }) => {
           <View style={styles.avatarsRow}>
             <View style={styles.avatarContainer}>
               <View style={[styles.avatarFrame, { borderColor: theme.primary + '33' }]}>
-                {renderAvatar(user?.avatar, 80)}
+                {renderAvatar(avatar, 80)}
               </View>
               <Text style={[styles.avatarName, { color: theme.onSurface }]}>{myName}</Text>
               <View style={[styles.roleBadge, { backgroundColor: theme.primary + '22' }]}>
