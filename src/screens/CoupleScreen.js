@@ -172,58 +172,96 @@ const CoupleScreen = ({ navigation }) => {
 
         {/* Timeline Milestones */}
         <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Timeline Kebersamaan</Text>
-        <View style={[styles.timelineCard, { backgroundColor: theme.surfaceContainerLow }]}>
+        <View style={{ paddingBottom: 60 }}>
           {(() => {
-            const milestones = [
-              { title: 'Perjalanan Dimulai', date: relationshipStart, icon: 'auto-awesome', color: theme.primary, desc: 'Kalian resmi memulai petualangan di Rika App.' },
+            const now = dayjs();
+            const pastMilestones = [
+              { title: 'Awal Kisah Kita', date: relationshipStart, icon: 'favorite', color: theme.primary, desc: 'Momen pertama kalian resmi terhubung dan mulai berpetualang di Rika.' },
             ];
 
             // Achieved goals
             const achievedGoals = goals.filter(g => g.status === 'achieved').sort((a,b) => new Date(a.achievedAt) - new Date(b.achievedAt));
-            if (achievedGoals.length > 0) {
-              milestones.push({
-                title: 'Kemenangan Pertama',
-                date: dayjs(achievedGoals[0].achievedAt),
-                icon: 'emoji-events',
+            achievedGoals.forEach(g => {
+              pastMilestones.push({
+                title: `Jejak Kemenangan: ${g.name}`,
+                date: dayjs(g.achievedAt),
+                icon: 'stars',
                 color: '#FFB800',
-                desc: `Hore! Goal "${achievedGoals[0].name}" berhasil kalian capai bersama.`
-              });
-            }
-
-            // High assets
-            if (totalAssets > 5000000) {
-              milestones.push({ title: 'Kekuatan Finansial', date: dayjs(), icon: 'account-balance', color: '#10B981', desc: 'Wow! Total aset kalian sudah menembus angka Rp 5.000.000.' });
-            }
-
-            // Future Roadmap
-            const futureGoals = goals.filter(g => g.status !== 'achieved' && g.targetDate).sort((a,b) => new Date(a.targetDate) - new Date(b.targetDate));
-            futureGoals.forEach(g => {
-              milestones.push({
-                title: g.name,
-                date: dayjs(g.targetDate),
-                icon: 'rocket_launch',
-                color: theme.primary,
-                desc: `Target Roadmap: Rencana pencapaian goal ini.`,
+                desc: `Satu mimpi berhasil kita wujudkan. Kebanggaan yang tak terlupakan!`
               });
             });
 
-            return milestones.sort((a,b) => b.date - a.date).map((m, idx) => (
+            // High assets
+            if (totalAssets > 5000000) {
+              pastMilestones.push({ 
+                title: 'Benteng Keuangan: 5 Juta!', 
+                date: dayjs(), 
+                icon: 'shield', 
+                color: '#10B981', 
+                desc: 'Aset gabungan kita menembus 5 Juta. Fondasi masa depan makin kokoh!' 
+              });
+            }
+
+            // Future Roadmap
+            const futureMilestones = goals
+              .filter(g => g.status !== 'achieved' && g.targetDate)
+              .sort((a,b) => new Date(a.targetDate) - new Date(b.targetDate))
+              .map(g => ({
+                title: `Mimpi: ${g.name}`,
+                date: dayjs(g.targetDate),
+                icon: 'auto_awesome',
+                color: theme.primary,
+                desc: `Rencana indah yang sedang kita susun rapi untuk dicapai bersama.`,
+                isFuture: true
+              }));
+
+            const renderMilestone = (m, idx, list) => (
               <View key={idx} style={styles.milestoneItem}>
                 <View style={styles.milestoneLeft}>
-                  <View style={[styles.milestoneIconBg, { backgroundColor: m.color + '22' }]}>
+                  <View style={[styles.milestoneIconBg, { backgroundColor: m.color + (m.isFuture ? '11' : '22'), borderWidth: m.isFuture ? 1 : 0, borderColor: m.color + '44' }]}>
                     <MaterialIcons name={m.icon} size={18} color={m.color} />
                   </View>
-                  {idx !== milestones.length - 1 && <View style={[styles.milestoneLine, { backgroundColor: theme.outlineVariant + '44' }]} />}
+                  {idx !== list.length - 1 && (
+                    <View style={[
+                      styles.milestoneLine, 
+                      { backgroundColor: m.isFuture ? 'transparent' : theme.outlineVariant + '44' },
+                      m.isFuture && { borderLeftWidth: 2, borderLeftColor: theme.outlineVariant + '44', borderStyle: 'dashed' }
+                    ]} />
+                  )}
                 </View>
                 <View style={styles.milestoneRight}>
                   <View style={styles.milestoneHeader}>
                     <Text style={[styles.milestoneTitle, { color: theme.onSurface }]}>{m.title}</Text>
-                    <Text style={[styles.milestoneDate, { color: theme.onSurfaceVariant }]}>{m.date.format('DD MMM YY')}</Text>
+                    <Text style={[styles.milestoneDate, { color: theme.onSurfaceVariant }]}>{m.date.format('MMM YYYY')}</Text>
                   </View>
                   <Text style={[styles.milestoneDesc, { color: theme.onSurfaceVariant }]}>{m.desc}</Text>
                 </View>
               </View>
-            ));
+            );
+
+            return (
+              <>
+                {futureMilestones.length > 0 && (
+                  <View style={{ marginBottom: 24 }}>
+                    <View style={styles.roadmapHeader}>
+                      <MaterialIcons name="rocket_launch" size={16} color={theme.primary} />
+                      <Text style={[styles.roadmapHeaderText, { color: theme.primary }]}>ROADMAP MASA DEPAN</Text>
+                    </View>
+                    <View style={[styles.timelineCard, { backgroundColor: theme.surfaceContainerLow, borderStyle: 'dashed', borderWidth: 1, borderColor: theme.primary + '33' }]}>
+                      {futureMilestones.map((m, idx) => renderMilestone(m, idx, futureMilestones))}
+                    </View>
+                  </View>
+                )}
+
+                <View style={styles.roadmapHeader}>
+                  <MaterialIcons name="history" size={16} color={theme.onSurfaceVariant} />
+                  <Text style={[styles.roadmapHeaderText, { color: theme.onSurfaceVariant }]}>JEJAK KENANGAN</Text>
+                </View>
+                <View style={[styles.timelineCard, { backgroundColor: theme.surfaceContainerLow }]}>
+                  {pastMilestones.sort((a,b) => b.date - a.date).map((m, idx) => renderMilestone(m, idx, pastMilestones))}
+                </View>
+              </>
+            );
           })()}
         </View>
       </ScrollView>
@@ -285,7 +323,10 @@ const styles = StyleSheet.create({
   mottoText: { textAlign: 'center', fontSize: 14, fontStyle: 'italic', lineHeight: 22, marginBottom: 12 },
   mottoAuthor: { fontSize: 11, fontWeight: 'bold' },
   
-  timelineCard: { borderRadius: 28, padding: 24, marginBottom: 40 },
+  roadmapHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12, marginLeft: 8 },
+  roadmapHeaderText: { fontSize: 11, fontWeight: '900', letterSpacing: 1.5 },
+
+  timelineCard: { borderRadius: 28, padding: 24, marginBottom: 12 },
   milestoneItem: { flexDirection: 'row', gap: 16 },
   milestoneLeft: { alignItems: 'center' },
   milestoneIconBg: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center', zIndex: 10 },
