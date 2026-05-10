@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, Image, TextInput, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { ThemeContext, availableFonts } from '../context/ThemeContext';
@@ -10,9 +10,11 @@ import { exportToXLS, exportToPDF } from '../utils/exportUtils';
 const SettingsScreen = ({ navigation }) => {
   const { theme, isDarkMode, toggleTheme, changeAccent, accentColor, fontFamily, changeFont } = useContext(ThemeContext);
   const { getBalance, transactions } = useContext(DataContext);
-  const { user, householdUsers, householdAvatars, logout, avatar, updateAvatar } = useContext(AuthContext);
+  const { user, householdUsers, householdAvatars, customColors, addCustomColor, logout, avatar, updateAvatar } = useContext(AuthContext);
   
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
+  const [customColorModalVisible, setCustomColorModalVisible] = useState(false);
+  const [customHexInput, setCustomHexInput] = useState('');
 
   const myName = user?.name || 'Saya';
   const partnerName = householdUsers.find(u => u !== myName);
@@ -159,9 +161,10 @@ const SettingsScreen = ({ navigation }) => {
     vDesc: { fontSize: 12, color: t.onSurfaceVariant, fontFamily: t.fontFamily },
     
     vCardCol: { backgroundColor: t.surfaceContainerLow, padding: 24, borderRadius: 32 },
-    palletteRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24 },
+    palletteRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, flexWrap: 'wrap', gap: 12 },
     palleteDot: { width: 40, height: 40, borderRadius: 20 },
     palleteDotActive: { borderWidth: 4, borderColor: t.surfaceContainerLow, elevation: 5 },
+    palleteDotAdd: { width: 40, height: 40, borderRadius: 20, backgroundColor: t.surfaceContainerHighest, justifyContent: 'center', alignItems: 'center' },
 
     fontGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 24 },
     fontBtnActive: { width: '48%', backgroundColor: t.primary, padding: 16, borderRadius: 16 },
@@ -186,9 +189,27 @@ const SettingsScreen = ({ navigation }) => {
     btnGallery: { backgroundColor: t.primaryContainer, padding: 16, borderRadius: 16, alignItems: 'center', marginBottom: 24 },
     btnGalleryText: { color: t.onPrimaryContainer, fontWeight: 'bold' },
     btnCancel: { padding: 16, borderRadius: 16, alignItems: 'center', backgroundColor: t.surfaceContainerHighest },
+
+    inputHex: { backgroundColor: t.surfaceContainerHighest, borderRadius: 16, padding: 16, marginBottom: 16, color: t.onSurface, fontSize: 16, textAlign: 'center', fontWeight: 'bold', letterSpacing: 2 },
+    btnSave: { backgroundColor: t.primary, padding: 16, borderRadius: 16, alignItems: 'center' },
   });
 
   const styles = getStyles(theme);
+
+  const handleAddCustomColor = () => {
+    let hex = customHexInput.trim();
+    if (!hex.startsWith('#')) hex = '#' + hex;
+    
+    if (!/^#[0-9A-F]{6}$/i.test(hex)) {
+      Alert.alert('Format Salah', 'Kode Hex harus berupa 6 karakter (misal: #FF5733)');
+      return;
+    }
+
+    addCustomColor(hex);
+    changeAccent(hex);
+    setCustomHexInput('');
+    setCustomColorModalVisible(false);
+  };
 
   return (
     <View style={styles.container}>
@@ -352,13 +373,20 @@ const SettingsScreen = ({ navigation }) => {
               </View>
             </View>
             <View style={styles.palletteRow}>
-              {palettes.map((hex, i) => (
+              {palettes.slice(0, 5).map((hex, i) => (
                 <TouchableOpacity 
                   key={i} 
                   style={[styles.palleteDot, { backgroundColor: hex }, accentColor === hex && styles.palleteDotActive, (!accentColor && i === 0) && styles.palleteDotActive ]} 
                   onPress={() => changeAccent(hex)}
                 />
               ))}
+              {/* Jika accentColor tidak ada di palettes standar (warna kustom aktif) */}
+              {accentColor && !palettes.slice(0, 5).includes(accentColor) && (
+                <TouchableOpacity style={[styles.palleteDot, { backgroundColor: accentColor }, styles.palleteDotActive]} onPress={() => changeAccent(accentColor)} />
+              )}
+              <TouchableOpacity style={styles.palleteDotAdd} onPress={() => setCustomColorModalVisible(true)}>
+                <MaterialIcons name="add" size={24} color={theme.onSurfaceVariant} />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -419,6 +447,51 @@ const SettingsScreen = ({ navigation }) => {
             </View>
             <TouchableOpacity style={styles.btnCancel} onPress={() => setAvatarModalVisible(false)}>
               <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Batal</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Custom Color */}
+      <Modal visible={customColorModalVisible} transparent animationType="slide" onRequestClose={() => setCustomColorModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Warna Kustom (Hex)</Text>
+            
+            <TextInput 
+              style={styles.inputHex} 
+              placeholder="#FFFFFF" 
+              placeholderTextColor={theme.onSurfaceVariant} 
+              value={customHexInput} 
+              onChangeText={setCustomHexInput}
+              autoCapitalize="characters"
+              maxLength={7}
+            />
+
+            <TouchableOpacity style={styles.btnSave} onPress={handleAddCustomColor}>
+              <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Simpan & Terapkan</Text>
+            </TouchableOpacity>
+
+            {(customColors && customColors.length > 0) && (
+              <>
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginTop: 24, marginBottom: 12, textAlign: 'center' }}>Warna Tersimpan</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
+                  {customColors.map((hex, i) => (
+                    <TouchableOpacity 
+                      key={i} 
+                      style={[styles.palleteDot, { backgroundColor: hex }, accentColor === hex && styles.palleteDotActive]} 
+                      onPress={() => {
+                        changeAccent(hex);
+                        setCustomColorModalVisible(false);
+                      }}
+                    />
+                  ))}
+                </View>
+              </>
+            )}
+
+            <TouchableOpacity style={[styles.btnCancel, { marginTop: 24 }]} onPress={() => setCustomColorModalVisible(false)}>
+              <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Tutup</Text>
             </TouchableOpacity>
           </View>
         </View>

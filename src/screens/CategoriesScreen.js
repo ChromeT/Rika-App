@@ -1,14 +1,25 @@
 import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemeContext } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
 
 const iconOptions = [
-  'restaurant', 'directions-car', 'shopping-bag', 'receipt', 'movie',
-  'work', 'card-giftcard', 'storefront', 'redeem', 'home',
-  'local-hospital', 'school', 'fitness-center', 'pets', 'build'
+  // General & Misc
+  'star', 'pets', 'child-friendly', 'cake', 'favorite', 'emoji-events',
+  // Income / Finance
+  'payments', 'account-balance-wallet', 'savings', 'paid', 'monetization-on', 'trending-up', 'work', 'volunteer-activism', 'card-giftcard',
+  // Food & Groceries
+  'restaurant', 'local-cafe', 'fastfood', 'local-grocery-store', 'local-pizza',
+  // Transport & Utilities
+  'commute', 'directions-car', 'local-gas-station', 'flight', 'water-drop', 'bolt', 'wifi', 'phone-iphone',
+  // Lifestyle & Entertainment
+  'shopping-cart', 'checkroom', 'movie', 'sports-esports', 'fitness-center', 'spa', 'palette',
+  // Health & Education
+  'medical-services', 'healing', 'school', 'menu-book',
+  // Home & Repair
+  'home', 'home-repair-service', 'build', 'laptop-mac', 'chair'
 ];
 
 const CategoriesScreen = ({ navigation }) => {
@@ -100,21 +111,23 @@ const CategoriesScreen = ({ navigation }) => {
           />
 
           <Text style={styles.label}>Pilih Icon</Text>
-          <View style={styles.iconGrid}>
-            {iconOptions.map(opt => (
-              <TouchableOpacity
-                key={opt}
-                style={[
-                  styles.iconOpt,
-                  { backgroundColor: theme.surfaceContainer },
-                  icon === opt && styles.iconSelected
-                ]}
-                onPress={() => setIcon(opt)}
-              >
-                <MaterialIcons name={opt} size={20} color={icon === opt ? theme.primary : theme.onSurfaceVariant} />
-              </TouchableOpacity>
-            ))}
-          </View>
+          <ScrollView style={{ maxHeight: 150, marginBottom: 12 }} nestedScrollEnabled={true}>
+            <View style={styles.iconGrid}>
+              {iconOptions.map(opt => (
+                <TouchableOpacity
+                  key={opt}
+                  style={[
+                    styles.iconOpt,
+                    { backgroundColor: theme.surfaceContainer },
+                    icon === opt && styles.iconSelected
+                  ]}
+                  onPress={() => setIcon(opt)}
+                >
+                  <MaterialIcons name={opt} size={20} color={icon === opt ? theme.primary : theme.onSurfaceVariant} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
 
           <TouchableOpacity style={styles.btnAdd} onPress={handleAdd}>
             <LinearGradient colors={[theme.primary, theme.primaryContainer]} style={styles.btnGradient}>

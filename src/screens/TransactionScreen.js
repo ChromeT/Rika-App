@@ -38,9 +38,20 @@ const TransactionScreen = ({ navigation, route }) => {
   const [myContrib, setMyContrib] = useState('');
 
   const availableCustomIcons = [
-    'star', 'pets', 'local-cafe', 'flight', 'child-friendly', 
-    'fitness-center', 'medical-services', 'home-repair-service', 
-    'laptop-mac', 'school', 'spa', 'sports-esports', 'checkroom', 'stroller', 'cake'
+    // General & Misc
+    'star', 'pets', 'child-friendly', 'cake', 'favorite', 'emoji-events',
+    // Income / Finance
+    'payments', 'account-balance-wallet', 'savings', 'paid', 'monetization-on', 'trending-up', 'work', 'volunteer-activism', 'card-giftcard',
+    // Food & Groceries
+    'restaurant', 'local-cafe', 'fastfood', 'local-grocery-store', 'local-pizza',
+    // Transport & Utilities
+    'commute', 'directions-car', 'local-gas-station', 'flight', 'water-drop', 'bolt', 'wifi', 'phone-iphone',
+    // Lifestyle & Entertainment
+    'shopping-cart', 'checkroom', 'movie', 'sports-esports', 'fitness-center', 'spa', 'palette',
+    // Health & Education
+    'medical-services', 'healing', 'school', 'menu-book',
+    // Home & Repair
+    'home', 'home-repair-service', 'build', 'laptop-mac', 'chair'
   ];
 
   const handleTypeChange = (newType) => {

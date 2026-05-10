@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); // { name: 'Ayip', householdId: 'X8P2K9' }
   const [householdUsers, setHouseholdUsers] = useState([]); // ['Ayip', 'Ika']
   const [householdAvatars, setHouseholdAvatars] = useState({});
+  const [customColors, setCustomColors] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [avatar, setAvatar] = useState('person');
@@ -43,6 +44,9 @@ export const AuthProvider = ({ children }) => {
           setHouseholdUsers(data.users || []);
           if (data.avatars) {
             setHouseholdAvatars(data.avatars);
+          }
+          if (data.customColors) {
+            setCustomColors(data.customColors);
           }
           if (data.lastReadNotif && data.lastReadNotif[user.name] !== undefined) {
             setLastReadNotif(data.lastReadNotif[user.name]);
@@ -160,8 +164,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const addCustomColor = async (colorHex) => {
+    if (user && user.householdId) {
+      try {
+        await updateDoc(doc(db, 'households', user.householdId), {
+          customColors: arrayUnion(colorHex)
+        });
+      } catch (e) {
+        console.error('Failed to sync custom color to database', e);
+      }
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, householdUsers, householdAvatars, loading, createHousehold, joinHousehold, loginWithData, logout, avatar, updateAvatar, lastReadNotif, markNotificationsAsRead }}>
+    <AuthContext.Provider value={{ user, householdUsers, householdAvatars, customColors, addCustomColor, loading, createHousehold, joinHousehold, loginWithData, logout, avatar, updateAvatar, lastReadNotif, markNotificationsAsRead }}>
       {children}
     </AuthContext.Provider>
   );
