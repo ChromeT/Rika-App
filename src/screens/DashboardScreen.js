@@ -1355,7 +1355,7 @@ const DashboardScreen = ({ navigation, route }) => {
               </View>
             </View>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
       {/* Bill Action Modal */}
