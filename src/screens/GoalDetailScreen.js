@@ -155,7 +155,30 @@ const GoalDetailScreen = ({ route }) => {
     if (!goal) return;
     try {
       const newAmount = (goal.currentAmount || 0) + amount;
-      await updateGoal(goal.id, { currentAmount: newAmount });
+      const now = new Date().toISOString();
+      const newEntry = {
+        amount,
+        user: user?.name || 'Saya',
+        date: now,
+      };
+      
+      const history = Array.isArray(goal.history) ? [...goal.history, newEntry] : [newEntry];
+      
+      await updateGoal(goal.id, { 
+        currentAmount: newAmount,
+        history: history,
+        lastContributionAt: now
+      });
+
+      addNotification({
+        title: 'Dana Ditambahkan!',
+        body: `${user?.name || 'Saya'} baru saja menambah Rp ${formatMoney(amount)} untuk goal "${goal.name}".`,
+        icon: 'savings',
+        color: 'primary',
+        sender: user?.name || 'Sistem',
+        targetType: 'goal',
+        targetId: goal.id,
+      });
     } catch (e) {
       Alert.alert('Gagal', 'Tidak dapat menambahkan dana');
     }
@@ -224,51 +247,115 @@ const GoalDetailScreen = ({ route }) => {
         </View>
 
         {/* Content */}
-        <View style={{ padding: 20 }}>
-          {/* Description */}
-          {goal.description ? (
-            <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 16, padding: 16, marginBottom: 20 }}>
-              <Text style={{ color: safeTheme.onSurface, fontSize: 14, lineHeight: 22 }}>{goal.description}</Text>
-            </View>
-          ) : null}
-
-          {/* Progress Card */}
-          <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 24, padding: 20, marginBottom: 20 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
-              <View>
-                <Text style={{ fontSize: 12, color: safeTheme.onSurfaceVariant }}>TERKUMPUL</Text>
-                <Text style={{ fontSize: 28, fontWeight: '900', color: safeTheme.primary }}>Rp {formatMoney(goal.currentAmount)}</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ fontSize: 12, color: safeTheme.onSurfaceVariant }}>TARGET</Text>
-                <Text style={{ fontSize: 18, fontWeight: 'bold', color: safeTheme.onSurface }}>Rp {formatMoney(goal.targetAmount)}</Text>
-              </View>
-            </View>
-            
-            <View style={{ height: 10, backgroundColor: safeTheme.surfaceContainerHighest, borderRadius: 5, marginBottom: 12 }}>
-              <View style={{ height: '100%', width: `${progress}%`, backgroundColor: safeTheme.primary, borderRadius: 5 }} />
-            </View>
-            
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 12, color: safeTheme.onSurfaceVariant }}>{progress.toFixed(0)}% tercapai</Text>
-              <Text style={{ fontSize: 12, color: safeTheme.onSurfaceVariant }}>Sisa Rp {formatMoney(remaining)}</Text>
+        <View style={{ padding: 20, paddingBottom: 100 }}>
+          {/* Status Badge */}
+          <View style={{ flexDirection: 'row', marginBottom: 12 }}>
+            <View style={{ backgroundColor: safeTheme.primary + '22', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderSize: 1, borderColor: safeTheme.primary + '44' }}>
+              <Text style={{ fontSize: 10, fontWeight: 'bold', color: safeTheme.primary, textTransform: 'uppercase', letterSpacing: 1 }}>
+                {progress >= 100 ? 'Siap Dicapai' : 'Dalam Perjalanan'}
+              </Text>
             </View>
           </View>
 
-          {/* Action Buttons */}
-          <TouchableOpacity 
-            onPress={() => setFundingModalVisible(true)}
-            style={{ backgroundColor: safeTheme.primary, padding: 16, borderRadius: 16, alignItems: 'center', marginBottom: 12 }}
-          >
-            <Text style={{ color: safeTheme.onPrimary, fontWeight: 'bold', fontSize: 16 }}>Tambah Dana</Text>
-          </TouchableOpacity>
+          {/* Description */}
+          {goal.description ? (
+            <Text style={{ color: safeTheme.onSurfaceVariant, fontSize: 14, lineHeight: 22, marginBottom: 24 }}>{goal.description}</Text>
+          ) : null}
 
-          <TouchableOpacity 
-            onPress={handleMarkAchieved}
-            style={{ backgroundColor: safeTheme.primaryContainer, padding: 16, borderRadius: 16, alignItems: 'center' }}
-          >
-            <Text style={{ color: safeTheme.onPrimaryContainer, fontWeight: 'bold', fontSize: 16 }}>Tandai Tercapai</Text>
-          </TouchableOpacity>
+          {/* Premium Progress Card */}
+          <View style={{ backgroundColor: safeTheme.surfaceContainer, borderRadius: 32, padding: 24, marginBottom: 24, borderWidth: 1, borderColor: safeTheme.outlineVariant + '33', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 5 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+              <View>
+                <Text style={{ fontSize: 11, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 4, letterSpacing: 0.5 }}>TERKUMPUL</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
+                  <Text style={{ fontSize: 16, fontWeight: 'bold', color: safeTheme.primary }}>Rp</Text>
+                  <Text style={{ fontSize: 32, fontWeight: '900', color: safeTheme.onSurface, letterSpacing: -1 }}>{formatMoney(goal.currentAmount)}</Text>
+                </View>
+              </View>
+              <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: safeTheme.primary + '1A', justifyContent: 'center', alignItems: 'center' }}>
+                <MaterialIcons name="auto-graph" size={24} color={safeTheme.primary} />
+              </View>
+            </View>
+            
+            <View style={{ position: 'relative', height: 12, backgroundColor: safeTheme.surfaceContainerHighest, borderRadius: 6, marginBottom: 16, overflow: 'hidden' }}>
+              <LinearGradient 
+                colors={[safeTheme.primary, safeTheme.primary + 'AA']} 
+                start={{x:0, y:0}} 
+                end={{x:1, y:0}} 
+                style={{ height: '100%', width: `${progress}%`, borderRadius: 6 }} 
+              />
+            </View>
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View>
+                <Text style={{ fontSize: 14, fontWeight: 'bold', color: safeTheme.onSurface }}>{progress.toFixed(0)}%</Text>
+                <Text style={{ fontSize: 10, color: safeTheme.onSurfaceVariant }}>DARI RP {formatMoney(goal.targetAmount)}</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={{ fontSize: 14, fontWeight: 'bold', color: safeTheme.error }}>Rp {formatMoney(remaining)}</Text>
+                <Text style={{ fontSize: 10, color: safeTheme.onSurfaceVariant }}>KEKURANGAN</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Action Row */}
+          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 32 }}>
+            <TouchableOpacity 
+              onPress={() => setFundingModalVisible(true)}
+              style={{ flex: 1.5, backgroundColor: safeTheme.primary, paddingVertical: 16, borderRadius: 20, alignItems: 'center', shadowColor: safeTheme.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }}
+            >
+              <Text style={{ color: safeTheme.onPrimary, fontWeight: 'bold', fontSize: 15 }}>Tambah Dana</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              onPress={handleMarkAchieved}
+              style={{ flex: 1, backgroundColor: safeTheme.surfaceContainerHighest, paddingVertical: 16, borderRadius: 20, alignItems: 'center', borderWidth: 1, borderColor: safeTheme.outlineVariant + '33' }}
+            >
+              <MaterialIcons name="check" size={24} color={safeTheme.onSurface} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Savings Journey Timeline */}
+          <View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', color: safeTheme.onSurface }}>Perjalanan Menabung</Text>
+              <MaterialIcons name="timeline" size={20} color={safeTheme.primary} />
+            </View>
+
+            {goal.history && goal.history.length > 0 ? (
+              <View style={{ paddingLeft: 8 }}>
+                {goal.history.slice().reverse().map((item, idx) => (
+                  <View key={idx} style={{ flexDirection: 'row', marginBottom: 24 }}>
+                    {/* Line & Dot */}
+                    <View style={{ alignItems: 'center', marginRight: 16 }}>
+                      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: safeTheme.primary, zIndex: 10, borderWidth: 3, borderColor: safeTheme.background }} />
+                      {idx !== goal.history.length - 1 && (
+                        <View style={{ width: 2, flex: 1, backgroundColor: safeTheme.outlineVariant + '44', marginVertical: -4 }} />
+                      )}
+                    </View>
+                    
+                    {/* Content */}
+                    <View style={{ flex: 1, backgroundColor: safeTheme.surfaceContainerLow, padding: 16, borderRadius: 20, borderWidth: 1, borderColor: safeTheme.outlineVariant + '11' }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <Text style={{ fontSize: 14, fontWeight: 'bold', color: safeTheme.onSurface }}>+ Rp {formatMoney(item.amount)}</Text>
+                        <Text style={{ fontSize: 10, color: safeTheme.onSurfaceVariant }}>
+                          {new Date(item.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                        </Text>
+                      </View>
+                      <Text style={{ fontSize: 11, color: safeTheme.onSurfaceVariant }}>Oleh <Text style={{ fontWeight: 'bold', color: safeTheme.primary }}>{item.user}</Text></Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 24, padding: 32, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: safeTheme.outlineVariant }}>
+                <MaterialIcons name="flag" size={32} color={safeTheme.onSurfaceVariant + '44'} />
+                <Text style={{ color: safeTheme.onSurfaceVariant, fontSize: 12, marginTop: 8, textAlign: 'center' }}>
+                  Belum ada riwayat menabung.{"\n"}Yuk mulai langkah pertamamu!
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
       </ScrollView>
 
