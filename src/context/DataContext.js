@@ -818,7 +818,9 @@ export const DataProvider = ({ children }) => {
 
     try {
       // Panggil API Route Vercel kita
-      const response = await fetch('/api/send-push', {
+      // PENTING: Pake URL absolut kalau buat aplikasi native/Android
+      const API_URL = 'https://rika-app-omega.vercel.app'; 
+      const response = await fetch(`${API_URL}/api/send-push`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
