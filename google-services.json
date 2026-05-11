@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "335307872266",
+    "project_id": "rika-app-ba746",
+    "storage_bucket": "rika-app-ba746.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:335307872266:android:0df6a1171d9e2db4e467f3",
+        "android_client_info": {
+          "package_name": "com.chromet.roxarika"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDuXQF0MFebmXuOZxs9Z_1HMG6Tgtr3lXc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
