@@ -26,7 +26,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.chromet.rikaapp",
+      "package": "com.chromet.roxarika",
       "googleServicesFile": "./google-services.json"
     },
     "web": {
