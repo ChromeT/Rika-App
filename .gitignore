@@ -15,6 +15,6 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
-# Firebase (kalau ada secret)
-google-services.json
-GoogleService-Info.plist
+# Firebase
+# google-services.json  <- sementara di-comment biar EAS Build bisa baca
+# GoogleService-Info.plist
