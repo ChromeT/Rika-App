@@ -1,5 +1,6 @@
 import React, { useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Dimensions, Modal, Image, Alert, Animated, ActivityIndicator, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -697,7 +698,7 @@ const DashboardScreen = ({ navigation, route }) => {
   const styles = getStyles(theme);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.avatarWrapper}>
@@ -923,24 +924,29 @@ const DashboardScreen = ({ navigation, route }) => {
             {segments.length > 0 ? (
               <>
                 <View style={{ marginVertical: 16, alignItems: 'center', justifyContent: 'center', height: 160, position: 'relative' }}>
-                  <Svg width="160" height="160" viewBox="0 0 150 150" style={{ transform: [{ rotate: '-90deg' }] }}>
-                    {/* Track kosong */}
-                    <Circle cx="75" cy="75" r="55" stroke={theme.surfaceContainer} strokeWidth="20" fill="transparent" />
-                    {/* Segmen per kategori */}
-                    {segments.map((seg, i) => (
-                      <Circle
-                        key={i}
-                        cx="75"
-                        cy="75"
-                        r="55"
-                        stroke={seg.color}
-                        strokeWidth="19"
-                        fill="transparent"
-                        strokeDasharray={`${seg.dash - 2} ${seg.gap + 2}`}
-                        strokeDashoffset={CIRCUMFERENCE - seg.offset}
-                        strokeLinecap="round"
-                      />
-                    ))}
+                  <Svg width="160" height="160" viewBox="0 0 150 150">
+                    {/* Track latar belakang */}
+                    <Circle cx="75" cy="75" r="55" stroke={theme.surfaceContainer} strokeWidth="20" fill="none" />
+                    
+                    {/* Render segmen hanya untuk yang ada nilainya (> 0) */}
+                    {segments.filter(s => s.amount > 0).map((seg, i) => {
+                      const startAngle = (seg.offset / CIRCUMFERENCE) * 360 - 90;
+                      return (
+                        <Circle
+                          key={`seg-${i}`}
+                          cx="75"
+                          cy="75"
+                          r="55"
+                          stroke={seg.color}
+                          strokeWidth="20"
+                          fill="none"
+                          strokeDasharray={[seg.dash, CIRCUMFERENCE]}
+                          rotation={startAngle}
+                          origin="75, 75"
+                          strokeLinecap={segments.filter(s => s.amount > 0).length === 1 ? 'butt' : 'round'}
+                        />
+                      );
+                    })}
                   </Svg>
                   <View style={styles.donutInner}>
                     <Text style={styles.donutLabel}>Total</Text>
@@ -1743,7 +1749,7 @@ const DashboardScreen = ({ navigation, route }) => {
           </View>
         </Animated.View>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 

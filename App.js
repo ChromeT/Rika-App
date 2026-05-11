@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { MaterialIcons } from '@expo/vector-icons';
 import { ThemeProvider, ThemeContext } from './src/context/ThemeContext';
@@ -25,12 +26,14 @@ const RootApp = () => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <NavigationContainer theme={navTheme}>
-        <StatusBar style={isDarkMode ? 'light' : 'dark'} translucent />
-        <AppNavigator />
-      </NavigationContainer>
-    </View>
+    <SafeAreaProvider>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <NavigationContainer theme={navTheme}>
+          <StatusBar style={isDarkMode ? 'light' : 'dark'} translucent />
+          <AppNavigator />
+        </NavigationContainer>
+      </View>
+    </SafeAreaProvider>
   );
 };
 
