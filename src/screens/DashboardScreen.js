@@ -937,7 +937,7 @@ const DashboardScreen = ({ navigation, route }) => {
                         strokeWidth="19"
                         fill="transparent"
                         strokeDasharray={`${seg.dash - 2} ${seg.gap + 2}`}
-                        strokeDashoffset={-seg.offset}
+                        strokeDashoffset={CIRCUMFERENCE - seg.offset}
                         strokeLinecap="round"
                       />
                     ))}

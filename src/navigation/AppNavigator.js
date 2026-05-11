@@ -1,5 +1,5 @@
-import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Platform, Image } from 'react-native';
+import React, { useContext } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -29,12 +29,6 @@ import CoupleScreen from '../screens/CoupleScreen';
 const Tab = createMaterialTopTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// Pre-require tab icons for static analysis
-const berandaIcon = require('../../assets/icons/beranda.png');
-const riwayatIcon = require('../../assets/icons/riwayat.png');
-const goalsIcon = require('../../assets/icons/goals.png');
-const settingsIcon = require('../../assets/icons/settings.png');
-
 const TabBarBackground = () => {
   const { isDarkMode } = useContext(ThemeContext);
   return (
@@ -48,20 +42,16 @@ const TabBarBackground = () => {
 
 const MainTabs = () => {
   const { theme } = useContext(ThemeContext);
-  const [iconError, setIconError] = useState({});
 
-  const renderTabIcon = (routeName, imageSource, materialName, color) => {
-    const hasError = iconError[routeName];
-    if (hasError) {
-      return <MaterialIcons name={materialName} size={24} color={color} />;
-    }
-    return (
-      <Image
-        source={imageSource}
-        style={{ width: 24, height: 24, tintColor: color }}
-        onError={() => setIconError(prev => ({ ...prev, [routeName]: true }))}
-      />
-    );
+  const tabIcons = {
+    Beranda: 'home-filled',
+    Riwayat: 'receipt-long',
+    Goals: 'favorite',
+    Pengaturan: 'tune',
+  };
+
+  const renderTabIcon = (routeName, color) => {
+    return <MaterialIcons name={tabIcons[routeName]} size={22} color={color} />;
   };
 
   return (
@@ -119,28 +109,28 @@ const MainTabs = () => {
         name="Beranda"
         component={DashboardScreen}
         options={{
-          tabBarIcon: ({ color }) => renderTabIcon('Beranda', berandaIcon, 'home', color),
+          tabBarIcon: ({ color }) => renderTabIcon('Beranda', color),
         }}
       />
       <Tab.Screen
         name="Riwayat"
         component={TransactionHistoryScreen}
         options={{
-          tabBarIcon: ({ color }) => renderTabIcon('Riwayat', riwayatIcon, 'list', color),
+          tabBarIcon: ({ color }) => renderTabIcon('Riwayat', color),
         }}
       />
       <Tab.Screen
         name="Goals"
         component={GoalsScreen}
         options={{
-          tabBarIcon: ({ color }) => renderTabIcon('Goals', goalsIcon, 'favorite', color),
+          tabBarIcon: ({ color }) => renderTabIcon('Goals', color),
         }}
       />
       <Tab.Screen
         name="Pengaturan"
         component={SettingsScreen}
         options={{
-          tabBarIcon: ({ color }) => renderTabIcon('Pengaturan', settingsIcon, 'settings', color),
+          tabBarIcon: ({ color }) => renderTabIcon('Pengaturan', color),
         }}
       />
     </Tab.Navigator>
