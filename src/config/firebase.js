@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getMessaging } from 'firebase/messaging';
+import { Platform } from 'react-native';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDuXQF0MFebmXuOZxs9Z_1HMG6Tgtr3lXc",
@@ -15,4 +16,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export const messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
+
+// Hanya inisialisasi Messaging kalau di Web
+export const messaging = Platform.OS === 'web' ? getMessaging(app) : null;

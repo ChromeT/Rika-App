@@ -10,7 +10,11 @@ import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
 const RootApp = () => {
-  const { isDarkMode, theme } = React.useContext(ThemeContext);
+  const themeContext = React.useContext(ThemeContext);
+  
+  if (!themeContext) return null;
+
+  const { isDarkMode, theme } = themeContext;
   
   const navTheme = {
     ...DefaultTheme,
