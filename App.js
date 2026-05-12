@@ -8,6 +8,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { ThemeProvider, ThemeContext } from './src/context/ThemeContext';
 import { DataProvider } from './src/context/DataContext';
 import { AuthProvider } from './src/context/AuthContext';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigator';
 
 const RootApp = () => {
@@ -26,14 +27,16 @@ const RootApp = () => {
   };
 
   return (
-    <SafeAreaProvider>
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <NavigationContainer theme={navTheme}>
-          <StatusBar style={isDarkMode ? 'light' : 'dark'} translucent />
-          <AppNavigator />
-        </NavigationContainer>
-      </View>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
+          <NavigationContainer theme={navTheme}>
+            <StatusBar style={isDarkMode ? 'light' : 'dark'} translucent />
+            <AppNavigator />
+          </NavigationContainer>
+        </View>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 };
 

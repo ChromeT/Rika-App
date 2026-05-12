@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, Animated } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
@@ -36,6 +37,16 @@ export const EditGoalScreen = () => {
   const [targetDate, setTargetDate] = useState(goal?.targetDate || '');
   const [uploading, setUploading] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   // Currency & Cursor Logic
   const targetRef = useRef(String(goal?.targetAmount || 0).replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
@@ -44,6 +55,14 @@ export const EditGoalScreen = () => {
   const selectionActualRef = useRef({ start: 0, end: 0 });
   const [selectionTarget, setSelectionTarget] = useState({ start: 0, end: 0 });
   const [selectionActual, setSelectionActual] = useState({ start: 0, end: 0 });
+
+  const handleBack = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => navigation.goBack());
+  };
 
   const formatInput = (val) => {
     if (!val) return '';
@@ -156,8 +175,8 @@ export const EditGoalScreen = () => {
       return;
     }
     
-    // Tutup halaman langsung agar interaktif
-    navigation.goBack();
+    // Tutup halaman langsung dengan animasi agar interaktif
+    handleBack();
     
     // Proses upload dan simpan di background
     (async () => {
@@ -233,6 +252,9 @@ export const EditGoalScreen = () => {
   const handleDeleteConfirm = async () => {
     setDeleteModalVisible(false);
     
+    // Tutup halaman langsung dengan animasi agar interaktif
+    handleBack();
+
     // Proses hapus di background agar interaktif
     deleteGoal(goalId)
       .then(() => {
@@ -263,16 +285,15 @@ export const EditGoalScreen = () => {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['top']}>
       {uploading && (
         <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", alignItems: "center", zIndex: 100 }}>
           <ActivityIndicator size="large" color="#fff" />
           <Text style={{ color: "#fff", marginTop: 12, fontSize: 14 }}>Mengupload media...</Text>
         </View>
       )}
-      {/* Header */}
       <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '22' }}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+        <TouchableOpacity onPress={handleBack} style={{ marginRight: 16 }}>
           <MaterialIcons name="close" size={24} color={theme.onSurface} />
         </TouchableOpacity>
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.onSurface, flex: 1 }}>
@@ -283,7 +304,13 @@ export const EditGoalScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <Animated.ScrollView 
+        contentContainerStyle={{ padding: 16 }}
+        style={{
+          opacity: fadeAnim,
+          transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
+        }}
+      >
         {/* Nama Goal */}
         <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>NAMA GOAL</Text>
         <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16 }}>
@@ -383,7 +410,7 @@ export const EditGoalScreen = () => {
                 </View>
               </View>
             ) : (
-              <Image source={{ uri: m.uri }} style={{ width: '100%', height: 100 }} />
+              <Image source={{ uri: m.url || m.uri }} style={{ width: '100%', height: 160 }} resizeMode="cover" />
             )}
             <TouchableOpacity onPress={() => removeMedia(i)} style={{ position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, padding: 4 }}>
               <MaterialIcons name="close" size={14} color="#fff" />
@@ -436,7 +463,7 @@ export const EditGoalScreen = () => {
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Custom Delete Confirmation Modal */}
       <Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => setDeleteModalVisible(false)}>
@@ -460,7 +487,7 @@ export const EditGoalScreen = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 

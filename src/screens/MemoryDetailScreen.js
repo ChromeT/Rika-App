@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Modal, FlatList, TextInput, Platform, Linking, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback, useContext, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Modal, FlatList, TextInput, Platform, Linking, Alert, ActivityIndicator, Animated } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image as ExpoImage } from 'expo-image';
@@ -23,6 +24,7 @@ const formatMoney = (v) => new Intl.NumberFormat('id-ID', { maximumFractionDigit
 
 // --- Media Modal ---
 const MediaModal = ({ visible, mediaList, onClose, startIndex = 0 }) => {
+  const insets = useSafeAreaInsets();
   const [currentIdx, setCurrentIdx] = useState(startIndex);
   const [isPlaying, setIsPlaying] = useState(false);
   const current = mediaList[currentIdx];
@@ -32,7 +34,7 @@ const MediaModal = ({ visible, mediaList, onClose, startIndex = 0 }) => {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: '#000' }}>
-        <TouchableOpacity onPress={onClose} style={{ position: 'absolute', top: 48, right: 20, zIndex: 99, padding: 8, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20 }}>
+        <TouchableOpacity onPress={onClose} style={{ position: 'absolute', top: Math.max(insets.top, 16), right: 20, zIndex: 99, padding: 8, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20 }}>
           <MaterialIcons name="close" size={24} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -140,6 +142,7 @@ const MemoryDetailScreen = ({ route }) => {
   const { theme } = useContext(ThemeContext);
   const { user, householdUsers } = useContext(AuthContext);
   const { goals, addNotification } = useContext(DataContext);
+  const insets = useSafeAreaInsets();
   const householdId = user?.householdId;
   
   const partnerName = householdUsers?.find(u => u !== (user?.name || ''));
@@ -156,6 +159,26 @@ const MemoryDetailScreen = ({ route }) => {
   const [capsuleSheetVisible, setCapsuleSheetVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [loading, setLoading] = useState(!goal);
+
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!loading && goal) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [loading, goal]);
+
+  const handleBack = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => navigation.goBack());
+  };
 
   // Data fetching
   const loadData = async () => {
@@ -281,7 +304,7 @@ const MemoryDetailScreen = ({ route }) => {
           createdAt: new Date().toISOString(),
         });
       }
-      navigation.goBack();
+      handleBack();
     } catch (e) {
       console.error('Delete error', e);
     }
@@ -290,7 +313,14 @@ const MemoryDetailScreen = ({ route }) => {
   // Render
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
+      <Animated.ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={{ paddingBottom: 60 }}
+        style={{
+          opacity: fadeAnim,
+          transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
+        }}
+      >
         
         {/* --- HERO SECTION --- */}
         <View style={{ height: 220, position: 'relative' }}>
@@ -300,9 +330,9 @@ const MemoryDetailScreen = ({ route }) => {
               <MaterialIcons name="play-circle-filled" size={64} color="rgba(255,255,255,0.9)" />
             </View>
           )}
-          <View style={{ position: 'absolute', top: 48, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between', zIndex: 10 }}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }}>
-              <MaterialIcons name="arrow-back" size={24} color="#fff" />
+          <View style={{ position: 'absolute', top: insets.top + 12, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between', zIndex: 10 }}>
+            <TouchableOpacity onPress={handleBack} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }}>
+              <MaterialIcons name="close" size={24} color="#fff" />
             </TouchableOpacity>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <TouchableOpacity onPress={() => navigation.navigate('EditGoal', { goalId: goal.id })} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }}>
@@ -484,7 +514,7 @@ const MemoryDetailScreen = ({ route }) => {
               { label: 'Total Pengeluaran', value: `Rp ${formatMoney(totalExpense)}`, icon: 'shopping-cart' },
               { label: 'Lama Menabung', value: `${durationMonths} bln ${durationDays} hr`, icon: 'date-range' },
               { label: 'Transaksi Terkait', value: `${relatedTransactions.length} buah`, icon: 'receipt' },
-              { label: 'Rata-rata/Bulan', value: `Rp ${formatMoney(avgSave)}`, icon: 'savings' },
+              { label: 'Rata-rata/Bulan', value: `Rp ${formatMoney(avgSave)}`, icon: 'favorite' },
             ].map((item, i) => (
               <View key={i} style={{ width: '48%', backgroundColor: theme.surfaceContainerLow, borderRadius: 16, padding: 16 }}>
                 <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.primaryContainer + '33', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
@@ -592,7 +622,7 @@ const MemoryDetailScreen = ({ route }) => {
           </View>
         </View>
 
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Modals */}
       <MediaModal 

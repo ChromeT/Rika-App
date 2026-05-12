@@ -1,11 +1,14 @@
-import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, Image, TextInput, Alert } from 'react-native';
+import React, { useContext, useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, Image, TextInput, Alert, Animated, Platform } from 'react-native';
+import dayjs from 'dayjs';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { ThemeContext, availableFonts } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
 import { AuthContext } from '../context/AuthContext';
 import { exportToXLS, exportToPDF } from '../utils/exportUtils';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const SettingsScreen = ({ navigation }) => {
   const { theme, isDarkMode, toggleTheme, changeAccent, accentColor, fontFamily, changeFont } = useContext(ThemeContext);
@@ -16,6 +19,17 @@ const SettingsScreen = ({ navigation }) => {
   const [customColorModalVisible, setCustomColorModalVisible] = useState(false);
   const [customHexInput, setCustomHexInput] = useState('');
 
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 800, useNativeDriver: true })
+    ]).start();
+  }, []);
+
   const myName = user?.name || 'Saya';
   const partnerName = householdUsers.find(u => u !== myName);
   const hasPartner = !!partnerName;
@@ -24,7 +38,7 @@ const SettingsScreen = ({ navigation }) => {
     return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(val);
   };
 
-  const palettes = ['#e57373', '#64b5f6', '#81c784', '#ffd54f', '#ba68c8', '#ffb74d'];
+  const palettes = ['#F28B82', '#8AB4F8', '#81C995', '#FDD663', '#C58AF9', '#F88379'];
   const avatarOptions = ['person', 'face', 'pets', 'emoji-emotions', 'cruelty-free', 'mood', 'stars', 'rocket'];
 
   const pickImage = async () => {
@@ -50,522 +64,523 @@ const SettingsScreen = ({ navigation }) => {
     return <MaterialIcons name={src || "person"} size={size} color={theme.primary} />;
   };
 
-  
-  const getStyles = (t) => StyleSheet.create({
-    container: { flex: 1, backgroundColor: t.background },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: 24,
-      paddingVertical: 16,
-      backgroundColor: t.surface,
-      zIndex: 50,
-    },
-    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    logoText: { fontSize: 22, fontWeight: '900', color: t.primary, letterSpacing: -1, marginRight: 4 },
-    avatarWrapper: {
-      width: 40, height: 40, borderRadius: 20, overflow: 'hidden',
-      backgroundColor: t.surfaceContainer,
-      borderWidth: 1, borderColor: t.outlineVariant + '33',
-      justifyContent: 'center', alignItems: 'center'
-    },
-    headerTitle: { fontSize: 20, fontWeight: 'bold', color: t.primary, letterSpacing: -0.5, fontFamily: t.fontFamily },
-    main: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 120 },
+  const SectionHeader = ({ title, badge }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>{title}</Text>
+      {badge && <View style={[styles.badge, { backgroundColor: theme.primary + '15' }]}><Text style={[styles.badgeText, { color: theme.primary }]}>{badge}</Text></View>}
+    </View>
+  );
 
-    sectionTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-    sectionTitle: { fontSize: 24, fontWeight: 'bold', color: t.onSurface, letterSpacing: -0.5 },
-    badge: { backgroundColor: t.surfaceContainerHigh, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 16 },
-    badgeText: { fontSize: 10, fontWeight: 'bold', color: t.onSurfaceVariant, textTransform: 'uppercase' },
-
-    accountCard: { backgroundColor: t.surfaceContainerLow, borderRadius: 32, padding: 24, marginBottom: 32 },
-    acTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-    acUser: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-    acAvatarWrap: { position: 'relative' },
-    acAvMain: { width: 56, height: 56, borderRadius: 16, overflow: 'hidden', borderWidth: 2, borderColor: t.primary + '33', backgroundColor: t.surfaceContainerHigh, justifyContent: 'center', alignItems: 'center' },
-    acAvDotMain: { position: 'absolute', bottom: -4, right: -4, width: 20, height: 20, borderRadius: 10, backgroundColor: t.primary, borderWidth: 4, borderColor: t.surfaceContainerLow },
-    acNameDetail: { },
-    acName: { fontSize: 16, fontWeight: 'bold', color: t.onSurface },
-    acRole: { fontSize: 10, color: t.onSurfaceVariant, fontWeight: '500', marginBottom: 4 },
-    acBalance: { fontSize: 12, fontWeight: '900', color: t.primary },
-    
-    acUserRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-    acNameDetailRight: { alignItems: 'flex-end' },
-    acNameRight: { fontSize: 16, fontWeight: 'bold', color: t.onSurface },
-    acRoleRight: { fontSize: 10, color: t.onSurfaceVariant, fontWeight: '500', marginBottom: 4 },
-    acBalanceRight: { fontSize: 12, fontWeight: '900', color: t.primaryContainer },
-    acAvPrt: { width: 56, height: 56, borderRadius: 16, overflow: 'hidden', borderWidth: 2, borderColor: t.primaryContainer + '33', backgroundColor: t.surfaceContainerHigh, justifyContent: 'center', alignItems: 'center' },
-    acAvDotPrt: { position: 'absolute', bottom: -4, right: -4, width: 20, height: 20, borderRadius: 10, backgroundColor: t.primary + '66', borderWidth: 4, borderColor: t.surfaceContainerLow },
-
-    acBottom: { backgroundColor: t.surfaceContainer, borderRadius: 16, padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    acBotLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    acDate: { fontSize: 12, fontWeight: '500', color: t.onSurfaceVariant },
-    acBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
-    acBtnText: { color: t.primary, fontWeight: 'bold', fontSize: 12 },
-
-
-    viewSection: { gap: 24, marginBottom: 32 },
-    vCardRow: { backgroundColor: t.surfaceContainerLow, padding: 24, borderRadius: 32, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    vCardLeft: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-    vIconBg: { width: 48, height: 48, borderRadius: 16, backgroundColor: t.surfaceContainer, justifyContent: 'center', alignItems: 'center' },
-    vTitle: { fontSize: 16, fontWeight: 'bold', color: t.onSurface, marginBottom: 4, fontFamily: t.fontFamily },
-    vDesc: { fontSize: 12, color: t.onSurfaceVariant, fontFamily: t.fontFamily },
-    
-    vCardCol: { backgroundColor: t.surfaceContainerLow, padding: 24, borderRadius: 32 },
-    palletteRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, flexWrap: 'wrap', gap: 12 },
-    palleteDot: { width: 40, height: 40, borderRadius: 20 },
-    palleteDotActive: { borderWidth: 4, borderColor: t.surfaceContainerLow, elevation: 5 },
-    palleteDotAdd: { width: 40, height: 40, borderRadius: 20, backgroundColor: t.surfaceContainerHighest, justifyContent: 'center', alignItems: 'center' },
-
-    fontGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 24 },
-    fontBtnActive: { width: '48%', backgroundColor: t.primary, padding: 16, borderRadius: 16 },
-    fontBtnInactive: { width: '48%', backgroundColor: t.surfaceContainer, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: t.outlineVariant + '1A' },
-    fontTextActive: { color: t.onPrimary, fontWeight: 'bold', fontSize: 12 },
-    fontTextInactive: { color: t.onSurfaceVariant, fontWeight: '500', fontSize: 12 },
-
-    dangerBtn: { backgroundColor: t.error + '0D', borderWidth: 1, borderColor: t.error + '1A', padding: 20, borderRadius: 24, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12 },
-    dangerText: { color: t.error, fontWeight: 'bold', fontSize: 16 },
-    versionText: { textAlign: 'center', fontSize: 10, color: t.onSurfaceVariant, fontWeight: 'bold', letterSpacing: 1, marginTop: 24 },
-
-    waitingCard: { backgroundColor: t.surfaceContainerHighest, borderRadius: 16, padding: 16, alignItems: 'center', marginTop: 8 },
-    waitingText: { fontSize: 12, fontWeight: 'bold', color: t.onSurfaceVariant, textAlign: 'center', marginBottom: 4 },
-    waitingCode: { fontSize: 18, fontWeight: '900', color: t.primary, letterSpacing: 2 },
-
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-    modalContent: { backgroundColor: t.surface, borderRadius: 32, padding: 24, width: '100%' },
-    modalTitle: { fontSize: 20, fontWeight: 'bold', color: t.onSurface, marginBottom: 24, textAlign: 'center' },
-    avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, justifyContent: 'center', marginBottom: 24 },
-    avatarOption: { width: 64, height: 64, borderRadius: 32, backgroundColor: t.surfaceContainer, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-    avatarOptionActive: { backgroundColor: t.primaryContainer, borderWidth: 2, borderColor: t.primary },
-    btnGallery: { backgroundColor: t.primaryContainer, padding: 16, borderRadius: 16, alignItems: 'center', marginBottom: 24 },
-    btnGalleryText: { color: t.onPrimaryContainer, fontWeight: 'bold' },
-    btnCancel: { padding: 16, borderRadius: 16, alignItems: 'center', backgroundColor: t.surfaceContainerHighest },
-
-    inputHex: { backgroundColor: t.surfaceContainerHighest, borderRadius: 16, padding: 16, marginBottom: 16, color: t.onSurface, fontSize: 16, textAlign: 'center', fontWeight: 'bold', letterSpacing: 2 },
-    btnSave: { backgroundColor: t.primary, padding: 16, borderRadius: 16, alignItems: 'center' },
-  });
-
-  const styles = getStyles(theme);
+  const SettingRow = ({ icon, title, desc, children, onPress }) => (
+    <TouchableOpacity 
+      style={[styles.settingRow, { backgroundColor: theme.surfaceContainerLow }]} 
+      onPress={onPress}
+      activeOpacity={onPress ? 0.7 : 1}
+    >
+      <View style={styles.settingRowLeft}>
+        <View style={[styles.settingIcon, { backgroundColor: theme.primary + '10' }]}>
+          <MaterialIcons name={icon} size={22} color={theme.primary} />
+        </View>
+        <View>
+          <Text style={[styles.settingTitle, { color: theme.onSurface }]}>{title}</Text>
+          {desc && <Text style={[styles.settingDesc, { color: theme.onSurfaceVariant }]}>{desc}</Text>}
+        </View>
+      </View>
+      {children || (onPress && <MaterialIcons name="chevron-right" size={20} color={theme.onSurfaceVariant} />)}
+    </TouchableOpacity>
+  );
 
   const handleAddCustomColor = () => {
     let hex = customHexInput.trim();
     if (!hex.startsWith('#')) hex = '#' + hex;
-    
-    if (!/^#[0-9A-F]{6}$/i.test(hex)) {
-      Alert.alert('Format Salah', 'Kode Hex harus berupa 6 karakter (misal: #FF5733)');
+    if (!/^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(hex)) {
+      Alert.alert('Format Salah', 'Kode Hex harus berupa 3 atau 6 karakter (misal: #F53 atau #FF5733)');
       return;
     }
-
     addCustomColor(hex);
     changeAccent(hex);
     setCustomHexInput('');
     setCustomColorModalVisible(false);
   };
 
-  const filterTransactionsByPeriod = (period) => {
-    const now = new Date();
-    let startDate;
-    if (period === 'harian') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    } else if (period === 'mingguan') {
-      const dayOfWeek = now.getDay();
-      startDate = new Date(now);
-      startDate.setDate(now.getDate() - dayOfWeek);
-      startDate.setHours(0, 0, 0, 0);
-    } else if (period === 'bulanan') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    } else {
-      startDate = new Date(0);
-    }
-    return transactions.filter(tx => {
-      const txDate = new Date(tx.date);
-      return !isNaN(txDate.getTime()) && txDate >= startDate && txDate <= now;
-    });
-  };
-
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exportPeriod, setExportPeriod] = useState('bulanan');
   const [exportFilters, setExportFilters] = useState({ user: 'Kita', type: 'Semua' });
+  
+  // Custom Date Range State
+  const [startDate, setStartDate] = useState(dayjs().startOf('month').format('YYYY-MM-DD'));
+  const [endDate, setEndDate] = useState(dayjs().format('YYYY-MM-DD'));
+  const [isCustomRange, setIsCustomRange] = useState(false);
 
   const startExport = (period) => {
     setExportPeriod(period);
+    if (period === 'kustom') {
+      setIsCustomRange(true);
+    } else {
+      setIsCustomRange(false);
+    }
     setExportModalVisible(true);
   };
 
   const confirmExport = (format) => {
     const filtered = filterTransactionsByPeriod(exportPeriod);
+    const periodLabel = exportPeriod === 'kustom' 
+      ? `${dayjs(startDate).format('DD MMM')} - ${dayjs(endDate).format('DD MMM')}`
+      : exportPeriod.charAt(0).toUpperCase() + exportPeriod.slice(1);
+
     if (format === 'PDF') {
-      exportToPDF(filtered, exportPeriod.charAt(0).toUpperCase() + exportPeriod.slice(1), user?.name || 'User', exportFilters);
+      exportToPDF(filtered, periodLabel, user?.name || 'User', exportFilters, []);
     } else {
-      exportToXLS(filtered, exportPeriod.charAt(0).toUpperCase() + exportPeriod.slice(1), user?.name || 'User', exportFilters);
+      exportToXLS(filtered, periodLabel, user?.name || 'User', exportFilters, []);
     }
     setExportModalVisible(false);
   };
 
+  const filterTransactionsByPeriod = (period) => {
+    const now = dayjs();
+    let start;
+    let end = now;
+
+    if (period === 'harian') start = now.startOf('day');
+    else if (period === 'mingguan') start = now.startOf('week');
+    else if (period === 'bulanan') start = now.startOf('month');
+    else if (period === 'kustom') {
+      start = dayjs(startDate).startOf('day');
+      end = dayjs(endDate).endOf('day');
+    } else start = dayjs(0);
+    
+    return transactions.filter(tx => {
+      const txDate = dayjs(tx.date);
+      return txDate.isAfter(start) && txDate.isBefore(end.add(1, 'second'));
+    });
+  };
+
+  const getPeriodStats = () => {
+    const filtered = filterTransactionsByPeriod(exportPeriod);
+    let income = 0;
+    let expense = 0;
+    filtered.forEach(tx => {
+      const amt = (tx.myContrib || 0) + (tx.partnerContrib || 0);
+      if (tx.type === 'income') income += amt;
+      else if (tx.type === 'expense') expense += amt;
+    });
+    return { income, expense, count: filtered.length };
+  };
+
+  const stats = getPeriodStats();
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
+      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={() => setAvatarModalVisible(true)}>
-            <View style={styles.avatarWrapper}>
-              {renderAvatar(avatar, 24)}
-            </View>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{myName}</Text>
-        </View>
-        <TouchableOpacity onPress={() => navigation.navigate('Couple')}>
-          <MaterialIcons name="group" size={24} color={theme.primary} />
+        <Text style={[styles.headerMainTitle, { color: theme.onSurface }]}>Pengaturan</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Couple')} style={[styles.headerBtn, { backgroundColor: theme.primary + '15' }]}>
+           <MaterialIcons name="group" size={24} color={theme.primary} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.main} showsVerticalScrollIndicator={false}>
-        <Text style={[styles.sectionTitle, { marginBottom: 24 }]}>Akun Kita</Text>
-        
-        {hasPartner ? (
-          <View style={styles.accountCard}>
-            <View style={styles.acTop}>
-              <View style={styles.acUser}>
-                <TouchableOpacity onPress={() => setAvatarModalVisible(true)} style={styles.acAvatarWrap}>
-                  <View style={styles.acAvMain}>{renderAvatar(avatar, 32)}</View>
-                  <View style={styles.acAvDotMain} />
-                </TouchableOpacity>
-                <View style={styles.acNameDetail}>
-                  <Text style={styles.acName}>{myName}</Text>
-                  <Text style={styles.acRole}>Anda</Text>
-                  <Text style={styles.acBalance}>Rp {formatMoney(getBalance(myName))}</Text>
-                </View>
+      <Animated.ScrollView 
+        contentContainerStyle={styles.main} 
+        showsVerticalScrollIndicator={false}
+        style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
+      >
+        {/* Profile Section */}
+        <LinearGradient 
+          colors={[theme.surfaceContainer, theme.surfaceContainerLow]}
+          style={[styles.profileCard, { borderWidth: 1, borderColor: theme.outlineVariant + '22' }]}
+        >
+           <View style={styles.profileTop}>
+              <View style={styles.userColumn}>
+                 <TouchableOpacity onPress={() => setAvatarModalVisible(true)} style={styles.avatarLarge}>
+                    <View style={[styles.avatarInner, { borderColor: theme.primary + '44' }]}>{renderAvatar(avatar, 40)}</View>
+                    <View style={[styles.avatarBadge, { backgroundColor: theme.primary }]} />
+                 </TouchableOpacity>
+                 <Text style={[styles.profileName, { color: theme.onSurface }]}>{myName}</Text>
+                 <Text style={[styles.profileRole, { color: theme.primary }]}>Saldo: Rp {formatMoney(getBalance(myName))}</Text>
               </View>
 
-              <View style={styles.acUserRight}>
-                <View style={styles.acNameDetailRight}>
-                  <Text style={styles.acNameRight}>{partnerName}</Text>
-                  <Text style={styles.acRoleRight}>Pasangan</Text>
-                  <Text style={styles.acBalanceRight}>Rp {formatMoney(getBalance(partnerName))}</Text>
-                </View>
-                <View style={styles.acAvatarWrap}>
-                  <View style={styles.acAvPrt}>
-                    {householdAvatars && householdAvatars[partnerName] 
-                      ? renderAvatar(householdAvatars[partnerName], 32)
-                      : <MaterialIcons name="favorite" size={32} color={theme.primaryContainer} />
-                    }
+              {hasPartner ? (
+                <>
+                  <View style={styles.vsContainer}>
+                    <View style={[styles.vsLine, { backgroundColor: theme.outlineVariant + '22' }]} />
+                    <MaterialIcons name="favorite" size={20} color={theme.error + 'AA'} />
+                    <View style={[styles.vsLine, { backgroundColor: theme.outlineVariant + '22' }]} />
                   </View>
-                  <View style={styles.acAvDotPrt} />
+                  <View style={styles.userColumn}>
+                    <View style={styles.avatarLarge}>
+                       <View style={[styles.avatarInner, { borderColor: theme.primary + '22' }]}>
+                          {householdAvatars && householdAvatars[partnerName] 
+                            ? renderAvatar(householdAvatars[partnerName], 40)
+                            : <MaterialIcons name="favorite" size={40} color={theme.primary + '33'} />
+                          }
+                       </View>
+                    </View>
+                    <Text style={[styles.profileName, { color: theme.onSurface }]}>{partnerName}</Text>
+                    <Text style={[styles.profileRole, { color: theme.onSurfaceVariant }]}>Saldo: Rp {formatMoney(getBalance(partnerName))}</Text>
+                  </View>
+                </>
+              ) : (
+                <View style={styles.inviteBox}>
+                   <Text style={[styles.inviteText, { color: theme.onSurfaceVariant }]}>Ajak pasangan bergabung!</Text>
+                   <View style={[styles.codeBadge, { backgroundColor: theme.primary + '15' }]}>
+                      <Text style={[styles.codeText, { color: theme.primary }]}>{user?.householdId}</Text>
+                   </View>
                 </View>
-              </View>
-            </View>
+              )}
+           </View>
+           
+           <TouchableOpacity style={[styles.editProfileBtn, { backgroundColor: theme.primary }]} onPress={() => setAvatarModalVisible(true)}>
+              <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Ubah Profil & Avatar</Text>
+           </TouchableOpacity>
+        </LinearGradient>
 
-            <View style={styles.acBottom}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surfaceContainerLowest, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
-                <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, marginRight: 6 }}>KODE RUANG:</Text>
-                <Text style={{ fontSize: 14, fontWeight: '900', color: theme.primary, letterSpacing: 1 }}>{user?.householdId}</Text>
+        <SectionHeader title="Laporan & Ekspor" badge="Analytics" />
+        <View style={[styles.analyticsCard, { backgroundColor: theme.surfaceContainerLow, borderColor: theme.outlineVariant + '22', borderWidth: 1 }]}>
+           <View style={styles.analyticsHeader}>
+              <View>
+                 <Text style={[styles.analyticsTitle, { color: theme.onSurface }]}>Ikhtisar Keuangan</Text>
+                 <Text style={[styles.analyticsSubtitle, { color: theme.onSurfaceVariant }]}>
+                    {exportPeriod === 'bulanan' ? 'Bulan Ini' : exportPeriod === 'mingguan' ? 'Minggu Ini' : exportPeriod === 'harian' ? 'Hari Ini' : 'Rentang Kustom'}
+                 </Text>
               </View>
-              <TouchableOpacity style={styles.acBtn} onPress={() => setAvatarModalVisible(true)}>
-                <Text style={styles.acBtnText}>Ubah Detail</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.accountCard}>
-            <View style={styles.acTop}>
-              <View style={styles.acUser}>
-                <TouchableOpacity onPress={() => setAvatarModalVisible(true)} style={styles.acAvatarWrap}>
-                  <View style={styles.acAvMain}>{renderAvatar(avatar, 32)}</View>
-                </TouchableOpacity>
-                <View style={styles.acNameDetail}>
-                  <Text style={styles.acName}>{myName}</Text>
-                  <Text style={styles.acRole}>Anda</Text>
-                  <Text style={styles.acBalance}>Rp {formatMoney(getBalance(myName))}</Text>
+              <View style={styles.periodPills}>
+                 {['harian', 'mingguan', 'bulanan', 'kustom'].map(p => (
+                   <TouchableOpacity 
+                     key={p} 
+                     onPress={() => setExportPeriod(p)}
+                     style={[styles.periodPill, exportPeriod === p && { backgroundColor: theme.primary }]}
+                   >
+                      <Text style={[styles.periodPillText, { color: exportPeriod === p ? theme.onPrimary : theme.onSurfaceVariant }]}>
+                        {p.charAt(0).toUpperCase() + p.slice(1)}
+                      </Text>
+                   </TouchableOpacity>
+                 ))}
+              </View>
+           </View>
+
+           {exportPeriod === 'kustom' && (
+             <View style={styles.customDateRow}>
+                <View style={styles.dateInputGroup}>
+                   <Text style={[styles.dateLabel, { color: theme.onSurfaceVariant }]}>Mulai</Text>
+                   <TextInput 
+                     style={[styles.dateInput, { backgroundColor: theme.surfaceContainerHigh, color: theme.onSurface }]}
+                     value={startDate}
+                     onChangeText={setStartDate}
+                     placeholder="YYYY-MM-DD"
+                   />
                 </View>
-              </View>
-            </View>
-            <View style={styles.waitingCard}>
-              <Text style={styles.waitingText}>Berikan kode ini ke pasangan Anda agar mereka bisa bergabung:</Text>
-              <Text style={styles.waitingCode}>{user?.householdId}</Text>
-            </View>
-          </View>
-        )}
+                <View style={styles.dateInputGroup}>
+                   <Text style={[styles.dateLabel, { color: theme.onSurfaceVariant }]}>Selesai</Text>
+                   <TextInput 
+                     style={[styles.dateInput, { backgroundColor: theme.surfaceContainerHigh, color: theme.onSurface }]}
+                     value={endDate}
+                     onChangeText={setEndDate}
+                     placeholder="YYYY-MM-DD"
+                   />
+                </View>
+             </View>
+           )}
 
-        <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionTitle}>Laporan & Analisa</Text>
-          <View style={styles.badge}><Text style={styles.badgeText}>Periodik</Text></View>
+           <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                 <View style={[styles.statIcon, { backgroundColor: '#10B98115' }]}>
+                    <MaterialIcons name="trending-up" size={18} color="#10B981" />
+                 </View>
+                 <View>
+                    <Text style={[styles.statLabel, { color: theme.onSurfaceVariant }]}>Masuk</Text>
+                    <Text style={[styles.statValue, { color: '#10B981' }]}>Rp {formatMoney(stats.income)}</Text>
+                 </View>
+              </View>
+              <View style={styles.statItem}>
+                 <View style={[styles.statIcon, { backgroundColor: theme.error + '15' }]}>
+                    <MaterialIcons name="trending-down" size={18} color={theme.error} />
+                 </View>
+                 <View>
+                    <Text style={[styles.statLabel, { color: theme.onSurfaceVariant }]}>Keluar</Text>
+                    <Text style={[styles.statValue, { color: theme.error }]}>Rp {formatMoney(stats.expense)}</Text>
+                 </View>
+              </View>
+           </View>
+
+           <TouchableOpacity 
+             style={[styles.generateBtn, { backgroundColor: theme.primary }]} 
+             onPress={() => setExportModalVisible(true)}
+           >
+              <MaterialIcons name="file-download" size={20} color={theme.onPrimary} />
+              <Text style={[styles.generateBtnText, { color: theme.onPrimary }]}>Ekspor Laporan ({stats.count})</Text>
+           </TouchableOpacity>
         </View>
 
-        <View style={{ flexDirection: 'row', gap: 12, height: 210, marginBottom: 32 }}>
-          {/* Kartu Bulanan - Highlighted */}
-          <TouchableOpacity 
-            activeOpacity={0.9}
-            style={{ flex: 1.2, backgroundColor: theme.primary, borderRadius: 28, padding: 20, justifyContent: 'space-between', overflow: 'hidden' }}
-            onPress={() => startExport('bulanan')}
-          >
-            <View style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-            <View>
-              <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
-                <MaterialIcons name="analytics" size={24} color="#FFF" />
-              </View>
-              <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold', fontFamily: theme.fontFamily }}>Bulanan</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11, marginTop: 4, fontFamily: theme.fontFamily }}>Analisa mendalam cashflow bulanan</Text>
-            </View>
-            <TouchableOpacity onPress={() => startExport('bulanan')} style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 10, borderRadius: 12, alignItems: 'center' }}>
-              <Text style={{ color: '#FFF', fontSize: 11, fontWeight: 'bold' }}>Unduh Laporan</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-
-          {/* Harian & Mingguan Side Column */}
-          <View style={{ flex: 1, gap: 12 }}>
-            <TouchableOpacity 
-              activeOpacity={0.8}
-              style={{ flex: 1, backgroundColor: theme.surfaceContainerLow, borderRadius: 24, padding: 16, justifyContent: 'center', borderWidth: 1, borderColor: theme.outlineVariant + '33' }}
-              onPress={() => startExport('harian')}
-            >
-              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: theme.primary + '1A', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
-                <MaterialIcons name="today" size={20} color={theme.primary} />
-              </View>
-              <Text style={{ color: theme.onSurface, fontSize: 14, fontWeight: 'bold', fontFamily: theme.fontFamily }}>Harian</Text>
-              <Text style={{ color: theme.onSurfaceVariant, fontSize: 10, fontFamily: theme.fontFamily }}>Jajan hari ini</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              activeOpacity={0.8}
-              style={{ flex: 1, backgroundColor: theme.surfaceContainerLow, borderRadius: 24, padding: 16, justifyContent: 'center', borderWidth: 1, borderColor: theme.outlineVariant + '33' }}
-              onPress={() => startExport('mingguan')}
-            >
-              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: theme.primary + '1A', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
-                <MaterialIcons name="date-range" size={20} color={theme.primary} />
-              </View>
-              <Text style={{ color: theme.onSurface, fontSize: 14, fontWeight: 'bold', fontFamily: theme.fontFamily }}>Mingguan</Text>
-              <Text style={{ color: theme.onSurfaceVariant, fontSize: 10, fontFamily: theme.fontFamily }}>Rekap seminggu</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionTitle}>Tampilan</Text>
-          <View style={styles.badge}><Text style={styles.badgeText}>Kustomisasi</Text></View>
-        </View>
-
-        <View style={styles.viewSection}>
-          <TouchableOpacity style={styles.vCardRow} onPress={() => navigation.navigate("Categories")}>
-            <View style={styles.vCardLeft}>
-              <View style={styles.vIconBg}><MaterialIcons name="category" size={24} color={theme.primary} /></View>
-              <View>
-                <Text style={styles.vTitle}>Kelola Kategori</Text>
-                <Text style={styles.vDesc}>Atur kategori transaksi kita</Text>
-              </View>
-            </View>
-            <MaterialIcons name="chevron-right" size={24} color={theme.onSurfaceVariant} />
-          </TouchableOpacity>
-          <View style={styles.vCardRow}>
-            <View style={styles.vCardLeft}>
-              <View style={styles.vIconBg}><MaterialIcons name="dark-mode" size={24} color={theme.primary} /></View>
-              <View>
-                <Text style={styles.vTitle}>Mode Gelap</Text>
-                <Text style={styles.vDesc}>Nyaman untuk mata di malam hari</Text>
-              </View>
-            </View>
+        <SectionHeader title="Kustomisasi" />
+        <View style={styles.settingGroup}>
+          <SettingRow icon="category" title="Kelola Kategori" desc="Atur kategori transaksi Anda" onPress={() => navigation.navigate("Categories")} />
+          <SettingRow icon="dark-mode" title="Mode Gelap" desc="Aktifkan tampilan mode malam">
             <Switch 
               value={isDarkMode} 
               onValueChange={toggleTheme}
-              trackColor={{ false: theme.surfaceContainerLowest, true: theme.primary }}
-              thumbColor={theme.onPrimary}
+              trackColor={{ false: theme.outlineVariant + '44', true: theme.primary }}
+              thumbColor="#fff"
             />
-          </View>
-
-          <View style={styles.vCardCol}>
-            <View style={styles.vCardLeft}>
-              <View style={[styles.vIconBg, { backgroundColor: theme.surfaceContainer }]}><MaterialIcons name="palette" size={24} color={theme.primary} /></View>
-              <View>
-                <Text style={styles.vTitle}>Warna Aksen</Text>
-                <Text style={styles.vDesc}>Pilih warna kesukaan kita</Text>
-              </View>
+          </SettingRow>
+          
+          <View style={[styles.paletteContainer, { backgroundColor: theme.surfaceContainerLow }]}>
+            <View style={styles.paletteHeader}>
+               <View style={[styles.paletteIconBg, { backgroundColor: theme.surfaceContainerHigh }]}>
+                 <MaterialIcons name="palette" size={20} color={theme.primary} />
+               </View>
+               <View>
+                 <Text style={[styles.paletteTitle, { color: theme.onSurface }]}>Warna Aksen</Text>
+                 <Text style={[styles.paletteSubtitle, { color: theme.onSurfaceVariant }]}>Pilih warna kesukaan kita</Text>
+               </View>
             </View>
-            <View style={styles.palletteRow}>
-              {palettes.slice(0, 5).map((hex, i) => (
-                <TouchableOpacity 
-                  key={i} 
-                  style={[styles.palleteDot, { backgroundColor: hex }, accentColor === hex && styles.palleteDotActive, (!accentColor && i === 0) && styles.palleteDotActive ]} 
-                  onPress={() => changeAccent(hex)}
-                />
-              ))}
-              {/* Jika accentColor tidak ada di palettes standar (warna kustom aktif) */}
-              {accentColor && !palettes.slice(0, 5).includes(accentColor) && (
-                <TouchableOpacity style={[styles.palleteDot, { backgroundColor: accentColor }, styles.palleteDotActive]} onPress={() => changeAccent(accentColor)} />
-              )}
-              <TouchableOpacity style={styles.palleteDotAdd} onPress={() => setCustomColorModalVisible(true)}>
+            <View style={styles.paletteList}>
+              {palettes.map((hex, i) => {
+                const isActive = accentColor === hex;
+                return (
+                  <TouchableOpacity 
+                    key={i} 
+                    activeOpacity={0.8}
+                    style={[
+                      styles.paletteDot, 
+                      { backgroundColor: hex, justifyContent: 'center', alignItems: 'center' }, 
+                      isActive && styles.paletteDotActive
+                    ]} 
+                    onPress={() => changeAccent(hex)}
+                  >
+                    {isActive && <MaterialIcons name="check" size={20} color="#fff" />}
+                  </TouchableOpacity>
+                );
+              })}
+              <TouchableOpacity 
+                style={[styles.paletteDot, styles.plusBtn]} 
+                onPress={() => setCustomColorModalVisible(true)}
+              >
                 <MaterialIcons name="add" size={24} color={theme.onSurfaceVariant} />
               </TouchableOpacity>
             </View>
           </View>
 
-          <View style={styles.vCardCol}>
-            <View style={styles.vCardLeft}>
-              <View style={[styles.vIconBg, { backgroundColor: theme.surfaceContainer }]}><MaterialIcons name="format-size" size={24} color={theme.primary} /></View>
-              <View>
-                <Text style={styles.vTitle}>Pilihan Font</Text>
-                <Text style={styles.vDesc}>Aktif: {fontFamily === 'System' ? 'System Default' : fontFamily}</Text>
-              </View>
+          <View style={[styles.paletteContainer, { backgroundColor: theme.surfaceContainerLow, marginTop: 12 }]}>
+            <View style={styles.paletteHeader}>
+               <MaterialIcons name="format-size" size={20} color={theme.primary} />
+               <Text style={[styles.paletteTitle, { color: theme.onSurface }]}>Pilihan Font</Text>
             </View>
             <View style={styles.fontGrid}>
               {availableFonts.map((font) => (
                 <TouchableOpacity
                   key={font.name}
-                  style={fontFamily === font.name ? styles.fontBtnActive : styles.fontBtnInactive}
+                  style={[styles.fontItem, { backgroundColor: fontFamily === font.name ? theme.primary : theme.surfaceContainerHighest }]}
                   onPress={() => changeFont(font.name)}
                 >
-                  <Text style={fontFamily === font.name ? styles.fontTextActive : styles.fontTextInactive}>{font.displayName}</Text>
+                  <Text style={[styles.fontItemText, { color: fontFamily === font.name ? theme.onPrimary : theme.onSurfaceVariant }]}>{font.displayName}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
         </View>
 
-        <TouchableOpacity style={styles.dangerBtn} onPress={logout}>
+        <TouchableOpacity style={[styles.logoutBtn, { backgroundColor: theme.error + '10' }]} onPress={logout}>
           <MaterialIcons name="logout" size={24} color={theme.error} />
-          <Text style={styles.dangerText}>Keluar dari Rika</Text>
+          <Text style={[styles.logoutText, { color: theme.error }]}>Log Out</Text>
         </TouchableOpacity>
         
-        <Text style={styles.versionText}>RIKA V2.4.0 • DIBUAT DENGAN CINTA</Text>
-      </ScrollView>
+
+      </Animated.ScrollView>
+
+      {/* Modals remain mostly similar but with premium touch */}
+      {/* ... (Other modals from SettingsScreen) */}
+      <Modal visible={avatarModalVisible} transparent animationType="fade" onRequestClose={() => setAvatarModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <Animated.View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.modalTitle, { color: theme.onSurface }]}>Pilih Avatar</Text>
+            <TouchableOpacity style={[styles.modalActionBtn, { backgroundColor: theme.primary }]} onPress={pickImage}>
+               <MaterialIcons name="photo-camera" size={24} color={theme.onPrimary} />
+               <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Upload Foto Gallery</Text>
+            </TouchableOpacity>
+            <View style={styles.avatarGrid}>
+              {avatarOptions.map(icon => (
+                <TouchableOpacity key={icon} style={[styles.avatarOption, { backgroundColor: theme.surfaceContainerLow }, avatar === icon && { borderColor: theme.primary, borderWidth: 2 }]} onPress={() => { updateAvatar(icon); setAvatarModalVisible(false); }}>
+                  <MaterialIcons name={icon} size={32} color={avatar === icon ? theme.primary : theme.onSurfaceVariant} />
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setAvatarModalVisible(false)}>
+              <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Tutup</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </Modal>
 
       {/* Export Filter Modal */}
       <Modal visible={exportModalVisible} transparent animationType="slide" onRequestClose={() => setExportModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={[styles.modalTitle, { marginBottom: 8 }]}>Filter Laporan</Text>
-            <Text style={{ textAlign: 'center', color: theme.onSurfaceVariant, fontSize: 12, marginBottom: 24, textTransform: 'capitalize' }}>Periode: {exportPeriod}</Text>
-            
-            <View style={{ marginBottom: 20 }}>
-              <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.onSurface, marginBottom: 12 }}>Pilih Data Pengguna:</Text>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {[
-                  { label: myName, value: 'Saya' },
-                  { label: partnerName || 'Pasangan', value: 'Pasangan' },
-                  { label: 'Kita', value: 'Kita' }
-                ].map(opt => (
-                  <TouchableOpacity 
-                    key={opt.value} 
-                    onPress={() => setExportFilters({ ...exportFilters, user: opt.value })}
-                    style={{ flex: 1, paddingVertical: 10, paddingHorizontal: 4, borderRadius: 12, backgroundColor: exportFilters.user === opt.value ? theme.primary : theme.surfaceContainerHighest, alignItems: 'center', justifyContent: 'center' }}
-                  >
-                    <Text numberOfLines={1} style={{ color: exportFilters.user === opt.value ? theme.onPrimary : theme.onSurfaceVariant, fontSize: 11, fontWeight: 'bold' }}>{opt.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.modalTitle, { color: theme.onSurface }]}>Format Laporan</Text>
+            <View style={{ marginBottom: 24 }}>
+               <Text style={{ color: theme.onSurfaceVariant, fontSize: 13, marginBottom: 12 }}>Filter Data:</Text>
+               <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {['Saya', 'Pasangan', 'Kita'].map(f => (
+                    <TouchableOpacity key={f} onPress={() => setExportFilters({...exportFilters, user: f})} style={{ flex: 1, padding: 12, borderRadius: 12, backgroundColor: exportFilters.user === f ? theme.primary : theme.surfaceContainerLow, alignItems: 'center' }}>
+                       <Text style={{ color: exportFilters.user === f ? theme.onPrimary : theme.onSurface, fontWeight: 'bold', fontSize: 12 }}>{f}</Text>
+                    </TouchableOpacity>
+                  ))}
+               </View>
             </View>
-
-            <View style={{ marginBottom: 32 }}>
-              <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.onSurface, marginBottom: 12 }}>Pilih Tipe Transaksi:</Text>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {['Semua', 'Pengeluaran', 'Pemasukan'].map(t => (
-                  <TouchableOpacity 
-                    key={t} 
-                    onPress={() => setExportFilters({ ...exportFilters, type: t })}
-                    style={{ flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: exportFilters.type === t ? theme.primary : theme.surfaceContainerHighest, alignItems: 'center' }}
-                  >
-                    <Text style={{ color: exportFilters.type === t ? theme.onPrimary : theme.onSurfaceVariant, fontSize: 12, fontWeight: 'bold' }}>{t}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
             <View style={{ flexDirection: 'row', gap: 12 }}>
-              <TouchableOpacity style={{ flex: 1, backgroundColor: theme.surfaceContainerLow, borderWidth: 1, borderColor: '#F44336', padding: 16, borderRadius: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }} onPress={() => confirmExport('PDF')}>
-                <MaterialIcons name="picture-as-pdf" size={20} color="#F44336" />
-                <Text style={{ color: '#F44336', fontWeight: 'bold' }}>PDF</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={{ flex: 1, backgroundColor: theme.surfaceContainerLow, borderWidth: 1, borderColor: '#4CAF50', padding: 16, borderRadius: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }} onPress={() => confirmExport('XLS')}>
-                <MaterialIcons name="table-view" size={20} color="#4CAF50" />
-                <Text style={{ color: '#4CAF50', fontWeight: 'bold' }}>XLS</Text>
-              </TouchableOpacity>
+               <TouchableOpacity style={[styles.formatBtn, { borderColor: '#F44336' }]} onPress={() => confirmExport('PDF')}>
+                  <MaterialIcons name="picture-as-pdf" size={24} color="#F44336" />
+                  <Text style={{ color: '#F44336', fontWeight: 'bold' }}>PDF</Text>
+               </TouchableOpacity>
+               <TouchableOpacity style={[styles.formatBtn, { borderColor: '#4CAF50' }]} onPress={() => confirmExport('XLS')}>
+                  <MaterialIcons name="table-view" size={24} color="#4CAF50" />
+                  <Text style={{ color: '#4CAF50', fontWeight: 'bold' }}>Excel</Text>
+               </TouchableOpacity>
             </View>
-
-            <TouchableOpacity style={[styles.btnCancel, { marginTop: 12 }]} onPress={() => setExportModalVisible(false)}>
+            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setExportModalVisible(false)}>
               <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Batal</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* Avatar Modal */}
-      <Modal visible={avatarModalVisible} transparent animationType="slide" onRequestClose={() => setAvatarModalVisible(false)}>
-
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Pilih Foto Profil</Text>
-            
-            <TouchableOpacity style={styles.btnGallery} onPress={pickImage}>
-              <MaterialIcons name="photo-camera" size={24} color={theme.onPrimaryContainer} style={{ marginBottom: 4 }} />
-              <Text style={styles.btnGalleryText}>Upload Foto Asli</Text>
-            </TouchableOpacity>
-
-            <View style={styles.avatarGrid}>
-              {avatarOptions.map(iconName => (
-                <TouchableOpacity 
-                  key={iconName} 
-                  style={[styles.avatarOption, avatar === iconName && styles.avatarOptionActive]}
-                  onPress={() => {
-                    updateAvatar(iconName);
-                    setAvatarModalVisible(false);
-                  }}
-                >
-                  <MaterialIcons name={iconName} size={32} color={avatar === iconName ? theme.primary : theme.onSurfaceVariant} />
-                </TouchableOpacity>
-              ))}
-            </View>
-            <TouchableOpacity style={styles.btnCancel} onPress={() => setAvatarModalVisible(false)}>
-              <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Batal</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal Custom Color */}
+      {/* Custom Color Modal */}
       <Modal visible={customColorModalVisible} transparent animationType="slide" onRequestClose={() => setCustomColorModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Warna Kustom (Hex)</Text>
-            
-            <TextInput 
-              style={styles.inputHex} 
-              placeholder="#FFFFFF" 
-              placeholderTextColor={theme.onSurfaceVariant} 
-              value={customHexInput} 
-              onChangeText={setCustomHexInput}
-              autoCapitalize="characters"
-              maxLength={7}
-            />
+          <View style={[styles.modalContent, { backgroundColor: theme.surface, maxHeight: '80%' }]}>
+             <Text style={[styles.modalTitle, { color: theme.onSurface, marginBottom: 8 }]}>Custom Warna</Text>
+             <Text style={{ color: theme.onSurfaceVariant, textAlign: 'center', marginBottom: 24, fontSize: 13 }}>Input hex code atau pilih dari warna tersimpan</Text>
+             
+             <TextInput 
+               style={[styles.hexInput, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface, borderColor: theme.outlineVariant + '44', borderWidth: 1 }]} 
+               placeholder="#HEXCODE" 
+               placeholderTextColor={theme.onSurfaceVariant}
+               autoCapitalize="characters"
+               value={customHexInput}
+               onChangeText={setCustomHexInput}
+             />
+             
+             <TouchableOpacity style={[styles.modalActionBtn, { backgroundColor: theme.primary }]} onPress={handleAddCustomColor}>
+                <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Terapkan & Simpan</Text>
+             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.btnSave} onPress={handleAddCustomColor}>
-              <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Simpan & Terapkan</Text>
-            </TouchableOpacity>
+             {customColors && customColors.length > 0 && (
+               <View style={{ width: '100%', marginTop: 8 }}>
+                 <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 14, marginBottom: 16 }}>Warna Tersimpan</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 8, alignItems: 'center' }}>
+                    {customColors.map((hex, i) => {
+                      const isActive = accentColor === hex;
+                      return (
+                        <TouchableOpacity 
+                          key={i} 
+                          style={[
+                            styles.savedColorDot, 
+                            { backgroundColor: hex, justifyContent: 'center', alignItems: 'center' }, 
+                            isActive && { width: 34, height: 34, borderRadius: 17 }
+                          ]} 
+                          onPress={() => { changeAccent(hex); setCustomColorModalVisible(false); }}
+                        >
+                          {isActive && <MaterialIcons name="check" size={18} color="#fff" />}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+               </View>
+             )}
 
-            {(customColors && customColors.length > 0) && (
-              <>
-                <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginTop: 24, marginBottom: 12, textAlign: 'center' }}>Warna Tersimpan</Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center' }}>
-                  {customColors.map((hex, i) => (
-                    <TouchableOpacity 
-                      key={i} 
-                      style={[styles.palleteDot, { backgroundColor: hex }, accentColor === hex && styles.palleteDotActive]} 
-                      onPress={() => {
-                        changeAccent(hex);
-                        setCustomColorModalVisible(false);
-                      }}
-                    />
-                  ))}
-                </View>
-              </>
-            )}
-
-            <TouchableOpacity style={[styles.btnCancel, { marginTop: 24 }]} onPress={() => setCustomColorModalVisible(false)}>
+             <TouchableOpacity style={[styles.modalCloseBtn, { marginTop: 16 }]} onPress={() => setCustomColorModalVisible(false)}>
               <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Tutup</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-
-    </View>
+    </SafeAreaView>
   );
 };
 
-export default SettingsScreen;
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24 },
+  headerMainTitle: { fontSize: 26, fontWeight: '900', letterSpacing: -1 },
+  headerBtn: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  main: { paddingHorizontal: 24, paddingBottom: 100 },
+  
+  profileCard: { borderRadius: 32, padding: 24, marginBottom: 32 },
+  profileTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  userColumn: { alignItems: 'center', flex: 1 },
+  avatarLarge: { width: 80, height: 80, marginBottom: 12 },
+  avatarInner: { flex: 1, borderRadius: 28, overflow: 'hidden', borderWidth: 2, backgroundColor: 'rgba(0,0,0,0.05)', justifyContent: 'center', alignItems: 'center' },
+  avatarBadge: { position: 'absolute', bottom: 0, right: 0, width: 20, height: 20, borderRadius: 10, borderWidth: 3, borderColor: '#fff' },
+  profileName: { fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
+  profileRole: { fontSize: 11, fontWeight: 'bold' },
+  vsContainer: { alignItems: 'center', width: 30 },
+  vsLine: { width: 1, flex: 1, marginVertical: 8 },
+  inviteBox: { flex: 2, alignItems: 'center', justifyContent: 'center' },
+  inviteText: { fontSize: 12, marginBottom: 8 },
+  codeBadge: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
+  codeText: { fontSize: 18, fontWeight: '900', letterSpacing: 2 },
+  editProfileBtn: { padding: 14, borderRadius: 16, alignItems: 'center' },
 
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, marginTop: 8 },
+  sectionTitle: { fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
+  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
+  badgeText: { fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+
+  analyticsCard: { borderRadius: 32, padding: 24, marginBottom: 32 },
+  analyticsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
+  analyticsTitle: { fontSize: 16, fontWeight: '900' },
+  analyticsSubtitle: { fontSize: 12, fontWeight: '500' },
+  periodPills: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 12, padding: 4, gap: 4 },
+  periodPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  periodPillText: { fontSize: 10, fontWeight: '800' },
+  
+  customDateRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
+  dateInputGroup: { flex: 1 },
+  dateLabel: { fontSize: 10, fontWeight: '800', marginBottom: 6, textTransform: 'uppercase' },
+  dateInput: { padding: 12, borderRadius: 12, fontSize: 13, fontWeight: '700' },
+
+  statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, gap: 20 },
+  statItem: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  statIcon: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  statLabel: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
+  statValue: { fontSize: 15, fontWeight: '900' },
+
+  generateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 20, gap: 10 },
+  generateBtnText: { fontSize: 14, fontWeight: '900' },
+
+  settingGroup: { gap: 12, marginBottom: 32 },
+  settingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderRadius: 24 },
+  settingRowLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  settingIcon: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  settingTitle: { fontSize: 15, fontWeight: 'bold' },
+  settingDesc: { fontSize: 12 },
+
+  paletteContainer: { padding: 24, borderRadius: 32 },
+  paletteHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 24 },
+  paletteIconBg: { width: 44, height: 44, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  paletteTitle: { fontSize: 16, fontWeight: '900' },
+  paletteSubtitle: { fontSize: 11, fontWeight: '500' },
+  paletteList: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  paletteDot: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  paletteDotActive: { width: 38, height: 38, borderRadius: 19 },
+  plusBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  savedColorDot: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  fontGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  fontItem: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 },
+  fontItemText: { fontSize: 12, fontWeight: 'bold' },
+
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 20, borderRadius: 24, gap: 12 },
+  logoutText: { fontSize: 16, fontWeight: 'bold' },
+
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 24 },
+  modalContent: { borderRadius: 36, padding: 28 },
+  modalTitle: { fontSize: 20, fontWeight: '900', marginBottom: 24, textAlign: 'center' },
+  modalActionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 18, borderRadius: 20, gap: 12, marginBottom: 24 },
+  avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginBottom: 24 },
+  avatarOption: { width: 60, height: 60, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  modalCloseBtn: { padding: 16, borderRadius: 16, alignItems: 'center' },
+  formatBtn: { flex: 1, padding: 20, borderRadius: 20, borderWidth: 2, alignItems: 'center', gap: 8 },
+  hexInput: { padding: 18, borderRadius: 16, fontSize: 18, fontWeight: '900', textAlign: 'center', letterSpacing: 2, marginBottom: 20 },
+});
+
+export default SettingsScreen;

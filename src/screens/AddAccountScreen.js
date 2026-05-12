@@ -1,5 +1,6 @@
 import React, { useContext, useState, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Switch } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { ThemeContext } from '../context/ThemeContext';
@@ -38,16 +39,22 @@ const AddAccountScreen = ({ route }) => {
   const [loading, setLoading] = useState(false);
 
   const handleBalanceChange = (val) => {
-    // 1. Ambil jumlah angka di KANAN kursor dari teks LAMA
     const oldText = balanceRef.current || '';
     const oldSel = selectionRef.current.start;
-    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
+    
+    let processedVal = val;
+    const oldDigits = oldText.replace(/\D/g, '');
+    const newDigits = val.replace(/\D/g, '');
 
-    const formatted = formatInput(val);
+    if (val.length < oldText.length && oldDigits === newDigits && oldSel > 0) {
+      processedVal = oldText.slice(0, oldSel - 2) + oldText.slice(oldSel);
+    }
+
+    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
+    const formatted = formatInput(processedVal);
     setBalance(formatted);
     balanceRef.current = formatted;
 
-    // 2. Cari posisi baru dari KANAN di teks baru
     let newPos = formatted.length;
     let count = 0;
     for (let i = formatted.length - 1; i >= 0; i--) {
@@ -88,14 +95,18 @@ const AddAccountScreen = ({ route }) => {
       }
       navigation.goBack();
     } catch (e) {
-      Alert.alert('Error', `Gagal ${isEditing ? 'memperbarui' : 'menyimpan'} akun`);
+      if (e.message === 'DUPLICATE_NAME') {
+        Alert.alert('Nama Sudah Ada', 'Nama sumber dana sudah ada! Gunakan nama lain agar tidak bingung.');
+      } else {
+        Alert.alert('Error', `Gagal ${isEditing ? 'memperbarui' : 'menyimpan'} akun`);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       <View style={[styles.header, { backgroundColor: theme.surface }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <MaterialIcons name="close" size={24} color={theme.onSurface} />
@@ -159,13 +170,13 @@ const AddAccountScreen = ({ route }) => {
         </View>
 
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 50 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20 },
   headerTitle: { fontSize: 18, fontWeight: 'bold' },
   saveBtn: { fontSize: 16, fontWeight: 'bold' },
   content: { padding: 20 },

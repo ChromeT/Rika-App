@@ -1,5 +1,6 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Switch, Image, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemeContext } from '../context/ThemeContext';
@@ -8,7 +9,7 @@ import { AuthContext } from '../context/AuthContext';
 
 const availableCustomIcons = [
   'star', 'pets', 'child-friendly', 'cake', 'favorite', 'emoji-events',
-  'payments', 'account-balance-wallet', 'savings', 'paid', 'monetization-on', 'trending-up', 'work', 'volunteer-activism', 'card-giftcard',
+  'payments', 'account-balance-wallet', 'favorite', 'paid', 'monetization-on', 'trending-up', 'work', 'volunteer-activism', 'card-giftcard',
   'restaurant', 'local-cafe', 'fastfood', 'local-grocery-store', 'local-pizza',
   'commute', 'directions-car', 'local-gas-station', 'flight', 'water-drop', 'bolt', 'wifi', 'phone-iphone',
   'shopping-cart', 'checkroom', 'movie', 'sports-esports', 'fitness-center', 'spa', 'palette',
@@ -274,16 +275,19 @@ const TransactionScreen = ({ navigation, route }) => {
         });
       }
 
-      await addNotification({
-        title: isEditMode ? 'Transaksi Diperbarui' : 'Transaksi Baru',
-        body: `${user?.name || 'Pasangan'} baru saja ${isEditMode ? 'mengubah' : 'mencatat'} ${type === 'income' ? 'pemasukan' : 'pengeluaran'} "${finalTxName}" sebesar Rp ${formatMoney(numAmount)}.`,
-        icon: type === 'income' ? 'payments' : 'shopping-bag',
-        color: type === 'income' ? 'primary' : 'error',
-        sender: user?.name || 'Saya',
-        targetType: 'transaction',
-        targetId: newId,
-        targetName: finalTxName,
-      });
+      // Only send general notification if it's not a split/joint transaction (those are handled by DataContext)
+      if (!isPatungan && !isKonta) {
+        await addNotification({
+          title: isEditMode ? 'Transaksi Diperbarui' : 'Transaksi Baru',
+          body: `${user?.name || 'Pasangan'} baru saja ${isEditMode ? 'mengubah' : 'mencatat'} ${type === 'income' ? 'pemasukan' : 'pengeluaran'} "${finalTxName}" sebesar Rp ${formatMoney(numAmount)}.`,
+          icon: type === 'income' ? 'payments' : 'shopping-bag',
+          color: type === 'income' ? 'primary' : 'error',
+          sender: user?.name || 'Saya',
+          targetType: 'transaction',
+          targetId: newId,
+          targetName: finalTxName,
+        });
+      }
 
       // Langsung balik ke Dashboard biar terasa instant + Highlight
       navigation.navigate('MainTabs', {
@@ -300,7 +304,7 @@ const TransactionScreen = ({ navigation, route }) => {
 
   const getStyles = (t) => StyleSheet.create({
     container: { flex: 1, backgroundColor: t.background },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16, backgroundColor: t.surface, zIndex: 50 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 20, backgroundColor: t.surface, zIndex: 50 },
     headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     avatarWrapper: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', backgroundColor: t.surfaceContainer, borderWidth: 1, borderColor: t.outlineVariant + '33' },
     avatar: { width: '100%', height: '100%' },
@@ -311,9 +315,9 @@ const TransactionScreen = ({ navigation, route }) => {
     formCard: { backgroundColor: t.surfaceContainerLow, borderRadius: 32, padding: 24, borderWidth: 1, borderColor: t.outlineVariant + '1A', overflow: 'hidden' },
 
     typeToggleWrap: { flexDirection: 'row', backgroundColor: t.surfaceContainerLowest, borderRadius: 16, padding: 4, marginBottom: 24 },
-    typeBtnAct: { flex: 1, backgroundColor: t.primaryContainer, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
+    typeBtnAct: { flex: 1, backgroundColor: t.primary, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
     typeBtnIna: { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center' },
-    typeTextAct: { fontWeight: 'bold', color: t.onPrimaryContainer, fontSize: 12 },
+    typeTextAct: { fontWeight: 'bold', color: t.onPrimary, fontSize: 12 },
     typeTextIna: { fontWeight: 'bold', color: t.onSurfaceVariant, fontSize: 12 },
 
     label: { fontSize: 10, fontWeight: 'bold', color: t.onSurfaceVariant, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8, marginLeft: 4 },
@@ -393,7 +397,7 @@ const TransactionScreen = ({ navigation, route }) => {
   const currentCats = type === 'expense' ? categories.expense : categories.income;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.avatarWrapper}>
@@ -721,7 +725,7 @@ const TransactionScreen = ({ navigation, route }) => {
         </View>
 
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

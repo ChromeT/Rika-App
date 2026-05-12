@@ -1,5 +1,6 @@
 import React, { useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Share, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import dayjs from 'dayjs';
@@ -50,7 +51,7 @@ const CoupleScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: theme.surface }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -297,7 +298,7 @@ const CoupleScreen = ({ navigation }) => {
                 {roadmapItems.length > 0 && (
                   <View style={{ marginBottom: 24 }}>
                     <View style={styles.roadmapHeader}>
-                      <MaterialIcons name="rocket_launch" size={16} color={theme.primary} />
+                      <MaterialIcons name="flight-takeoff" size={16} color={theme.primary} />
                       <Text style={[styles.roadmapHeaderText, { color: theme.primary }]}>ROADMAP MASA DEPAN</Text>
                     </View>
                     <View style={[styles.timelineCard, { backgroundColor: theme.surfaceContainerLow, borderStyle: 'dashed', borderWidth: 1, borderColor: theme.primary + '33' }]}>
@@ -336,7 +337,7 @@ const CoupleScreen = ({ navigation }) => {
           })()}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -347,8 +348,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingTop: 48,
+    paddingVertical: 20,
   },
   headerTitle: { fontSize: 18, fontWeight: 'bold' },
   backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },

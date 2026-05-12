@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { AuthContext } from './AuthContext';
 import { db } from '../config/firebase';
-import { collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, getDoc, deleteField } from 'firebase/firestore';
+import { collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, getDoc, deleteField, arrayUnion } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 
@@ -272,11 +272,16 @@ export const DataProvider = ({ children }) => {
               await updateDoc(docRef, { status: 'pending_partner' });
               
               // KIRIM NOTIFIKASI (Akan memicu Push HP otomatis via addNotification)
+              // Helper to format money inside DataContext if needed or use raw
+              const formattedPart = Number(tx.partnerContrib || 0).toLocaleString('id-ID');
+              const splitType = tx.isJoint ? 'Bagi rata 50:50' : 'Patungan Custom';
+
               await addNotification({
                 title: 'Butuh Konfirmasi!',
-                message: `${user?.name} baru saja input patungan: ${tx.name}`,
+                message: `${user?.name} butuh konfirmasi untuk bayar ${tx.category} [${splitType} • Rp ${formattedPart}]`,
                 type: 'split_pending',
-                txId: docRef.id
+                txId: docRef.id,
+                sender: user?.name
               });
             } else {
               await updateDoc(docRef, { status: 'completed' });
@@ -475,7 +480,11 @@ export const DataProvider = ({ children }) => {
     if (!user || !user.householdId) return;
     try {
       const notifRef = collection(db, 'households', user.householdId, 'notifications');
-      await addDoc(notifRef, { ...notif, createdAt: new Date().toISOString() });
+      await addDoc(notifRef, {
+        ...notif,
+        readBy: [],
+        createdAt: new Date().toISOString()
+      });
       
       // OTOMATIS KIRIM PUSH KE PASANGAN (kecuali jika notif ini untuk diri sendiri)
       const partnerName = householdUsers.find(u => u !== user?.name);
@@ -507,9 +516,11 @@ export const DataProvider = ({ children }) => {
     if (!user || !user.householdId) return;
     try {
       const billRef = collection(db, 'households', user.householdId, 'bills');
-      await addDoc(billRef, { ...bill, createdAt: new Date().toISOString() });
+      const docRef = await addDoc(billRef, { ...bill, createdAt: new Date().toISOString() });
+      return docRef.id;
     } catch (e) {
       console.error('Failed to save bill', e);
+      return null;
     }
   };
 
@@ -537,7 +548,7 @@ export const DataProvider = ({ children }) => {
       const myName = user.name || 'User';
 
       // 1. Buat Transaksi Pengeluaran
-      await addTransaction({
+      const newTxId = await addTransaction({
         name: `Bayar Tagihan: ${bill.name}`,
         amount: numAmount,
         myContrib: numAmount,
@@ -549,6 +560,7 @@ export const DataProvider = ({ children }) => {
         accountId: accountId,
         owner: myName,
         date: new Date().toISOString(),
+        billId: billId, // PENTING: Untuk highlight di riwayat
       });
 
       // 2. Update Status Tagihan
@@ -582,14 +594,16 @@ export const DataProvider = ({ children }) => {
         await deleteDoc(billRef);
       }
 
-      // 3. Notifikasi
+      // 3. Notifikasi (Menggunakan format transaksi agar highlight 100% akurat)
       await addNotification({
         title: 'Tagihan Terbayar',
         body: `${myName} telah membayar tagihan "${bill.name}" sebesar Rp ${new Intl.NumberFormat('id-ID').format(numAmount)}.`,
         icon: 'check-circle',
         color: 'primary',
         sender: myName,
-        targetType: 'bill',
+        targetType: 'transaction', // Ubah ke transaction agar dapet highlight ID yang pasti
+        targetId: newTxId, // Gunakan ID transaksi baru
+        targetName: `Bayar Tagihan: ${bill.name}`, // Fallback nama yang akurat
       });
 
     } catch (e) {
@@ -611,6 +625,16 @@ export const DataProvider = ({ children }) => {
   const addAccount = async (account) => {
     if (!user || !user.householdId) return;
     try {
+      // CEK DUPLIKAT: Pastikan user ini tidak punya dompet dengan nama yang sama
+      const isDuplicate = accounts.some(acc => 
+        acc.owner === user.name && 
+        acc.name.toLowerCase().trim() === account.name.toLowerCase().trim()
+      );
+      
+      if (isDuplicate) {
+        throw new Error('DUPLICATE_NAME');
+      }
+
       const accountRef = collection(db, 'households', user.householdId, 'accounts');
       const docRef = await addDoc(accountRef, {
         ...account,
@@ -620,6 +644,7 @@ export const DataProvider = ({ children }) => {
       return docRef.id;
     } catch (e) {
       console.error('Failed to save account', e);
+      throw e; // Rethrow to handle in UI
     }
   };
 
@@ -845,13 +870,43 @@ export const DataProvider = ({ children }) => {
     }
   };
 
+  const markSingleNotifAsRead = async (notifId) => {
+    if (!user || !user.householdId || !notifId) return;
+    try {
+      const notifRef = doc(db, 'households', user.householdId, 'notifications', notifId);
+      await updateDoc(notifRef, {
+        readBy: arrayUnion(user.name)
+      });
+    } catch (e) {
+      console.error('Failed to mark single notif as read', e);
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    if (!user || !user.householdId) return;
+    try {
+      const unread = notifications.filter(n => !n.readBy?.includes(user?.name));
+      if (unread.length === 0) return;
+      
+      const batchPromises = unread.map(n => {
+        const notifRef = doc(db, 'households', user.householdId, 'notifications', n.id);
+        return updateDoc(notifRef, {
+          readBy: arrayUnion(user.name)
+        });
+      });
+      await Promise.all(batchPromises);
+    } catch (e) {
+      console.error('Failed to mark all as read', e);
+    }
+  };
+
   return (
     <DataContext.Provider value={{
       transactions, addTransaction, updateTransaction, deleteTransaction, addTransfer, getBalance, confirmSplitTransaction,
       goals, addGoal, updateGoal, deleteGoal,
       bills, addBill, updateBill, deleteBill, payBill,
       accounts, addAccount, updateAccount, deleteAccount,
-      notifications, addNotification, sendPushNotification,
+      notifications, addNotification, sendPushNotification, markSingleNotifAsRead, markAllNotificationsAsRead,
       categories, addCategory, updateCategory, deleteCategory,
       loading
     }}>

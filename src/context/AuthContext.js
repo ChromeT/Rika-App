@@ -171,8 +171,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const loginWithData = async (userData) => {
-    setUser(userData);
-    await AsyncStorage.setItem('@rika_user', JSON.stringify(userData));
+    const trimmedUser = { ...userData, name: userData.name?.trim() };
+    setUser(trimmedUser);
+    await AsyncStorage.setItem('@rika_user', JSON.stringify(trimmedUser));
   };
 
   const joinHousehold = async (userName, code) => {

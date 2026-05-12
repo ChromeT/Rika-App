@@ -1,5 +1,8 @@
 import React, { useContext, useState, useMemo, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, FlatList, Dimensions, ActivityIndicator, TextInput, Alert, Modal } from 'react-native';
+import dayjs from 'dayjs';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, ActivityIndicator, TextInput, Alert, Modal, Animated } from 'react-native';
+import { ScrollView, FlatList } from 'react-native-gesture-handler';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -13,6 +16,159 @@ import { uploadMultipleToCloudinary } from '../utils/cloudinaryUpload';
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
 
+const ActiveGoalItem = React.memo(({ item, index, navigation, safeTheme, formatMoney }) => {
+  const itemAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(itemAnim, {
+      toValue: 1,
+      duration: 350,
+      delay: index * 40,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  const progress = item.targetAmount > 0 ? Math.min((item.currentAmount / item.targetAmount) * 100, 100) : 0;
+
+  return (
+    <Animated.View style={{ 
+      opacity: itemAnim, 
+      transform: [{ translateY: itemAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
+      marginBottom: 20, 
+      backgroundColor: safeTheme.surface, 
+      borderRadius: 32, 
+      overflow: 'hidden', 
+      borderWidth: 1, 
+      borderColor: safeTheme.outlineVariant + '15',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.2,
+      shadowRadius: 16,
+      elevation: 5
+    }}>
+      <TouchableOpacity 
+        onPress={() => navigation.navigate('GoalDetail', { goalId: item.id })}
+        activeOpacity={0.9}
+      >
+        <View style={{ height: 260, backgroundColor: safeTheme.surfaceContainerLow }}>
+          {item.previewImage ? (
+            <Image source={{ uri: item.previewImage }} style={{ width: '100%', height: '100%' }} />
+          ) : (
+            <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
+              <MaterialIcons name="auto-awesome" size={50} color={safeTheme.primary + '22'} />
+            </View>
+          )}
+          
+          {/* Cinematic Overlays */}
+          <LinearGradient 
+            colors={['rgba(0,0,0,0.4)', 'transparent', 'rgba(0,0,0,0.85)']} 
+            style={StyleSheet.absoluteFill} 
+          />
+          
+          {/* Top Info Badges */}
+          <View style={{ position: 'absolute', top: 16, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+             <View style={{ backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.2)' }}>
+                <Text style={{ color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 }}>{Math.round(progress)}%</Text>
+             </View>
+             {item.targetDate && (
+               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <MaterialIcons name="calendar-today" size={12} color="rgba(255,255,255,0.8)" />
+                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>{dayjs(item.targetDate).format('MMM YYYY')}</Text>
+               </View>
+             )}
+          </View>
+
+          {/* Bottom Info Floating Section */}
+          <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20 }}>
+            <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', letterSpacing: -0.5, marginBottom: 12, textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: {width:0, height:2}, textShadowRadius: 4 }}>{item.name}</Text>
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}>
+               <View>
+                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: 'bold', marginBottom: 2 }}>TERKUMPUL</Text>
+                  <Text style={{ color: safeTheme.primary, fontSize: 18, fontWeight: '900' }}>Rp {formatMoney(item.currentAmount)}</Text>
+               </View>
+               <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: 'bold', marginBottom: 2 }}>TARGET</Text>
+                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800' }}>Rp {formatMoney(item.targetAmount)}</Text>
+               </View>
+            </View>
+
+            {/* Minimalist Slim Progress Bar */}
+            <View style={{ height: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 2, overflow: 'hidden' }}>
+              <LinearGradient 
+                colors={[safeTheme.primary, safeTheme.primary + '88']} 
+                start={{x:0, y:0}} end={{x:1, y:0}}
+                style={{ height: '100%', width: `${progress}%` }} 
+              />
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+});
+
+const AchievedGoalItem = React.memo(({ item, index, navigation, safeTheme, formatMoney }) => {
+  const itemAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(itemAnim, {
+      toValue: 1,
+      duration: 350,
+      delay: index * 40,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ 
+      flex: 1, 
+      opacity: itemAnim,
+      transform: [{ scale: itemAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }],
+      margin: 8, 
+      height: 240, 
+      borderRadius: 28, 
+      overflow: 'hidden',
+      backgroundColor: safeTheme.surface,
+    }}>
+      <TouchableOpacity 
+        onPress={() => navigation.navigate('MemoryDetail', { goalId: item.id })}
+        style={{ flex: 1 }}
+        activeOpacity={0.9}
+      >
+        <View style={{ flex: 1 }}>
+          {item.previewImage ? (
+            <Image source={{ uri: item.previewImage }} style={{ width: '100%', height: '100%' }} />
+          ) : (
+            <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: safeTheme.surfaceContainerLow }}>
+              <MaterialIcons name="auto-awesome" size={40} color={safeTheme.primary + '33'} />
+            </View>
+          )}
+          
+          <LinearGradient 
+            colors={['rgba(0,0,0,0.1)', 'transparent', 'rgba(0,0,0,0.9)']} 
+            style={StyleSheet.absoluteFill} 
+          />
+
+          <View style={{ position: 'absolute', top: 12, right: 12 }}>
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 6, borderRadius: 12 }}>
+               <MaterialIcons name="emoji-events" size={16} color="#fff" />
+            </View>
+          </View>
+
+          <View style={{ position: 'absolute', bottom: 16, left: 16, right: 16 }}>
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900', letterSpacing: -0.3, marginBottom: 2 }} numberOfLines={2}>
+              {item.name}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+               <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: safeTheme.primary }} />
+               <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 'bold' }}>Rp {formatMoney(item.targetAmount)}</Text>
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+});
+
 // --- Add Goal Screen (Modal Style) ---
 export const AddGoalScreen = () => {
   const { user, householdUsers } = useContext(AuthContext);
@@ -23,7 +179,7 @@ export const AddGoalScreen = () => {
     await addNotification({
       title,
       body,
-      icon: 'star',
+      icon: 'stars',
       targetType: 'goal',
       targetId: goalId,
       sender: user?.name || 'Saya',
@@ -35,6 +191,25 @@ export const AddGoalScreen = () => {
   const { theme } = useContext(ThemeContext);
   const { addGoal, addNotification, updateGoal } = useContext(DataContext);
   
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 350,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  const handleBack = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => navigation.goBack());
+  };
+
   // Fallback theme if not loaded yet
   const safeTheme = theme || {
     background: '#0b0f10',
@@ -53,6 +228,7 @@ export const AddGoalScreen = () => {
   const selectionTargetRef = useRef({ start: 0, end: 0 });
   const [selectionTarget, setSelectionTarget] = useState({ start: 0, end: 0 });
   const targetRef = useRef('');
+  const [customIcon, setCustomIcon] = useState('favorite');
   const [description, setDescription] = useState('');
   const [targetDate, setTargetDate] = useState(''); // YYYY-MM-DD
 
@@ -173,6 +349,7 @@ export const AddGoalScreen = () => {
         targetDate: targetDate || null,
         previewImage,
         media: finalMediaList,
+        icon: customIcon || 'favorite',
         status: 'active',
         currentAmount: 0,
         achieved: false
@@ -191,7 +368,7 @@ export const AddGoalScreen = () => {
       
       console.log('Selesai, menutup layar');
       setUploading(false);
-      navigation.goBack();
+      handleBack();
     } catch (e) {
       setUploading(false);
       console.error('Save goal error:', e);
@@ -199,11 +376,12 @@ export const AddGoalScreen = () => {
     }
   };
   return (
-    <View style={{ flex: 1, backgroundColor: safeTheme.background }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: safeTheme.outlineVariant + '22' }}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <MaterialIcons name="close" size={24} color={safeTheme.onSurface} />
-        </TouchableOpacity>
+    <SafeAreaView style={{ flex: 1, backgroundColor: safeTheme.background }} edges={['top']}>
+      <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: safeTheme.outlineVariant + '22' }}>
+          <TouchableOpacity onPress={handleBack}>
+            <MaterialIcons name="close" size={24} color={safeTheme.onSurface} />
+          </TouchableOpacity>
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: safeTheme.onSurface }}>Goal Baru</Text>
         <TouchableOpacity 
           onPress={handleSave} 
@@ -326,7 +504,7 @@ export const AddGoalScreen = () => {
         <View style={{ marginTop: 16 }}>
           <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>TARGET TANGGAL DICAPAI (ROADMAP)</Text>
           <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <MaterialIcons name="calendar-today" size={20} color={safeTheme.primary} />
+            <MaterialIcons name="explore" size={20} color={safeTheme.primary} />
             <input 
               type="date"
               value={targetDate}
@@ -343,14 +521,15 @@ export const AddGoalScreen = () => {
             />
           </View>
         </View>
-      </ScrollView>
-    </View>
+        </ScrollView>
+      </Animated.View>
+    </SafeAreaView>
 
   );
 };
 
 // --- Main Goals Screen ---
-const GoalsScreen = () => {
+const GoalsScreen = ({ navigation, route }) => {
   const { theme } = useContext(ThemeContext);
   const safeTheme = theme || {
     background: '#0b0f10',
@@ -367,11 +546,28 @@ const GoalsScreen = () => {
   };
   const { goals, addGoal, updateGoal, deleteGoal, addNotification, transactions } = useContext(DataContext);
   const { user } = useContext(AuthContext);
-  const navigation = useNavigation();
-  const route = useRoute();
+
+  const initialTab = route.params?.initialTab || 'active';
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    if (route.params?.initialTab) {
+      setActiveTab(route.params.initialTab);
+    }
+  }, [route.params?.initialTab]);
   
-  const [activeTab, setActiveTab] = useState('active'); // 'active' or 'achieved'
-  
+  // Animations
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 350,
+      useNativeDriver: true,
+    }).start();
+  }, []); // Only run once on mount, not on activeTab change
+
   useEffect(() => {
     if (route.params?.activeTab) {
       setActiveTab(route.params.activeTab);
@@ -380,6 +576,8 @@ const GoalsScreen = () => {
     }
   }, [route.params?.activeTab]);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [goalToDelete, setGoalToDelete] = useState(null);
   const [selectedGoal, setSelectedGoal] = useState(null);
   const [editName, setEditName] = useState('');
   const [editDescription, setEditDescription] = useState('');
@@ -430,6 +628,20 @@ const GoalsScreen = () => {
   };
 
   const formatMoney = (v) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v || 0);
+
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMsg, setToastMsg] = useState('');
+  const toastAnim = useRef(new Animated.Value(0)).current;
+
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    setToastVisible(true);
+    Animated.sequence([
+      Animated.timing(toastAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.delay(2000),
+      Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: true })
+    ]).start(() => setToastVisible(false));
+  };
 
   const handleEditGoal = (goal) => {
     setSelectedGoal(goal);
@@ -546,21 +758,20 @@ const GoalsScreen = () => {
   };
 
   const handleDeleteGoal = (goal) => {
-    Alert.alert(
-      'Hapus Goal',
-      `Apakah kamu yakin ingin menghapus "${goal.name}"?`,
-      [
-        { text: 'Batal', style: 'cancel' },
-        { text: 'Hapus', style: 'destructive', onPress: async () => {
-          try {
-            await deleteGoal(goal.id);
-            Alert.alert('Berhasil', 'Goal dihapus');
-          } catch (e) {
-            Alert.alert('Gagal', 'Tidak dapat menghapus goal');
-          }
-        }},
-      ]
-    );
+    setGoalToDelete(goal);
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDeleteGoal = async () => {
+    if (!goalToDelete) return;
+    try {
+      await deleteGoal(goalToDelete.id);
+      setDeleteModalVisible(false);
+      setGoalToDelete(null);
+      showToast('Goal berhasil dihapus');
+    } catch (e) {
+      Alert.alert('Gagal', 'Tidak dapat menghapus goal');
+    }
   };
 
   // Safe goals array
@@ -579,99 +790,16 @@ const GoalsScreen = () => {
     navigation.navigate('AddGoal');
   };
 
-  // Render Active Goal Card
-  const renderActiveGoalCard = ({ item }) => {
-    const progress = item.targetAmount > 0 ? Math.min((item.currentAmount / item.targetAmount) * 100, 100) : 0;
-    
-    return (
-      <View style={{ marginBottom: 16, backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: safeTheme.outlineVariant + '22' }}>
-        <TouchableOpacity 
-          onPress={() => navigation.navigate('GoalDetail', { goalId: item.id })}
-          activeOpacity={0.8}
-        >
-          {/* Cover Image */}
-          <View style={{ height: 120, backgroundColor: safeTheme.surfaceContainer }}>
-            {item.previewImage ? (
-              <Image source={{ uri: item.previewImage }} style={{ width: '100%', height: '100%' }} />
-            ) : item.media && item.media.length > 0 && item.media[0].type === 'video' ? (
-              <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
-                <MaterialIcons name="play-circle-filled" size={48} color="rgba(255,255,255,0.8)" />
-              </View>
-            ) : (
-              <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
-                <MaterialIcons name="landscape" size={40} color={safeTheme.onSurfaceVariant + '55'} />
-              </View>
-            )}
-          </View>
-        
-          {/* Content */}
-          <View style={{ padding: 16 }}>
-            <Text style={{ fontSize: 16, fontWeight: 'bold', color: safeTheme.onSurface, marginBottom: 4 }} numberOfLines={1}>{item.name}</Text>
-          {item.description ? (
-            <Text style={{ fontSize: 12, color: safeTheme.onSurfaceVariant, marginBottom: 12 }} numberOfLines={2}>{item.description}</Text>
-          ) : null}
-          
-          {/* Progress Bar */}
-          <View style={{ height: 6, backgroundColor: safeTheme.surfaceContainerHighest, borderRadius: 3, marginBottom: 12 }}>
-            <View style={{ height: '100%', width: `${progress}%`, backgroundColor: safeTheme.primary, borderRadius: 3 }} />
-          </View>
-          
-{/* Amount Row */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: safeTheme.primary }}>Rp {formatMoney(item.currentAmount)}</Text>
-            <Text style={{ fontSize: 12, color: safeTheme.onSurfaceVariant }}>target: Rp {formatMoney(item.targetAmount)}</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    </View>
+  const renderActiveGoalCard = ({ item, index }) => (
+    <ActiveGoalItem item={item} index={index} navigation={navigation} safeTheme={safeTheme} formatMoney={formatMoney} />
   );
-};
 
-  // Render Achieved Goal Item (Grid 2 columns) - tap to go to memory detail
   const renderAchievedGoalItem = ({ item, index }) => (
-    <TouchableOpacity 
-      onPress={() => navigation.navigate('MemoryDetail', { goalId: item.id })}
-      style={{ flex: 1, margin: 4, height: 180, borderRadius: 16, overflow: 'hidden' }}
-      activeOpacity={0.8}
-    >
-      <View style={{ flex: 1, backgroundColor: safeTheme.surfaceContainerLow }}>
-        {item.previewImage ? (
-          <Image source={{ uri: item.previewImage }} style={{ width: '100%', height: '100%' }} />
-        ) : item.media && item.media.length > 0 && item.media[0].type === 'video' ? (
-          <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
-            <MaterialIcons name="play-circle-filled" size={48} color="rgba(255,255,255,0.8)" />
-          </View>
-        ) : (
-          <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
-            <MaterialIcons name="emoji-events" size={40} color={safeTheme.primary + '88'} />
-          </View>
-        )}
-        
-        {/* Badge & Media Count */}
-        <View style={{ position: 'absolute', top: 8, left: 8, flexDirection: 'row', gap: 6 }}>
-          <View style={{ backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-            <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>Tercapai</Text>
-          </View>
-          {item.mediaCount > 1 && (
-            <View style={{ backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <MaterialIcons name="collections" size={10} color="#fff" />
-              <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>{item.mediaCount}</Text>
-            </View>
-          )}
-        </View>
-        
-        {/* Gradient Overlay with Name & Caption */}
-        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.9)']} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 12, paddingVertical: 12 }}>
-          <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }} numberOfLines={1}>{item.name}</Text>
-          {item.media && item.media[0]?.caption ? (
-            <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 11, marginTop: 2 }} numberOfLines={1}>{item.media[0].caption}</Text>
-          ) : (
-            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, marginTop: 2 }}>{item.achievedAt ? (new Date(item.achievedAt).toString() !== 'Invalid Date' ? new Date(item.achievedAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : '') : ''}</Text>
-          )}
-        </LinearGradient>
-      </View>
-    </TouchableOpacity>
+    <AchievedGoalItem item={item} index={index} navigation={navigation} safeTheme={safeTheme} formatMoney={formatMoney} />
   );
+
+
+
 
   // Edit Goal Modal
   const isEditAchieved = selectedGoal?.achieved;
@@ -754,7 +882,7 @@ const GoalsScreen = () => {
                     <MaterialIcons name="play-circle-filled" size={40} color="rgba(255,255,255,0.8)" />
                   </View>
                 ) : (
-                  <Image source={{ uri: m.uri }} style={{ width: '100%', height: 100 }} />
+                  <Image source={{ uri: m.url || m.uri }} style={{ width: '100%', height: 160 }} resizeMode="cover" />
                 )}
                 <TouchableOpacity onPress={() => handleRemoveEditMedia(i)} style={{ position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, padding: 4 }}>
                   <MaterialIcons name="close" size={14} color="#fff" />
@@ -811,9 +939,9 @@ const GoalsScreen = () => {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: safeTheme.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: safeTheme.background }} edges={['top']}>
       {/* Header */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, backgroundColor: safeTheme.surface }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 20, backgroundColor: safeTheme.surface }}>
         <Text style={{ fontSize: 24, fontWeight: 'bold', color: safeTheme.primary }}>Goals</Text>
         <TouchableOpacity onPress={handleAddGoal} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: safeTheme.primary, justifyContent: 'center', alignItems: 'center' }}>
           <MaterialIcons name="add" size={24} color={safeTheme.onPrimary} />
@@ -872,7 +1000,41 @@ const GoalsScreen = () => {
         />
       )}
       <EditModal />
-    </View>
+
+      {/* Delete Confirmation Modal */}
+      <Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => setDeleteModalVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          <View style={{ backgroundColor: safeTheme.surface, borderRadius: 32, padding: 32, width: '100%', maxWidth: 400, alignItems: 'center' }}>
+            <View style={{ width: 72, height: 72, borderRadius: 24, backgroundColor: safeTheme.error + '15', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+              <MaterialIcons name="delete-outline" size={40} color={safeTheme.error} />
+            </View>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: safeTheme.onSurface, marginBottom: 8, textAlign: 'center' }}>Hapus Goal?</Text>
+            <Text style={{ fontSize: 14, color: safeTheme.onSurfaceVariant, textAlign: 'center', marginBottom: 32, lineHeight: 20 }}>
+              Mimpi "{goalToDelete?.name}" akan dihapus. Tindakan ini tidak bisa dibatalkan.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <TouchableOpacity onPress={() => setDeleteModalVisible(false)} style={{ flex: 1, height: 56, borderRadius: 20, backgroundColor: safeTheme.surfaceContainerHighest, justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ color: safeTheme.onSurface, fontWeight: 'bold' }}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={confirmDeleteGoal} style={{ flex: 1, height: 56, borderRadius: 20, backgroundColor: safeTheme.error, justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Hapus</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Toast Notification */}
+      {toastVisible && (
+        <Animated.View style={{ position: 'absolute', bottom: 100, left: 24, right: 24, opacity: toastAnim, transform: [{ translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }], zIndex: 1000 }}>
+          <View style={{ backgroundColor: '#1E293B', paddingVertical: 14, paddingHorizontal: 20, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 10 }}>
+            <MaterialIcons name="check-circle" size={20} color={safeTheme.primary} />
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>{toastMsg}</Text>
+          </View>
+        </Animated.View>
+      )}
+
+    </SafeAreaView>
   );
 };
 

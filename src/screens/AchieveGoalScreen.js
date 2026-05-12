@@ -1,5 +1,6 @@
-import React, { useState, useContext, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, TextInput, ActivityIndicator } from 'react-native';
+import React, { useState, useContext, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, TextInput, ActivityIndicator, Animated } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
@@ -36,16 +37,27 @@ export const AchieveGoalScreen = () => {
   };
 
   const handleActualAmountChange = (val) => {
-    // 1. Ambil jumlah angka di KANAN kursor dari teks LAMA
     const oldText = actualAmountRef.current || '';
     const oldSel = selectionActualRef.current.start;
-    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
     
-    const formatted = formatInput(val);
+    let processedVal = val;
+    // Deteksi jika user menghapus karakter titik (backspace tepat di depan titik)
+    const oldDigits = oldText.replace(/\D/g, '');
+    const newDigits = val.replace(/\D/g, '');
+    
+    // Jika panjang string berkurang tapi jumlah digit sama, berarti user menghapus titik
+    if (val.length < oldText.length && oldDigits === newDigits && oldSel > 0) {
+      // Hapus karakter angka di depan titik tersebut
+      processedVal = oldText.slice(0, oldSel - 2) + oldText.slice(oldSel);
+    }
+
+    const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
+    const formatted = formatInput(processedVal);
+    
     setActualAmount(formatted);
     actualAmountRef.current = formatted;
 
-    // 2. Cari posisi baru dari KANAN di teks baru
+    // Cari posisi baru kursor berdasarkan jumlah digit di belakang (tetap konsisten)
     let newPos = formatted.length;
     let count = 0;
     for (let i = formatted.length - 1; i >= 0; i--) {
@@ -62,6 +74,24 @@ export const AchieveGoalScreen = () => {
   const [selectedTxIds, setSelectedTxIds] = useState([]);
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
+  
+  const handleBack = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => navigation.goBack());
+  };
+  
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 350,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   const toggleTx = (id) => {
     setSelectedTxIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -140,10 +170,11 @@ export const AchieveGoalScreen = () => {
       await updateGoal(goal.id, updateData);
       setUploading(false);
       
-      // Pop all screens (including GoalDetail) to return to MainTabs
-      navigation.popToTop();
-      // Then switch to the Goals tab with the achieved filter
-      navigation.navigate('Goals', { activeTab: 'achieved' });
+      // Pop to MainTabs and switch to 'achieved' tab in Goals
+      navigation.navigate('MainTabs', { 
+        screen: 'Goals', 
+        params: { activeTab: 'achieved' } 
+      });
     } catch (e) {
       setUploading(false);
       console.error('Save goal error:', e);
@@ -160,10 +191,9 @@ export const AchieveGoalScreen = () => {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
-      {/* Header */}
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['top']}>
       <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '22' }}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 16 }}>
+        <TouchableOpacity onPress={handleBack} style={{ marginRight: 16 }}>
           <MaterialIcons name="close" size={24} color={theme.onSurface} />
         </TouchableOpacity>
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.onSurface, flex: 1 }}>Tandai Tercapai</Text>
@@ -179,7 +209,13 @@ export const AchieveGoalScreen = () => {
         </View>
       )}
 
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <Animated.ScrollView 
+        contentContainerStyle={{ padding: 16 }}
+        style={{
+          opacity: fadeAnim,
+          transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
+        }}
+      >
         <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 4 }}>🎉 {goal.name}</Text>
         <Text style={{ color: theme.onSurfaceVariant, marginBottom: 20 }}>Pilih media dan transaksi terkait</Text>
 
@@ -297,8 +333,8 @@ export const AchieveGoalScreen = () => {
             </TouchableOpacity>
           );
         })}
-      </ScrollView>
-    </View>
+      </Animated.ScrollView>
+    </SafeAreaView>
   );
 };
 

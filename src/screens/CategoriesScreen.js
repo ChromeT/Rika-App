@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert, KeyboardAvoidingView, Platform, ScrollView, Modal, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemeContext } from '../context/ThemeContext';
@@ -9,7 +10,7 @@ const iconOptions = [
   // General & Misc
   'star', 'pets', 'child-friendly', 'cake', 'favorite', 'emoji-events',
   // Income / Finance
-  'payments', 'account-balance-wallet', 'savings', 'paid', 'monetization-on', 'trending-up', 'work', 'volunteer-activism', 'card-giftcard',
+  'payments', 'account-balance-wallet', 'favorite', 'paid', 'monetization-on', 'trending-up', 'work', 'volunteer-activism', 'card-giftcard',
   // Food & Groceries
   'restaurant', 'local-cafe', 'fastfood', 'local-grocery-store', 'local-pizza',
   // Transport & Utilities
@@ -125,7 +126,7 @@ const CategoriesScreen = ({ navigation }) => {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -251,7 +252,7 @@ const CategoriesScreen = ({ navigation }) => {
             </View>
           </View>
         </Modal>
-      </View>
+      </SafeAreaView>
     </KeyboardAvoidingView>
   );
 };
