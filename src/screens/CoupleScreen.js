@@ -104,7 +104,11 @@ const CoupleScreen = ({ navigation }) => {
   const durationText = getDurationText(relationshipStart);
 
   const formatMoney = (val) => {
-    return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(val || 0);
+    try {
+      return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Number(val) || 0);
+    } catch (e) {
+      return (Number(val) || 0).toLocaleString('id-ID');
+    }
   };
 
   const copyToClipboard = async () => {
@@ -303,6 +307,8 @@ const CoupleScreen = ({ navigation }) => {
           <View style={{ paddingBottom: 60 }}>
             {(() => {
               const now = dayjs();
+              const safeGoals = Array.isArray(goals) ? goals : [];
+              const safeTx = Array.isArray(transactions) ? transactions : [];
               
               // Helper to determine status and visual info
               const getGoalStatusInfo = (g) => {
@@ -319,7 +325,7 @@ const CoupleScreen = ({ navigation }) => {
               ];
 
               // Achieved goals
-              goals.filter(g => g.status === 'achieved' || g.achieved === true).forEach(g => {
+              safeGoals.filter(g => g.status === 'achieved' || g.achieved === true).forEach(g => {
                 const info = getGoalStatusInfo(g);
                 pastMilestones.push({
                   id: g.id,
@@ -336,7 +342,7 @@ const CoupleScreen = ({ navigation }) => {
               // High assets
               if (totalAssets > 5000000) {
                 // Find the date when this might have happened (approx by latest transaction)
-                const latestTxDate = transactions.length > 0 ? dayjs(transactions[0].date) : dayjs();
+                const latestTxDate = safeTx.length > 0 ? dayjs(safeTx[0].date) : dayjs();
                 pastMilestones.push({ 
                   title: 'Benteng Keuangan: 5 Juta!', 
                   date: latestTxDate, 
@@ -348,7 +354,7 @@ const CoupleScreen = ({ navigation }) => {
               }
 
               // Future Roadmap
-              const roadmapItems = goals
+              const roadmapItems = safeGoals
                 .filter(g => g.status !== 'achieved' && g.achieved !== true && g.targetDate)
                 .sort((a,b) => new Date(a.targetDate) - new Date(b.targetDate))
                 .map(g => {
