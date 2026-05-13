@@ -46,8 +46,7 @@
     "plugins": [
       "expo-video",
       "@react-native-community/datetimepicker",
-      "expo-notifications",
-      "expo-clipboard"
+      "expo-notifications"
     ],
     "extra": {
       "eas": {
