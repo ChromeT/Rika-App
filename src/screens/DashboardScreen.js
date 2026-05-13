@@ -86,9 +86,18 @@ const DashboardScreen = ({ navigation, route }) => {
     setToastMsg(msg);
     setToastVisible(true);
     Animated.sequence([
-      Animated.timing(toastAnim, { toValue: 1, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.delay(2000),
-      Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' })
+      Animated.spring(toastAnim, { 
+        toValue: 1, 
+        tension: 40, 
+        friction: 7, 
+        useNativeDriver: Platform.OS !== 'web' 
+      }),
+      Animated.delay(2500),
+      Animated.timing(toastAnim, { 
+        toValue: 0, 
+        duration: 300, 
+        useNativeDriver: Platform.OS !== 'web' 
+      })
     ]).start(() => setToastVisible(false));
   };
 
@@ -1553,7 +1562,15 @@ const DashboardScreen = ({ navigation, route }) => {
 
       {/* Toast Notification */}
       {toastVisible && (
-        <Animated.View style={[styles.toastContainer, { opacity: toastAnim, transform: [{ translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }]}>
+        <Animated.View style={[styles.toastContainer, { 
+          opacity: toastAnim, 
+          transform: [{ 
+            translateY: toastAnim.interpolate({ 
+              inputRange: [0, 1], 
+              outputRange: [-60, 0] 
+            }) 
+          }] 
+        }]}>
           <View style={styles.toastContent}>
             <MaterialIcons name="favorite" size={20} color={theme.primary} />
             <Text style={styles.toastText}>{toastMsg}</Text>

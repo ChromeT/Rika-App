@@ -696,9 +696,18 @@ const GoalsScreen = ({ navigation, route }) => {
     setToastMsg(msg);
     setToastVisible(true);
     Animated.sequence([
-      Animated.timing(toastAnim, { toValue: 1, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.delay(2000),
-      Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' })
+      Animated.spring(toastAnim, { 
+        toValue: 1, 
+        tension: 40, 
+        friction: 7, 
+        useNativeDriver: Platform.OS !== 'web' 
+      }),
+      Animated.delay(2500),
+      Animated.timing(toastAnim, { 
+        toValue: 0, 
+        duration: 300, 
+        useNativeDriver: Platform.OS !== 'web' 
+      })
     ]).start(() => setToastVisible(false));
   };
 
@@ -1088,7 +1097,20 @@ const GoalsScreen = ({ navigation, route }) => {
 
       {/* Toast Notification */}
       {toastVisible && (
-        <Animated.View style={{ position: 'absolute', bottom: 100, left: 24, right: 24, opacity: toastAnim, transform: [{ translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }], zIndex: 1000 }}>
+        <Animated.View style={{ 
+          position: 'absolute', 
+          bottom: 100, 
+          left: 24, 
+          right: 24, 
+          opacity: toastAnim, 
+          transform: [{ 
+            translateY: toastAnim.interpolate({ 
+              inputRange: [0, 1], 
+              outputRange: [40, 0] 
+            }) 
+          }], 
+          zIndex: 1000 
+        }}>
           <View style={{ backgroundColor: '#1E293B', paddingVertical: 14, paddingHorizontal: 20, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 10 }}>
             <MaterialIcons name="check-circle" size={20} color={safeTheme.primary} />
             <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>{toastMsg}</Text>
