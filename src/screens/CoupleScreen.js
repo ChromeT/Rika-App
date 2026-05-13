@@ -83,9 +83,24 @@ const CoupleScreen = ({ navigation }) => {
   const partnerName = (householdUsers || []).find(u => u !== myName);
   const hasPartner = !!partnerName;
 
+  const getDurationText = (startDate) => {
+    const start = dayjs(startDate);
+    const now = dayjs();
+    const years = now.diff(start, 'year');
+    const months = now.diff(start.add(years, 'year'), 'month');
+    const days = now.diff(start.add(years, 'year').add(months, 'month'), 'day');
+
+    if (years > 0) {
+      return `${years} Thn ${months} Bln Bersama`;
+    } else if (months > 0) {
+      return `${months} Bln ${days} Hari Bersama`;
+    } else {
+      return days === 0 ? 'Hari Pertama' : `${days} Hari Bersama`;
+    }
+  };
+
   const relationshipStart = householdData?.createdAt ? dayjs(householdData.createdAt) : dayjs();
-  const daysTogether = dayjs().diff(relationshipStart, 'day');
-  const durationText = daysTogether === 0 ? 'Hari Pertama' : `${daysTogether} Hari Bersama`;
+  const durationText = getDurationText(relationshipStart);
 
   const formatMoney = (val) => {
     return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(val || 0);
@@ -138,9 +153,15 @@ const CoupleScreen = ({ navigation }) => {
                 <MaterialIcons name="favorite" size={20} color="#fff" />
               </View>
               <View style={[styles.dashLine, { borderBottomColor: theme.outlineVariant + '44' }]} />
-              <Text style={{ position: 'absolute', top: 44, fontSize: 10, fontWeight: 'bold', color: theme.primary, width: 100, textAlign: 'center' }}>
-                {durationText}
-              </Text>
+              <TouchableOpacity 
+                activeOpacity={0.7} 
+                onPress={() => Alert.alert('Edit Hari Bersama', 'Permintaan ganti tanggal jadian akan dikirim ke pasangan untuk disetujui.')}
+                style={{ position: 'absolute', top: 44, width: 120, alignItems: 'center' }}
+              >
+                <Text style={{ fontSize: 10, fontWeight: 'bold', color: theme.primary, textAlign: 'center' }}>
+                  {durationText}
+                </Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.avatarContainer}>
@@ -208,9 +229,9 @@ const CoupleScreen = ({ navigation }) => {
                 <Text style={[styles.infoLabel, { color: theme.onSurfaceVariant }]}>ID RUMAH TANGGA</Text>
                 <Text style={[styles.infoValue, { color: theme.onSurface }]}>{user?.householdId}</Text>
               </View>
-              <TouchableOpacity style={[styles.copyBtn, { backgroundColor: theme.primary + '22' }]} onPress={copyToClipboard}>
-                <MaterialIcons name="share" size={18} color={theme.primary} />
-              </TouchableOpacity>
+              <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: theme.primary + '11', justifyContent: 'center', alignItems: 'center' }}>
+                <MaterialIcons name="home" size={18} color={theme.primary} />
+              </View>
             </View>
             <View style={[styles.divider, { backgroundColor: theme.outlineVariant + '22' }]} />
             <View style={styles.infoRow}>
@@ -434,7 +455,7 @@ const styles = StyleSheet.create({
   avatarName: { fontSize: 14, fontWeight: 'bold', marginBottom: 4 },
   roleBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   roleText: { fontSize: 9, fontWeight: '900' },
-  connectLine: { flex: 1, alignItems: 'center', position: 'relative' },
+  connectLine: { flex: 1, alignItems: 'center', position: 'relative', height: 90, justifyContent: 'center' },
   heartCircle: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', zIndex: 10 },
   dashLine: { position: 'absolute', top: 18, width: '100%', borderBottomWidth: 2, borderStyle: 'dashed' },
   inviteBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 24, padding: 12, borderRadius: 12 },
