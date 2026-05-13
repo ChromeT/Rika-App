@@ -156,7 +156,7 @@ const CoupleScreen = ({ navigation }) => {
               <TouchableOpacity 
                 activeOpacity={0.7} 
                 onPress={() => Alert.alert('Edit Hari Bersama', 'Permintaan ganti tanggal jadian akan dikirim ke pasangan untuk disetujui.')}
-                style={{ position: 'absolute', top: 44, width: 120, alignItems: 'center' }}
+                style={{ position: 'absolute', top: 48, width: 120, alignItems: 'center' }}
               >
                 <Text style={{ fontSize: 10, fontWeight: 'bold', color: theme.primary, textAlign: 'center' }}>
                   {durationText}
@@ -229,9 +229,7 @@ const CoupleScreen = ({ navigation }) => {
                 <Text style={[styles.infoLabel, { color: theme.onSurfaceVariant }]}>ID RUMAH TANGGA</Text>
                 <Text style={[styles.infoValue, { color: theme.onSurface }]}>{user?.householdId}</Text>
               </View>
-              <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: theme.primary + '11', justifyContent: 'center', alignItems: 'center' }}>
-                <MaterialIcons name="home" size={18} color={theme.primary} />
-              </View>
+              <View style={{ width: 36, height: 36 }} />
             </View>
             <View style={[styles.divider, { backgroundColor: theme.outlineVariant + '22' }]} />
             <View style={styles.infoRow}>
@@ -455,7 +453,7 @@ const styles = StyleSheet.create({
   avatarName: { fontSize: 14, fontWeight: 'bold', marginBottom: 4 },
   roleBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   roleText: { fontSize: 9, fontWeight: '900' },
-  connectLine: { flex: 1, alignItems: 'center', position: 'relative', height: 90, justifyContent: 'center' },
+  connectLine: { flex: 1, alignItems: 'center', position: 'relative' },
   heartCircle: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', zIndex: 10 },
   dashLine: { position: 'absolute', top: 18, width: '100%', borderBottomWidth: 2, borderStyle: 'dashed' },
   inviteBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 24, padding: 12, borderRadius: 12 },
