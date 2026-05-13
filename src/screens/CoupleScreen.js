@@ -11,6 +11,8 @@ import { ThemeContext } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import { DataContext } from '../context/DataContext';
 
+import { formatMoney } from '../utils/formatUtils';
+
 dayjs.extend(relativeTime);
 
 const { width } = Dimensions.get('window');
@@ -103,13 +105,7 @@ const CoupleScreen = ({ navigation }) => {
   const relationshipStart = householdData?.createdAt ? dayjs(householdData.createdAt) : dayjs();
   const durationText = getDurationText(relationshipStart);
 
-  const formatMoney = (val) => {
-    try {
-      return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Number(val) || 0);
-    } catch (e) {
-      return (Number(val) || 0).toLocaleString('id-ID');
-    }
-  };
+
 
   const copyToClipboard = async () => {
     try {
@@ -141,7 +137,6 @@ const CoupleScreen = ({ navigation }) => {
         <Text style={[styles.headerTitle, { color: theme.onSurface }]}>Ruang Kita</Text>
         <View style={{ width: 40 }} />
       </Animated.View>
-
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Couple Card */}
         <Animated.View style={[styles.coupleCard, { backgroundColor: theme.surfaceContainerLow, opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }]}>
@@ -209,8 +204,6 @@ const CoupleScreen = ({ navigation }) => {
             </TouchableOpacity>
           )}
         </Animated.View>
-
-        {/* Combined Stats Section */}
         <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
           <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Kekuatan Finansial</Text>
           <LinearGradient 
@@ -239,8 +232,6 @@ const CoupleScreen = ({ navigation }) => {
             </View>
           </View>
         </Animated.View>
-
-        {/* Household Info Section */}
         <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <Text style={[styles.sectionTitle, { color: theme.onSurface, marginBottom: 0 }]}>Informasi Rumah Tangga</Text>
@@ -301,7 +292,7 @@ const CoupleScreen = ({ navigation }) => {
             </Text>
             <Text style={[styles.mottoAuthor, { color: theme.primary }]}>— SORE</Text>
           </TouchableOpacity>
-        </Animated.View>        {/* Timeline Milestones Section */}
+        </Animated.View>
         <Animated.View style={{ opacity: fadeAnims[4], transform: [{ translateY: slideAnims[4] }] }}>
           <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Timeline Kebersamaan</Text>
           <View style={{ paddingBottom: 60 }}>
@@ -310,10 +301,12 @@ const CoupleScreen = ({ navigation }) => {
               const safeGoals = Array.isArray(goals) ? goals : [];
               const safeTx = Array.isArray(transactions) ? transactions : [];
               
-              // Helper to determine status and visual info
               const getGoalStatusInfo = (g) => {
-                const progress = g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0;
+                const target = Number(g.targetAmount) || 0;
+                const current = Number(g.currentAmount) || 0;
+                const progress = target > 0 ? Math.min(100, Math.max(0, (current / target) * 100)) : 0;
                 const isGoalAchieved = g.status === 'achieved' || g.achieved === true;
+
                 if (isGoalAchieved) return { icon: 'stars', color: '#FFB800', badge: 'Terwujud', type: 'ACHIEVED', progress };
                 if (progress >= 100) return { icon: 'flag', color: '#10B981', badge: 'Siap Lunas', type: 'READY', progress };
                 if (progress > 0) return { icon: 'donut-large', color: theme.primary, badge: `Berjalan ${progress.toFixed(0)}%`, type: 'PROGRESS', progress };
@@ -321,16 +314,23 @@ const CoupleScreen = ({ navigation }) => {
               };
 
               const pastMilestones = [
-                { title: 'Awal Kisah Kita', date: relationshipStart, icon: 'favorite', color: theme.primary, desc: 'Momen pertama kalian resmi terhubung dan mulai berpetualang di Rika.', type: 'SYSTEM' },
+                { 
+                  title: 'Awal Kisah Kita', 
+                  date: (relationshipStart && relationshipStart.isValid()) ? relationshipStart : now, 
+                  icon: 'favorite', 
+                  color: theme.primary, 
+                  desc: 'Momen pertama kalian resmi terhubung dan mulai berpetualang di Rika.', 
+                  type: 'SYSTEM' 
+                },
               ];
 
-              // Achieved goals
               safeGoals.filter(g => g.status === 'achieved' || g.achieved === true).forEach(g => {
                 const info = getGoalStatusInfo(g);
+                const gDate = dayjs(g.achievedAt || g.createdAt);
                 pastMilestones.push({
                   id: g.id,
                   title: `Goal Terwujud: ${g.name}`,
-                  date: dayjs(g.achievedAt || g.createdAt),
+                  date: gDate.isValid() ? gDate : now,
                   icon: info.icon,
                   color: info.color,
                   desc: `Satu mimpi berhasil kita wujudkan. Kebanggaan yang tak terlupakan!`,
@@ -339,13 +339,11 @@ const CoupleScreen = ({ navigation }) => {
                 });
               });
 
-              // High assets
-              if (totalAssets > 5000000) {
-                // Find the date when this might have happened (approx by latest transaction)
-                const latestTxDate = safeTx.length > 0 ? dayjs(safeTx[0].date) : dayjs();
+              if (Number(totalAssets) > 5000000) {
+                const latestTxDate = safeTx.length > 0 ? dayjs(safeTx[0].date) : now;
                 pastMilestones.push({ 
                   title: 'Benteng Keuangan: 5 Juta!', 
-                  date: latestTxDate, 
+                  date: latestTxDate.isValid() ? latestTxDate : now, 
                   icon: 'shield', 
                   color: '#10B981', 
                   desc: 'Aset gabungan kita menembus 5 Juta. Fondasi masa depan makin kohkoh!', 
@@ -353,17 +351,20 @@ const CoupleScreen = ({ navigation }) => {
                 });
               }
 
-              // Future Roadmap
               const roadmapItems = safeGoals
                 .filter(g => g.status !== 'achieved' && g.achieved !== true && g.targetDate)
-                .sort((a,b) => new Date(a.targetDate) - new Date(b.targetDate))
+                .sort((a,b) => {
+                  const dateA = dayjs(a.targetDate);
+                  const dateB = dayjs(b.targetDate);
+                  return (dateA.isValid() ? dateA.valueOf() : 0) - (dateB.isValid() ? dateB.valueOf() : 0);
+                })
                 .map(g => {
                   const info = getGoalStatusInfo(g);
                   const tDate = dayjs(g.targetDate);
                   return {
                     id: g.id,
                     title: g.name,
-                    date: tDate,
+                    date: tDate.isValid() ? tDate : now,
                     icon: info.icon,
                     color: info.color,
                     desc: g.description || `Target Roadmap: Rencana pencapaian goal ini.`,
@@ -382,8 +383,8 @@ const CoupleScreen = ({ navigation }) => {
                   style={styles.milestoneItem}
                 >
                   <View style={styles.milestoneLeft}>
-                    <View style={[styles.milestoneIconBg, { backgroundColor: m.color + (m.isFuture ? '11' : '22'), borderWidth: m.isFuture ? 1 : 0, borderColor: m.color + '44' }]}>
-                      <MaterialIcons name={m.icon} size={18} color={m.color} />
+                    <View style={[styles.milestoneIconBg, { backgroundColor: (m.color || theme.primary) + (m.isFuture ? '11' : '22'), borderWidth: m.isFuture ? 1 : 0, borderColor: (m.color || theme.primary) + '44' }]}>
+                      <MaterialIcons name={m.icon} size={18} color={m.color || theme.primary} />
                     </View>
                     {idx !== list.length - 1 && (
                       <View style={[
@@ -398,18 +399,18 @@ const CoupleScreen = ({ navigation }) => {
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.milestoneTitle, { color: theme.onSurface }]} numberOfLines={1}>{m.title}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <View style={[styles.miniBadge, { backgroundColor: m.color + '1A' }]}>
-                            <Text style={[styles.miniBadgeText, { color: m.color }]}>{m.badge || (m.isFuture ? 'ROADMAP' : 'MEMORI')}</Text>
+                          <View style={[styles.miniBadge, { backgroundColor: (m.color || theme.primary) + '1A' }]}>
+                            <Text style={[styles.miniBadgeText, { color: m.color || theme.primary }]}>{m.badge || (m.isFuture ? 'ROADMAP' : 'MEMORI')}</Text>
                           </View>
-                          <Text style={[styles.milestoneDate, { color: theme.onSurfaceVariant }]}>{m.date.format('DD-MM-YYYY')}</Text>
+                          <Text style={[styles.milestoneDate, { color: theme.onSurfaceVariant }]}>{m.date && m.date.isValid() ? m.date.format('DD-MM-YYYY') : '-'}</Text>
                         </View>
                       </View>
                     </View>
                     
-                    {m.progress !== undefined && m.type !== 'ACHIEVED' && (
+                    {m.progress !== undefined && !isNaN(m.progress) && m.type !== 'ACHIEVED' && (
                       <View style={styles.miniProgressContainer}>
                         <View style={[styles.miniProgressBar, { backgroundColor: theme.surfaceContainerHighest }]}>
-                          <View style={[styles.miniProgressFill, { width: `${m.progress}%`, backgroundColor: m.color }]} />
+                          <View style={[styles.miniProgressFill, { width: `${Math.min(100, Math.max(0, m.progress))}%`, backgroundColor: m.color || theme.primary }]} />
                         </View>
                       </View>
                     )}
@@ -419,7 +420,12 @@ const CoupleScreen = ({ navigation }) => {
                 </TouchableOpacity>
               );
 
-              const sortedPast = pastMilestones.sort((a,b) => b.date - a.date);
+              const sortedPast = [...pastMilestones].sort((a, b) => {
+                const valA = a.date && a.date.isValid() ? a.date.valueOf() : 0;
+                const valB = b.date && b.date.isValid() ? b.date.valueOf() : 0;
+                return valB - valA;
+              });
+
               const visibleRoadmap = showAllRoadmap ? roadmapItems : roadmapItems.slice(0, 3);
               const visiblePast = showAllHistory ? sortedPast : sortedPast.slice(0, 3);
 
@@ -433,7 +439,6 @@ const CoupleScreen = ({ navigation }) => {
                       </View>
                       <View style={[styles.timelineCard, { backgroundColor: theme.surfaceContainerLow, borderStyle: 'dashed', borderWidth: 1, borderColor: theme.primary + '33' }]}>
                         {visibleRoadmap.map((m, idx) => renderMilestone(m, idx, visibleRoadmap))}
-                        
                         {roadmapItems.length > 3 && (
                           <TouchableOpacity style={styles.showMoreBtn} onPress={() => setShowAllRoadmap(!showAllRoadmap)}>
                             <Text style={[styles.showMoreText, { color: theme.primary }]}>
@@ -445,7 +450,6 @@ const CoupleScreen = ({ navigation }) => {
                       </View>
                     </View>
                   )}
-
                   <View>
                     <View style={styles.roadmapHeader}>
                       <MaterialIcons name="history" size={16} color={theme.onSurfaceVariant} />
@@ -453,7 +457,6 @@ const CoupleScreen = ({ navigation }) => {
                     </View>
                     <View style={[styles.timelineCard, { backgroundColor: theme.surfaceContainerLow }]}>
                       {visiblePast.map((m, idx) => renderMilestone(m, idx, visiblePast))}
-                      
                       {sortedPast.length > 3 && (
                         <TouchableOpacity style={styles.showMoreBtn} onPress={() => setShowAllHistory(!showAllHistory)}>
                           <Text style={[styles.showMoreText, { color: theme.onSurfaceVariant }]}>

@@ -11,6 +11,7 @@ import { AuthContext } from '../context/AuthContext';
 import { exportToXLS, exportToPDF } from '../utils/exportUtils';
 import Svg, { Circle, G } from 'react-native-svg';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { formatMoney } from '../utils/formatUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -227,7 +228,7 @@ const DashboardScreen = ({ navigation, route }) => {
   const partnerName = householdUsers?.find(u => u !== myName);
   const hasPartner = !!partnerName;
 
-  const formatMoney = (amount) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(amount || 0);
+
 
   // Filtered Data
   const filteredTx = (transactions || []).filter(tx => {
@@ -600,7 +601,6 @@ const DashboardScreen = ({ navigation, route }) => {
           )}
         </TouchableOpacity>
       </View>
-
       <ScrollView 
         ref={scrollRef}
         contentContainerStyle={styles.main} 
@@ -620,7 +620,6 @@ const DashboardScreen = ({ navigation, route }) => {
             </View>
           </LinearGradient>
         </Animated.View>
-        
         {/* Pending Splits Confirmation Section */}
         {pendingSplits.length > 0 && (
           <Animated.View 
@@ -702,7 +701,6 @@ const DashboardScreen = ({ navigation, route }) => {
               </TouchableOpacity>
            </ScrollView>
         </Animated.View>
-
         {/* Expense Analysis Section */}
         <Animated.View 
           onLayout={(e) => { sectionLayouts.current.expense = e.nativeEvent.layout.y; }}
