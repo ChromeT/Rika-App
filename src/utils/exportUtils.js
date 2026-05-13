@@ -102,11 +102,12 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
 
     const filename = `Rika_Report_${period}_${Date.now()}.xlsx`;
 
+    const sanitizedFilename = filename.replace(/\s+/g, '_');
     if (Platform.OS === 'web') {
-      XLSX.writeFile(wb, filename);
+      XLSX.writeFile(wb, sanitizedFilename);
     } else {
       const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
-      const fileUri = FileSystem.cacheDirectory + filename;
+      const fileUri = `${FileSystem.documentDirectory}${sanitizedFilename}`;
       await FileSystem.writeAsStringAsync(fileUri, wbout, {
         encoding: FileSystem.EncodingType.Base64
       });

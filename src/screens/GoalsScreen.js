@@ -1,6 +1,7 @@
 import React, { useContext, useState, useMemo, useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, ActivityIndicator, TextInput, Alert, Modal, Animated, Platform } from 'react-native';
+import { View, StyleSheet, Image, TouchableOpacity, Dimensions, ActivityIndicator, TextInput, Alert, Modal, Animated, Platform } from 'react-native';
+import Text from '../components/ThemeText';
 import { ScrollView, FlatList } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';

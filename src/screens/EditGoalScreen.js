@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, Animated, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, Animated, Platform } from 'react-native';
+import Text from '../components/ThemeText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';

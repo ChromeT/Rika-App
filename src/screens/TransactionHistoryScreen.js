@@ -1,6 +1,7 @@
 // Force re-bundle: 2026-05-12 23:56:00
 import React, { useContext, useState, useMemo, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Modal, ActivityIndicator, Alert, Animated, Platform } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Image, Modal, ActivityIndicator, Alert, Animated, Platform } from 'react-native';
+import Text from '../components/ThemeText';
 import { ScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';

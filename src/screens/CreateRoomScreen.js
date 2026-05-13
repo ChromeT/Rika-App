@@ -1,5 +1,6 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Animated, Platform } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Animated, Platform } from 'react-native';
+import Text from '../components/ThemeText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeContext } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';

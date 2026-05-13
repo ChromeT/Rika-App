@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Modal, Alert, TextInput, Animated, Platform, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Modal, Alert, TextInput, Animated, Platform, ActivityIndicator } from 'react-native';
+import Text from '../components/ThemeText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';

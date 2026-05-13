@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import Text from '../components/ThemeText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeContext } from '../context/ThemeContext';
 import { MaterialIcons } from '@expo/vector-icons';
