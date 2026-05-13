@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, TouchableOpacity, Switch, Image, Alert, ActivityIndicator, Animated } from 'react-native';
+import { View, StyleSheet, ScrollView, TextInput, TouchableOpacity, Switch, Image, Alert, ActivityIndicator, Animated, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -54,34 +54,34 @@ const TransactionScreen = ({ navigation, route }) => {
   useEffect(() => {
     Animated.stagger(80, [
       Animated.parallel([
-        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: true }),
-        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
       ]),
       Animated.parallel([
-        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: true }),
-        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
       ]),
       Animated.parallel([
-        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: true }),
-        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
       ]),
       Animated.parallel([
-        Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: true }),
-        Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+        Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
       ])
     ]).start();
   }, []);
 
   const handleBack = () => {
     Animated.parallel([
-      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: true }),
-      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: true }),
-      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: true }),
-      Animated.timing(fadeAnims[3], { toValue: 0, duration: 300, useNativeDriver: true }),
-      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: true }),
-      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: true }),
-      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: true }),
-      Animated.timing(slideAnims[3], { toValue: -20, duration: 300, useNativeDriver: true })
+      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[3], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[3], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' })
     ]).start(() => navigation.goBack());
   };
 

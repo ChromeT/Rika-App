@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Animated, Platform } from 'react-native';
 import Text from '../components/ThemeText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeContext } from '../context/ThemeContext';
@@ -16,20 +16,20 @@ const WelcomeScreen = ({ navigation }) => {
   useEffect(() => {
     Animated.stagger(100, [
       Animated.parallel([
-        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: true }),
-        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
       ]),
       Animated.parallel([
-        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: true }),
-        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
       ]),
       Animated.parallel([
-        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: true }),
-        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
       ]),
       Animated.parallel([
-        Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: true }),
-        Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+        Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
       ])
     ]).start();
   }, []);
