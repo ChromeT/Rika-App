@@ -106,10 +106,13 @@ const CoupleScreen = ({ navigation }) => {
     return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(val || 0);
   };
 
-  const copyToClipboard = () => {
-    Share.share({
-      message: `Yuk join ke aplikasi Rika bareng aku! Pake kode rumah tangga ini ya: ${user?.householdId}`,
-    });
+  const copyToClipboard = async () => {
+    try {
+      await Clipboard.setStringAsync(user?.householdId || '');
+      Alert.alert('Tersalin!', 'ID Rumah Tangga sudah disalin ke clipboard.');
+    } catch (e) {
+      Alert.alert('Gagal', 'Tidak dapat menyalin ID.');
+    }
   };
 
   const myBalance = getBalance(myName);
@@ -137,53 +140,65 @@ const CoupleScreen = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Couple Card */}
         <Animated.View style={[styles.coupleCard, { backgroundColor: theme.surfaceContainerLow, opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }]}>
+          {/* Background Decorative Glows */}
+          <View style={{ position: 'absolute', top: -30, left: -30, width: 120, height: 120, borderRadius: 60, backgroundColor: theme.primary + '10' }} />
+          <View style={{ position: 'absolute', bottom: -30, right: -30, width: 120, height: 120, borderRadius: 60, backgroundColor: theme.primaryContainer + '10' }} />
+          
           <View style={styles.avatarsRow}>
             <View style={styles.avatarContainer}>
-              <View style={[styles.avatarFrame, { borderColor: theme.primary + '33' }]}>
-                {renderAvatar(avatar, 80)}
+              <View style={[styles.avatarFrame, { borderColor: theme.primary + '44', backgroundColor: theme.surfaceContainer }]}>
+                {renderAvatar(avatar, 84)}
+                <View style={{ position: 'absolute', bottom: -2, right: -2, width: 24, height: 24, borderRadius: 12, backgroundColor: theme.primary, borderWidth: 3, borderColor: theme.surfaceContainerLow, justifyContent: 'center', alignItems: 'center' }}>
+                  <MaterialIcons name="person" size={12} color="#fff" />
+                </View>
               </View>
-              <Text style={[styles.avatarName, { color: theme.onSurface }]}>{myName}</Text>
-              <View style={[styles.roleBadge, { backgroundColor: theme.primary + '22' }]}>
+              <Text style={[styles.avatarName, { color: theme.onSurface, marginTop: 8 }]}>{myName}</Text>
+              <View style={[styles.roleBadge, { backgroundColor: theme.primary + '15' }]}>
                 <Text style={[styles.roleText, { color: theme.primary }]}>SAYA</Text>
               </View>
             </View>
 
             <View style={styles.connectLine}>
-              <View style={[styles.heartCircle, { backgroundColor: theme.primary }]}>
+              <View style={[styles.dashLine, { borderBottomColor: theme.outlineVariant + '33' }]} />
+              <View style={[styles.heartCircle, { backgroundColor: theme.primary, shadowColor: theme.primary, shadowRadius: 10, shadowOpacity: 0.5, elevation: 8 }]}>
                 <MaterialIcons name="favorite" size={20} color="#fff" />
               </View>
-              <View style={[styles.dashLine, { borderBottomColor: theme.outlineVariant + '44' }]} />
               <TouchableOpacity 
                 activeOpacity={0.7} 
                 onPress={() => Alert.alert('Edit Hari Bersama', 'Permintaan ganti tanggal jadian akan dikirim ke pasangan untuk disetujui.')}
-                style={{ position: 'absolute', top: 48, width: 120, alignItems: 'center' }}
+                style={{ marginTop: 12, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, backgroundColor: theme.primary + '10' }}
               >
-                <Text style={{ fontSize: 10, fontWeight: 'bold', color: theme.primary, textAlign: 'center' }}>
-                  {durationText}
+                <Text style={{ fontSize: 10, fontWeight: '800', color: theme.primary, textAlign: 'center' }}>
+                  {durationText.toUpperCase()}
                 </Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.avatarContainer}>
-              <View style={[styles.avatarFrame, { borderColor: hasPartner ? theme.primaryContainer + '33' : theme.outlineVariant + '33' }]}>
+              <View style={[styles.avatarFrame, { borderColor: hasPartner ? theme.primaryContainer + '44' : theme.outlineVariant + '22', backgroundColor: theme.surfaceContainer }]}>
                 {hasPartner && householdAvatars[partnerName] 
-                  ? renderAvatar(householdAvatars[partnerName], 80)
-                  : <MaterialIcons name="person-add" size={40} color={theme.onSurfaceVariant + '44'} />
+                  ? renderAvatar(householdAvatars[partnerName], 84)
+                  : <MaterialIcons name="person-add" size={40} color={theme.onSurfaceVariant + '33'} />
                 }
+                {hasPartner && (
+                  <View style={{ position: 'absolute', bottom: -2, right: -2, width: 24, height: 24, borderRadius: 12, backgroundColor: theme.primaryContainer, borderWidth: 3, borderColor: theme.surfaceContainerLow, justifyContent: 'center', alignItems: 'center' }}>
+                    <MaterialIcons name="favorite" size={12} color="#fff" />
+                  </View>
+                )}
               </View>
-              <Text style={[styles.avatarName, { color: hasPartner ? theme.onSurface : theme.onSurfaceVariant }]}>
+              <Text style={[styles.avatarName, { color: hasPartner ? theme.onSurface : theme.onSurfaceVariant, marginTop: 8 }]}>
                 {partnerName || 'Belum Ada'}
               </Text>
-              <View style={[styles.roleBadge, { backgroundColor: hasPartner ? theme.primaryContainer + '22' : theme.surfaceContainerHighest }]}>
+              <View style={[styles.roleBadge, { backgroundColor: hasPartner ? theme.primaryContainer + '15' : theme.surfaceContainerHighest }]}>
                 <Text style={[styles.roleText, { color: hasPartner ? theme.primaryContainer : theme.onSurfaceVariant }]}>PASANGAN</Text>
               </View>
             </View>
           </View>
 
           {!hasPartner && (
-            <TouchableOpacity style={[styles.inviteBanner, { backgroundColor: theme.primary + '1A' }]} onPress={copyToClipboard}>
-              <MaterialIcons name="info-outline" size={16} color={theme.primary} />
-              <Text style={[styles.inviteText, { color: theme.onSurfaceVariant }]}>
+            <TouchableOpacity style={[styles.inviteBanner, { backgroundColor: theme.primary + '0D', marginTop: 16 }]} onPress={copyToClipboard}>
+              <MaterialIcons name="auto-fix-high" size={16} color={theme.primary} />
+              <Text style={[styles.inviteText, { color: theme.onSurfaceVariant, fontSize: 11 }]}>
                 Berikan kode rumah tangga ke pasanganmu untuk terhubung.
               </Text>
             </TouchableOpacity>
@@ -235,10 +250,7 @@ const CoupleScreen = ({ navigation }) => {
             
             <TouchableOpacity 
               activeOpacity={0.8} 
-              onPress={() => {
-                copyToClipboard();
-                Alert.alert('Tersalin!', 'ID Rumah Tangga sudah disalin ke clipboard.');
-              }}
+              onPress={copyToClipboard}
               style={styles.infoRow}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
@@ -485,8 +497,8 @@ const styles = StyleSheet.create({
   roleBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   roleText: { fontSize: 9, fontWeight: '900' },
   connectLine: { flex: 1, alignItems: 'center', position: 'relative' },
-  heartCircle: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', zIndex: 10 },
-  dashLine: { position: 'absolute', top: 18, width: '100%', borderBottomWidth: 2, borderStyle: 'dashed' },
+  heartCircle: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', zIndex: 10 },
+  dashLine: { position: 'absolute', top: 20, width: '100%', borderBottomWidth: 2, borderStyle: 'dashed' },
   inviteBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 24, padding: 12, borderRadius: 12 },
   inviteText: { fontSize: 10, fontWeight: '500', flex: 1 },
   sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 16, marginTop: 8 },
