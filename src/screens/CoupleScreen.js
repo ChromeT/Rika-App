@@ -222,24 +222,55 @@ const CoupleScreen = ({ navigation }) => {
 
         {/* Household Info Section */}
         <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
-          <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Informasi Rumah Tangga</Text>
-          <View style={[styles.infoCard, { backgroundColor: theme.surfaceContainerLow }]}>
-            <View style={styles.infoRow}>
-              <View>
-                <Text style={[styles.infoLabel, { color: theme.onSurfaceVariant }]}>ID RUMAH TANGGA</Text>
-                <Text style={[styles.infoValue, { color: theme.onSurface }]}>{user?.householdId}</Text>
-              </View>
-              <View style={{ width: 36, height: 36 }} />
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={[styles.sectionTitle, { color: theme.onSurface, marginBottom: 0 }]}>Informasi Rumah Tangga</Text>
+            <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 100, backgroundColor: theme.primary + '15' }}>
+              <Text style={{ fontSize: 9, fontWeight: '800', color: theme.primary, letterSpacing: 1 }}>OFFICIAL HOUSEHOLD</Text>
             </View>
-            <View style={[styles.divider, { backgroundColor: theme.outlineVariant + '22' }]} />
-            <View style={styles.infoRow}>
-              <View>
-                <Text style={[styles.infoLabel, { color: theme.onSurfaceVariant }]}>STATUS KONEKSI</Text>
-                <Text style={[styles.infoValue, { color: hasPartner ? '#10B981' : theme.error }]}>
-                  {hasPartner ? 'Terhubung Aktif' : 'Menunggu Pasangan'}
-                </Text>
+          </View>
+          
+          <View style={[styles.infoCard, { backgroundColor: theme.surfaceContainerLow, overflow: 'hidden' }]}>
+            {/* Decorative Background Element */}
+            <View style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: theme.primary + '08' }} />
+            
+            <TouchableOpacity 
+              activeOpacity={0.8} 
+              onPress={() => {
+                copyToClipboard();
+                Alert.alert('Tersalin!', 'ID Rumah Tangga sudah disalin ke clipboard.');
+              }}
+              style={styles.infoRow}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: theme.primary + '15', justifyContent: 'center', alignItems: 'center' }}>
+                  <MaterialIcons name="vpn-key" size={22} color={theme.primary} />
+                </View>
+                <View>
+                  <Text style={[styles.infoLabel, { color: theme.onSurfaceVariant, fontSize: 10, letterSpacing: 0.5 }]}>ID RUMAH TANGGA</Text>
+                  <Text style={[styles.infoValue, { color: theme.onSurface, fontSize: 18, fontWeight: '800' }]}>{user?.householdId}</Text>
+                </View>
               </View>
-              <MaterialIcons name={hasPartner ? "verified-user" : "hourglass-empty"} size={24} color={hasPartner ? '#10B981' : theme.error} />
+              <MaterialIcons name="content-copy" size={18} color={theme.onSurfaceVariant + '66'} />
+            </TouchableOpacity>
+
+            <View style={[styles.divider, { backgroundColor: theme.outlineVariant + '15', marginVertical: 16 } ]} />
+
+            <View style={styles.infoRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: (hasPartner ? '#10B981' : theme.error) + '15', justifyContent: 'center', alignItems: 'center' }}>
+                  <MaterialIcons name={hasPartner ? "verified" : "sync"} size={22} color={hasPartner ? '#10B981' : theme.error} />
+                </View>
+                <View>
+                  <Text style={[styles.infoLabel, { color: theme.onSurfaceVariant, fontSize: 10, letterSpacing: 0.5 }]}>STATUS KONEKSI</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={[styles.infoValue, { color: hasPartner ? '#10B981' : theme.error, fontSize: 15, fontWeight: '700' }]}>
+                      {hasPartner ? 'Terhubung Aktif' : 'Menunggu Pasangan'}
+                    </Text>
+                    {hasPartner && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' }} />}
+                  </View>
+                </View>
+              </View>
+              {!hasPartner && <ActivityIndicator size="small" color={theme.error} />}
             </View>
           </View>
 
@@ -467,10 +498,10 @@ const styles = StyleSheet.create({
   miniStat: { flex: 1, padding: 16, borderRadius: 20 },
   miniLabel: { fontSize: 9, fontWeight: 'bold', marginBottom: 4 },
   miniValue: { fontSize: 13, fontWeight: 'bold' },
-  infoCard: { borderRadius: 24, padding: 20, marginBottom: 24 },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  infoLabel: { fontSize: 9, fontWeight: 'bold', marginBottom: 4 },
-  infoValue: { fontSize: 16, fontWeight: '900', letterSpacing: 0.5 },
+  infoCard: { borderRadius: 24, padding: 20, marginBottom: 20, position: 'relative' },
+  infoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  infoLabel: { fontSize: 10, fontWeight: '800', marginBottom: 2 },
+  infoValue: { fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
   copyBtn: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   divider: { height: 1, marginVertical: 16 },
   mottoCard: { padding: 24, borderRadius: 24, alignItems: 'center' },
