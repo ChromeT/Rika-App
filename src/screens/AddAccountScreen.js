@@ -1,5 +1,5 @@
 import React, { useContext, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Switch, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -37,6 +37,44 @@ const AddAccountScreen = ({ route }) => {
   const [selectionState, setSelectionState] = useState({ start: 0, end: 0 });
   const balanceRef = useRef(editingAccount?.balance ? formatInput(editingAccount.balance.toString()) : '');
   const [loading, setLoading] = useState(false);
+
+  // Animations
+  const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+  const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
+
+  React.useEffect(() => {
+    Animated.stagger(100, [
+      Animated.parallel([
+        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ])
+    ]).start();
+  }, []);
+
+  const handleBack = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[3], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[3], { toValue: -20, duration: 300, useNativeDriver: true })
+    ]).start(() => navigation.goBack());
+  };
 
   const handleBalanceChange = (val) => {
     const oldText = balanceRef.current || '';
@@ -93,7 +131,7 @@ const AddAccountScreen = ({ route }) => {
       } else {
         await addAccount(accountData);
       }
-      navigation.goBack();
+      handleBack();
     } catch (e) {
       if (e.message === 'DUPLICATE_NAME') {
         Alert.alert('Nama Sudah Ada', 'Nama sumber dana sudah ada! Gunakan nama lain agar tidak bingung.');
@@ -107,8 +145,8 @@ const AddAccountScreen = ({ route }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-      <View style={[styles.header, { backgroundColor: theme.surface }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+      <Animated.View style={[styles.header, { backgroundColor: theme.surface, opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }]}>
+        <TouchableOpacity onPress={handleBack}>
           <MaterialIcons name="close" size={24} color={theme.onSurface} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.onSurface }]}>
@@ -121,54 +159,59 @@ const AddAccountScreen = ({ route }) => {
             <Text style={[styles.saveBtn, { color: theme.primary }]}>Simpan</Text>
           )}
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>NAMA SUMBER (Contoh: BCA, GoPay, Dompet)</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface }]}
-          placeholder="Nama Dompet / Akun"
-          placeholderTextColor={theme.onSurfaceVariant}
-          value={name}
-          onChangeText={setName}
-        />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
+          <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>NAMA SUMBER (Contoh: BCA, GoPay, Dompet)</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface }]}
+            placeholder="Nama Dompet / Akun"
+            placeholderTextColor={theme.onSurfaceVariant}
+            value={name}
+            onChangeText={setName}
+          />
+        </Animated.View>
 
-        <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>SALDO SAAT INI (RP)</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface, fontSize: 24, fontWeight: 'bold' }]}
-          placeholder="0"
-          placeholderTextColor={theme.onSurfaceVariant}
-          keyboardType="numeric"
-          value={balance}
-          onChangeText={handleBalanceChange}
-          selection={selectionState}
-          onSelectionChange={(e) => {
-            const sel = e.nativeEvent.selection;
-            setSelectionState(sel);
-            selectionRef.current = sel;
-          }}
-        />
+        <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
+          <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>SALDO SAAT INI (RP)</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface, fontSize: 24, fontWeight: 'bold' }]}
+            placeholder="0"
+            placeholderTextColor={theme.onSurfaceVariant}
+            keyboardType="numeric"
+            value={balance}
+            onChangeText={handleBalanceChange}
+            selection={selectionState}
+            onSelectionChange={(e) => {
+              const sel = e.nativeEvent.selection;
+              setSelectionState(sel);
+              selectionRef.current = sel;
+            }}
+          />
+        </Animated.View>
 
-        <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>JENIS SUMBER</Text>
-        <View style={styles.typeGrid}>
-          {ACCOUNT_TYPES.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              onPress={() => setType(item.id)}
-              style={[
-                styles.typeItem,
-                { backgroundColor: theme.surfaceContainerLow },
-                type === item.id && { borderColor: theme.primary, borderWidth: 2 }
-              ]}
-            >
-              <MaterialIcons name={item.icon} size={24} color={type === item.id ? theme.primary : theme.onSurfaceVariant} />
-              <Text style={[styles.typeText, { color: type === item.id ? theme.onSurface : theme.onSurfaceVariant }]}>
-                {item.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
+        <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
+          <Text style={[styles.label, { color: theme.onSurfaceVariant }]}>JENIS SUMBER</Text>
+          <View style={styles.typeGrid}>
+            {ACCOUNT_TYPES.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                onPress={() => setType(item.id)}
+                style={[
+                  styles.typeItem,
+                  { backgroundColor: theme.surfaceContainerLow },
+                  type === item.id && { borderColor: theme.primary, borderWidth: 2 }
+                ]}
+              >
+                <MaterialIcons name={item.icon} size={24} color={type === item.id ? theme.primary : theme.onSurfaceVariant} />
+                <Text style={[styles.typeText, { color: type === item.id ? theme.onSurface : theme.onSurfaceVariant }]}>
+                  {item.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );

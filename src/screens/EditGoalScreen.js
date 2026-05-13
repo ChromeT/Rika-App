@@ -1,9 +1,9 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, Animated, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { Video, ResizeMode } from 'expo-av';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ThemeContext } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
@@ -12,6 +12,27 @@ import { AuthContext } from '../context/AuthContext';
 import { uploadMultipleToCloudinary } from '../utils/cloudinaryUpload';
 
 const formatMoney = (v) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v || 0);
+
+const VideoPreview = ({ uri, theme }) => {
+  const player = useVideoPlayer(uri, (p) => {
+    p.loop = false;
+    p.play();
+    p.muted = true;
+  });
+
+  return (
+    <View style={{ width: '100%', height: 120, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+      <VideoView
+        player={player}
+        style={{ width: '100%', height: 120 }}
+        contentMode="cover"
+      />
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.1)' }}>
+        <MaterialIcons name="play-circle-filled" size={48} color="rgba(255,255,255,0.7)" />
+      </View>
+    </View>
+  );
+};
 
 export const EditGoalScreen = () => {
   const navigation = useNavigation();
@@ -39,14 +60,48 @@ export const EditGoalScreen = () => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   
   // Animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+  const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
+
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 600,
-      useNativeDriver: true,
-    }).start();
+    Animated.stagger(100, [
+      Animated.parallel([
+        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[4], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[4], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ])
+    ]).start();
   }, []);
+
+  const handleBack = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[3], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[4], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[3], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[4], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' })
+    ]).start(() => navigation.goBack());
+  };
 
   // Currency & Cursor Logic
   const targetRef = useRef(String(goal?.targetAmount || 0).replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
@@ -55,14 +110,6 @@ export const EditGoalScreen = () => {
   const selectionActualRef = useRef({ start: 0, end: 0 });
   const [selectionTarget, setSelectionTarget] = useState({ start: 0, end: 0 });
   const [selectionActual, setSelectionActual] = useState({ start: 0, end: 0 });
-
-  const handleBack = () => {
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => navigation.goBack());
-  };
 
   const formatInput = (val) => {
     if (!val) return '';
@@ -292,7 +339,7 @@ export const EditGoalScreen = () => {
           <Text style={{ color: "#fff", marginTop: 12, fontSize: 14 }}>Mengupload media...</Text>
         </View>
       )}
-      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '22' }}>
+      <Animated.View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '22', opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }}>
         <TouchableOpacity onPress={handleBack} style={{ marginRight: 16 }}>
           <MaterialIcons name="close" size={24} color={theme.onSurface} />
         </TouchableOpacity>
@@ -302,168 +349,160 @@ export const EditGoalScreen = () => {
         <TouchableOpacity onPress={handleSave} style={{ backgroundColor: theme.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 }}>
           <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Simpan</Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
-      <Animated.ScrollView 
-        contentContainerStyle={{ padding: 16 }}
-        style={{
-          opacity: fadeAnim,
-          transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
-        }}
-      >
-        {/* Nama Goal */}
-        <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>NAMA GOAL</Text>
-        <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16 }}>
-          <TextInput 
-            value={name}
-            onChangeText={setName}
-            style={{ color: theme.onSurface, fontSize: 16 }}
-          />
-        </View>
+      <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+        {/* Nama & Deskripsi */}
+        <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
+          <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>NAMA GOAL</Text>
+          <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <TextInput 
+              value={name}
+              onChangeText={setName}
+              style={{ color: theme.onSurface, fontSize: 16 }}
+            />
+          </View>
 
-        {/* Deskripsi / Keterangan */}
-        <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>
-          {isAchieved ? 'KETERANGAN' : 'DESKRIPSI'}
-        </Text>
-        <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16, height: 80 }}>
-          <TextInput 
-            value={isAchieved ? memoryCaption : description}
-            onChangeText={isAchieved ? setMemoryCaption : setDescription}
-            multiline
-            placeholder={isAchieved ? "Ceritakan momen ini..." : "Ceritakan tentang goal ini..."}
-            placeholderTextColor={theme.onSurfaceVariant}
+          <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>
+            {isAchieved ? 'KETERANGAN' : 'DESKRIPSI'}
+          </Text>
+          <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16, height: 80 }}>
+            <TextInput 
+              value={isAchieved ? memoryCaption : description}
+              onChangeText={isAchieved ? setMemoryCaption : setDescription}
+              multiline
+              placeholder={isAchieved ? "Ceritakan momen ini..." : "Ceritakan tentang goal ini..."}
+              placeholderTextColor={theme.onSurfaceVariant}
             style={{ color: theme.onSurface, fontSize: 14 }}
           />
         </View>
+      </Animated.View>
 
-        {/* Target Nominal - hanya untuk aktif */}
-        {!isAchieved && (
-          <>
-            <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>TARGET NOMINAL (RP)</Text>
-            <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ color: theme.primary, fontWeight: 'bold', marginRight: 8 }}>IDR</Text>
-              <TextInput 
-                value={targetAmount}
-                onChangeText={handleTargetAmountChange}
-                selection={selectionTarget}
-                onSelectionChange={(e) => {
-                  const sel = e.nativeEvent.selection;
-                  setSelectionTarget(sel);
-                  selectionTargetRef.current = sel;
-                }}
-                keyboardType="numeric"
-                style={{ color: theme.onSurface, fontSize: 16, fontWeight: 'bold', flex: 1 }}
-              />
-            </View>
-            <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>TARGET TANGGAL (ROADMAP)</Text>
-            <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
-              <MaterialIcons name="calendar-today" size={18} color={theme.primary} style={{ marginRight: 10 }} />
-              <input 
-                type="date"
-                value={targetDate}
-                onChange={(e) => setTargetDate(e.target.value)}
-                style={{ 
-                  backgroundColor: 'transparent', 
-                  color: theme.onSurface, 
-                  fontSize: '15px', 
-                  border: 'none', 
-                  outline: 'none',
-                  flex: 1,
-                  fontFamily: 'inherit'
-                }}
-              />
-            </View>
-          </>
-        )}
+      {/* Target Nominal & Roadmap */}
+      <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
+          {!isAchieved && (
+            <>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>TARGET NOMINAL (RP)</Text>
+              <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ color: theme.primary, fontWeight: 'bold', marginRight: 8 }}>IDR</Text>
+                <TextInput 
+                  value={targetAmount}
+                  onChangeText={handleTargetAmountChange}
+                  selection={selectionTarget}
+                  onSelectionChange={(e) => {
+                    const sel = e.nativeEvent.selection;
+                    setSelectionTarget(sel);
+                    selectionTargetRef.current = sel;
+                  }}
+                  keyboardType="numeric"
+                  style={{ color: theme.onSurface, fontSize: 16, fontWeight: 'bold', flex: 1 }}
+                />
+              </View>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>TARGET TANGGAL (ROADMAP)</Text>
+              <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
+                <MaterialIcons name="calendar-today" size={18} color={theme.primary} style={{ marginRight: 10 }} />
+                <TextInput 
+                  value={targetDate}
+                  onChangeText={setTargetDate}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor={theme.onSurfaceVariant}
+                  style={{ 
+                    color: theme.onSurface, 
+                    fontSize: 15, 
+                    flex: 1
+                  }}
+                />
+              </View>
+            </>
+          )}
 
-        {/* Actual Amount - hanya untuk tercapai */}
-        {isAchieved && (
-          <>
-            <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>PENGELUARAN RIIL (RP)</Text>
-            <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ color: theme.primary, fontWeight: 'bold', marginRight: 8 }}>IDR</Text>
-              <TextInput 
-                value={actualAmount}
-                onChangeText={handleActualAmountChange}
-                selection={selectionActual}
-                onSelectionChange={(e) => {
-                  const sel = e.nativeEvent.selection;
-                  setSelectionActual(sel);
-                  selectionActualRef.current = sel;
-                }}
-                keyboardType="numeric"
-                style={{ color: theme.onSurface, fontSize: 16, fontWeight: 'bold', flex: 1 }}
-              />
-            </View>
-          </>
-        )}
+          {isAchieved && (
+            <>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>PENGELUARAN RIIL (RP)</Text>
+              <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ color: theme.primary, fontWeight: 'bold', marginRight: 8 }}>IDR</Text>
+                <TextInput 
+                  value={actualAmount}
+                  onChangeText={handleActualAmountChange}
+                  selection={selectionActual}
+                  onSelectionChange={(e) => {
+                    const sel = e.nativeEvent.selection;
+                    setSelectionActual(sel);
+                    selectionActualRef.current = sel;
+                  }}
+                  keyboardType="numeric"
+                  style={{ color: theme.onSurface, fontSize: 16, fontWeight: 'bold', flex: 1 }}
+                />
+              </View>
+            </>
+          )}
+        </Animated.View>
 
         {/* Media List */}
-        <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 12 }}>FOTO / VIDEO</Text>
-        {mediaList.map((m, i) => (
-          <View key={i} style={{ marginBottom: 10, backgroundColor: theme.surfaceContainerLow, borderRadius: 12, overflow: 'hidden' }}>
-            {m.type === 'video' ? (
-              <View style={{ width: '100%', height: 100, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
-                <Video source={{ uri: m.uri }} style={{ width: '100%', height: 100 }} resizeMode={ResizeMode.COVER} shouldPlay={false} isLooping={false} />
-                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                  <MaterialIcons name="play-circle-filled" size={40} color="rgba(255,255,255,0.9)" />
-                </View>
-              </View>
-            ) : (
-              <Image source={{ uri: m.url || m.uri }} style={{ width: '100%', height: 160 }} resizeMode="cover" />
-            )}
-            <TouchableOpacity onPress={() => removeMedia(i)} style={{ position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, padding: 4 }}>
-              <MaterialIcons name="close" size={14} color="#fff" />
-            </TouchableOpacity>
-            <TextInput
-              style={{ padding: 8, color: theme.onSurface, fontSize: 12 }}
-              placeholder="Keterangan..."
-              placeholderTextColor={theme.onSurfaceVariant}
-              value={m.caption}
-              onChangeText={(t) => updateMediaCaption(i, t)}
-            />
-          </View>
-        ))}
-        <TouchableOpacity onPress={pickMedia} style={{ height: 40, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.primary + '66', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
-          <Text style={{ color: theme.primary, fontSize: 12, fontWeight: '600' }}>+ Tambah Media</Text>
-        </TouchableOpacity>
+        <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
+          <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 12 }}>FOTO / VIDEO</Text>
+          {mediaList.map((m, i) => (
+            <View key={i} style={{ marginBottom: 10, backgroundColor: theme.surfaceContainerLow, borderRadius: 12, overflow: 'hidden' }}>
+              {m.type === 'video' ? (
+                <VideoPreview uri={m.uri} theme={theme} />
+              ) : (
+                <Image source={{ uri: m.url || m.uri }} style={{ width: '100%', height: 160 }} resizeMode="cover" />
+              )}
+              <TouchableOpacity onPress={() => removeMedia(i)} style={{ position: 'absolute', top: 4, right: 4, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 12, padding: 4 }}>
+                <MaterialIcons name="close" size={14} color="#fff" />
+              </TouchableOpacity>
+              <TextInput
+                style={{ padding: 8, color: theme.onSurface, fontSize: 12 }}
+                placeholder="Keterangan..."
+                placeholderTextColor={theme.onSurfaceVariant}
+                value={m.caption}
+                onChangeText={(t) => updateMediaCaption(i, t)}
+              />
+            </View>
+          ))}
+          <TouchableOpacity onPress={pickMedia} style={{ height: 40, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: theme.primary + '66', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+            <Text style={{ color: theme.primary, fontSize: 12, fontWeight: '600' }}>+ Tambah Media</Text>
+          </TouchableOpacity>
+        </Animated.View>
 
-        {/* Related Transactions - hanya untuk tercapai */}
-        {isAchieved && (
-          <>
-            <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>TRANSAKSI TERKAIT</Text>
-            <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, marginBottom: 12 }}>Pilih transaksi yang relevan</Text>
-            {recentTxs.map(tx => {
-              const isSelected = relatedTxIds.includes(tx.id);
-              const total = (tx.myContrib || 0) + (tx.partnerContrib || 0);
-              return (
-                <TouchableOpacity key={tx.id} onPress={() => toggleTx(tx.id)}
-                  style={{ flexDirection: 'row', alignItems: 'center', padding: 10, marginBottom: 6, borderRadius: 10,
-                    backgroundColor: isSelected ? theme.primary + '1A' : theme.surfaceContainerLow,
-                    borderWidth: 1.5, borderColor: isSelected ? theme.primary : theme.outlineVariant + '22' }}>
-                  <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: tx.type === 'income' ? theme.primary + '1A' : theme.error + '1A', justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
-                    <MaterialIcons name={tx.icon || 'receipt'} size={14} color={tx.type === 'income' ? theme.primary : theme.error} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurface }} numberOfLines={1}>{tx.name}</Text>
-                    <Text style={{ fontSize: 9, color: theme.onSurfaceVariant }}>{new Date(tx.date).toLocaleDateString('id-ID')}</Text>
-                  </View>
-                  <Text style={{ fontSize: 11, fontWeight: '900', color: tx.type === 'income' ? theme.primary : theme.error }}>
-                    {tx.type === 'income' ? '+' : '-'}Rp {formatMoney(total)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </>
-        )}
+        {/* Related Transactions & Delete Button */}
+        <Animated.View style={{ opacity: fadeAnims[4], transform: [{ translateY: slideAnims[4] }] }}>
+          {isAchieved && (
+            <>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>TRANSAKSI TERKAIT</Text>
+              <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, marginBottom: 12 }}>Pilih transaksi yang relevan</Text>
+              {recentTxs.map(tx => {
+                const isSelected = relatedTxIds.includes(tx.id);
+                const total = (tx.myContrib || 0) + (tx.partnerContrib || 0);
+                return (
+                  <TouchableOpacity key={tx.id} onPress={() => toggleTx(tx.id)}
+                    style={{ flexDirection: 'row', alignItems: 'center', padding: 10, marginBottom: 6, borderRadius: 10,
+                      backgroundColor: isSelected ? theme.primary + '1A' : theme.surfaceContainerLow,
+                      borderWidth: 1.5, borderColor: isSelected ? theme.primary : theme.outlineVariant + '22' }}>
+                    <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: tx.type === 'income' ? theme.primary + '1A' : theme.error + '1A', justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
+                      <MaterialIcons name={tx.icon || 'receipt'} size={14} color={tx.type === 'income' ? theme.primary : theme.error} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurface }} numberOfLines={1}>{tx.name}</Text>
+                      <Text style={{ fontSize: 9, color: theme.onSurfaceVariant }}>{new Date(tx.date).toLocaleDateString('id-ID')}</Text>
+                    </View>
+                    <Text style={{ fontSize: 11, fontWeight: '900', color: tx.type === 'income' ? theme.primary : theme.error }}>
+                      {tx.type === 'income' ? '+' : '-'}Rp {formatMoney(total)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </>
+          )}
 
-        <TouchableOpacity onPress={() => setDeleteModalVisible(true)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, marginTop: 16, backgroundColor: theme.error + '1A', borderRadius: 16, borderWidth: 1, borderColor: theme.error }}>
-          <MaterialIcons name="delete" size={24} color={theme.error} style={{ marginRight: 8 }} />
-          <Text style={{ color: theme.error, fontWeight: 'bold', fontSize: 16 }}>Hapus Goal Ini</Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={() => setDeleteModalVisible(true)} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, marginTop: 16, backgroundColor: theme.error + '1A', borderRadius: 16, borderWidth: 1, borderColor: theme.error }}>
+            <MaterialIcons name="delete" size={24} color={theme.error} style={{ marginRight: 8 }} />
+            <Text style={{ color: theme.error, fontWeight: 'bold', fontSize: 16 }}>Hapus Goal Ini</Text>
+          </TouchableOpacity>
 
-        <View style={{ height: 40 }} />
-      </Animated.ScrollView>
+          <View style={{ height: 40 }} />
+        </Animated.View>
+      </ScrollView>
 
       {/* Custom Delete Confirmation Modal */}
       <Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => setDeleteModalVisible(false)}>

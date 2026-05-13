@@ -94,7 +94,7 @@ export const AuthProvider = ({ children }) => {
           console.log('Pesan diterima (Web Foreground):', payload);
         });
         return () => unsubscribe();
-      } else {
+      } else if (Platform.OS !== 'web') {
         const subscription = Notifications.addNotificationReceivedListener(notification => {
           console.log('Pesan diterima (Native):', notification);
         });

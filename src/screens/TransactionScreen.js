@@ -1,11 +1,12 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Switch, Image, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, TextInput, TouchableOpacity, Switch, Image, Alert, ActivityIndicator, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemeContext } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
 import { AuthContext } from '../context/AuthContext';
+import Text from '../components/ThemeText';
 
 const availableCustomIcons = [
   'star', 'pets', 'child-friendly', 'cake', 'favorite', 'emoji-events',
@@ -45,6 +46,44 @@ const TransactionScreen = ({ navigation, route }) => {
   const [customIcon, setCustomIcon] = useState('star');
   const [isPatungan, setIsPatungan] = useState(false);
   const [myContrib, setMyContrib] = useState('');
+
+  // Animations
+  const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+  const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
+
+  useEffect(() => {
+    Animated.stagger(80, [
+      Animated.parallel([
+        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ])
+    ]).start();
+  }, []);
+
+  const handleBack = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[3], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[3], { toValue: -20, duration: 300, useNativeDriver: true })
+    ]).start(() => navigation.goBack());
+  };
 
   const formatInput = (val) => {
     if (!val) return '';
@@ -289,10 +328,17 @@ const TransactionScreen = ({ navigation, route }) => {
         });
       }
 
-      // Langsung balik ke Dashboard biar terasa instant + Highlight
-      navigation.navigate('MainTabs', {
-        screen: 'Dashboard',
-        params: { highlightTxId: newId }
+      // Animasi keluar dulu baru navigasi
+      Animated.parallel([
+        Animated.timing(fadeAnims[0], { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(fadeAnims[1], { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(fadeAnims[2], { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(fadeAnims[3], { toValue: 0, duration: 400, useNativeDriver: true })
+      ]).start(() => {
+        navigation.navigate('MainTabs', {
+          screen: 'Dashboard',
+          params: { highlightTxId: newId }
+        });
       });
     } catch (e) {
       console.error(e);
@@ -398,7 +444,7 @@ const TransactionScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
+      <Animated.View style={[styles.header, { opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }]}>
         <View style={styles.headerLeft}>
           <View style={styles.avatarWrapper}>
             {avatar?.startsWith('file://') || avatar?.startsWith('data:image') ? (
@@ -410,19 +456,21 @@ const TransactionScreen = ({ navigation, route }) => {
           <Text style={styles.headerTitle}>{user?.name || 'Saya'}</Text>
         </View>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={handleBack}
           style={{ padding: 8, backgroundColor: theme.surfaceContainerHighest, borderRadius: 20 }}
           activeOpacity={0.7}
         >
           <MaterialIcons name="close" size={20} color={theme.onSurfaceVariant} />
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       <ScrollView contentContainerStyle={styles.main} showsVerticalScrollIndicator={false}>
-        <Text style={styles.pageTitle}>Catat transaksi baru.</Text>
-        <Text style={styles.pageSubtitle}>Jangan sampai lupa uang kita lari ke mana.</Text>
+        <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
+          <Text style={styles.pageTitle}>Catat transaksi baru.</Text>
+          <Text style={styles.pageSubtitle}>Jangan sampai lupa uang kita lari ke mana.</Text>
+        </Animated.View>
 
-        <View style={styles.formCard}>
+        <Animated.View style={[styles.formCard, { opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }]}>
           <View style={styles.typeToggleWrap}>
             <TouchableOpacity style={type === 'expense' ? styles.typeBtnAct : styles.typeBtnIna} onPress={() => handleTypeChange('expense')}>
               <Text style={type === 'expense' ? styles.typeTextAct : styles.typeTextIna}>Pengeluaran</Text>
@@ -683,9 +731,9 @@ const TransactionScreen = ({ navigation, route }) => {
               )}
             </LinearGradient>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
-        <View>
+        <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
           <View style={styles.recentHeader}>
             <Text style={styles.recentTitle}>Riwayat Anda</Text>
           </View>
@@ -722,7 +770,7 @@ const TransactionScreen = ({ navigation, route }) => {
               </View>
             </View>
           ))}
-        </View>
+        </Animated.View>
 
       </ScrollView>
     </SafeAreaView>
@@ -730,3 +778,4 @@ const TransactionScreen = ({ navigation, route }) => {
 };
 
 export default TransactionScreen;
+

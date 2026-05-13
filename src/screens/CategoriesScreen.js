@@ -1,10 +1,11 @@
-import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert, KeyboardAvoidingView, Platform, ScrollView, Modal, ActivityIndicator } from 'react-native';
+import React, { useContext, useState, useRef, useEffect } from 'react';
+import { View, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert, KeyboardAvoidingView, Platform, ScrollView, Modal, ActivityIndicator, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemeContext } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
+import Text from '../components/ThemeText';
 
 const iconOptions = [
   // General & Misc
@@ -35,6 +36,38 @@ const CategoriesScreen = ({ navigation }) => {
   const [type, setType] = useState('expense');
   const [name, setName] = useState('');
   const [icon, setIcon] = useState('shopping-bag');
+
+  // Animations
+  const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+  const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
+
+  useEffect(() => {
+    Animated.stagger(100, [
+      Animated.parallel([
+        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ])
+    ]).start();
+  }, []);
+
+  const handleBack = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: true })
+    ]).start(() => navigation.goBack());
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -128,15 +161,15 @@ const CategoriesScreen = ({ navigation }) => {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <MaterialIcons name="arrow-back" size={24} color={theme.primary} />
+        <Animated.View style={[styles.header, { opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }]}>
+          <TouchableOpacity onPress={handleBack}>
+            <MaterialIcons name="close" size={24} color={theme.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Kategori Transaksi</Text>
-        </View>
+        </Animated.View>
 
         {/* Form Tambah */}
-        <View style={styles.form}>
+        <Animated.View style={[styles.form, { opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }]}>
           <Text style={styles.label}>Tipe</Text>
           <View style={styles.toggleRow}>
             <TouchableOpacity
@@ -152,7 +185,6 @@ const CategoriesScreen = ({ navigation }) => {
               <Text style={[styles.toggleText, { color: type === 'income' ? theme.onPrimaryContainer : theme.onSurfaceVariant }]}>Pemasukan</Text>
             </TouchableOpacity>
           </View>
-
           <Text style={styles.label}>Nama Kategori</Text>
           <TextInput
             style={styles.input}
@@ -198,20 +230,23 @@ const CategoriesScreen = ({ navigation }) => {
               <Text style={{ color: theme.error, fontSize: 13, fontWeight: 'bold' }}>Batal Edit</Text>
             </TouchableOpacity>
           )}
-        </View>
+        </Animated.View>
 
         {/* List Kategori */}
-        <FlatList
-          style={styles.list}
-          data={categories[type]}
-          renderItem={renderItem}
-          keyExtractor={(item, index) => item.name + index}
-          ListEmptyComponent={
-            <Text style={{ textAlign: 'center', color: theme.onSurfaceVariant, marginTop: 20 }}>
-              Belum ada kategori buat {type === 'expense' ? 'pengeluaran' : 'pemasukan'}.
-            </Text>
-          }
-        />
+        <Animated.View style={{ flex: 1, opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
+          <FlatList
+            style={styles.list}
+            data={categories[type]}
+            renderItem={renderItem}
+            keyExtractor={(item, index) => item.name + index}
+            ListEmptyComponent={
+              <Text style={{ textAlign: 'center', color: theme.onSurfaceVariant, marginTop: 20 }}>
+                Belum ada kategori buat {type === 'expense' ? 'pengeluaran' : 'pemasukan'}.
+              </Text>
+            }
+          />
+        </Animated.View>
+
         {/* Modal Konfirmasi Hapus */}
         <Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => setDeleteModalVisible(false)}>
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
@@ -258,3 +293,4 @@ const CategoriesScreen = ({ navigation }) => {
 };
 
 export default CategoriesScreen;
+

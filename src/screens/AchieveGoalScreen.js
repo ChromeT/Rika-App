@@ -1,10 +1,10 @@
 import React, { useState, useContext, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, TextInput, ActivityIndicator, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, TextInput, ActivityIndicator, Animated, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
-import { Video, ResizeMode } from 'expo-av';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ThemeContext } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
@@ -12,6 +12,27 @@ import { AuthContext } from '../context/AuthContext';
 import { uploadMultipleToCloudinary } from '../utils/cloudinaryUpload';
 
 const formatMoney = (v) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v || 0);
+
+const VideoPreview = ({ uri, theme }) => {
+  const player = useVideoPlayer(uri, (p) => {
+    p.loop = false;
+    p.play();
+    p.muted = true; // Preview usually muted
+  });
+
+  return (
+    <View style={{ width: '100%', height: 120, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+      <VideoView
+        player={player}
+        style={{ width: '100%', height: 120 }}
+        contentMode="cover"
+      />
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.1)' }}>
+        <MaterialIcons name="play-circle-filled" size={48} color="rgba(255,255,255,0.7)" />
+      </View>
+    </View>
+  );
+};
 
 export const AchieveGoalScreen = () => {
   const navigation = useNavigation();
@@ -75,23 +96,43 @@ export const AchieveGoalScreen = () => {
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   
-  const handleBack = () => {
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => navigation.goBack());
-  };
-  
   // Animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+  const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
+
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 350,
-      useNativeDriver: true,
-    }).start();
+    Animated.stagger(100, [
+      Animated.parallel([
+        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ])
+    ]).start();
   }, []);
+
+  const handleBack = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[3], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[3], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' })
+    ]).start(() => navigation.goBack());
+  };
 
   const toggleTx = (id) => {
     setSelectedTxIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -192,7 +233,7 @@ export const AchieveGoalScreen = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['top']}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '22' }}>
+      <Animated.View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '22', opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }}>
         <TouchableOpacity onPress={handleBack} style={{ marginRight: 16 }}>
           <MaterialIcons name="close" size={24} color={theme.onSurface} />
         </TouchableOpacity>
@@ -200,7 +241,7 @@ export const AchieveGoalScreen = () => {
         <TouchableOpacity onPress={handleSave} style={{ backgroundColor: theme.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 }}>
           <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Simpan</Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       {uploading && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}>
@@ -209,104 +250,95 @@ export const AchieveGoalScreen = () => {
         </View>
       )}
 
-      <Animated.ScrollView 
+      <ScrollView 
         contentContainerStyle={{ padding: 16 }}
-        style={{
-          opacity: fadeAnim,
-          transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
-        }}
       >
-        <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 4 }}>🎉 {goal.name}</Text>
-        <Text style={{ color: theme.onSurfaceVariant, marginBottom: 20 }}>Pilih media dan transaksi terkait</Text>
+        <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
+          <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 4 }}>🎉 {goal.name}</Text>
+          <Text style={{ color: theme.onSurfaceVariant, marginBottom: 20 }}>Pilih media dan transaksi terkait</Text>
+        </Animated.View>
 
-        {/* Media List with Captions */}
-        <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 12 }}>FOTO / VIDEO KENANGAN</Text>
-        {mediaList.map((m, i) => (
-          <View key={i} style={{ marginBottom: 12, backgroundColor: theme.surfaceContainerLow, borderRadius: 16, overflow: 'hidden' }}>
-            {m.type === 'video' ? (
-              <View style={{ width: '100%', height: 120, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
-                <Video
-                  source={{ uri: m.uri }}
-                  style={{ width: '100%', height: 120 }}
-                  resizeMode={ResizeMode.COVER}
-                  shouldPlay={false}
-                  isLooping={false}
-                />
-                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                  <MaterialIcons name="play-circle-filled" size={48} color="rgba(255,255,255,0.9)" />
-                </View>
-              </View>
-            ) : (
-              <Image source={{ uri: m.uri }} style={{ width: '100%', height: 120 }} />
-            )}
-            <TouchableOpacity onPress={() => removeMedia(i)} style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 14, padding: 4 }}>
-              <MaterialIcons name="close" size={16} color="#fff" />
-            </TouchableOpacity>
-            <TextInput
-              style={{ padding: 10, color: theme.onSurface, fontSize: 13 }}
-              placeholder={m.type === 'video' ? "Keterangan video ini... (opsional)" : "Keterangan gambar ini... (opsional)"}
-              placeholderTextColor={theme.onSurfaceVariant + '80'}
-              value={m.caption}
-              onChangeText={(t) => updateCaption(i, t)}
-            />
-          </View>
-        ))}
+        <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
+          {/* Media List with Captions */}
+          <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 12 }}>FOTO / VIDEO KENANGAN</Text>
+          {mediaList.map((m, i) => (
+            <View key={i} style={{ marginBottom: 12, backgroundColor: theme.surfaceContainerLow, borderRadius: 16, overflow: 'hidden' }}>
+              {m.type === 'video' ? (
+                <VideoPreview uri={m.uri} theme={theme} />
+              ) : (
+                <Image source={{ uri: m.uri }} style={{ width: '100%', height: 120 }} />
+              )}
+              <TouchableOpacity onPress={() => removeMedia(i)} style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 14, padding: 4 }}>
+                <MaterialIcons name="close" size={16} color="#fff" />
+              </TouchableOpacity>
+              <TextInput
+                style={{ padding: 10, color: theme.onSurface, fontSize: 13 }}
+                placeholder={m.type === 'video' ? "Keterangan video ini... (opsional)" : "Keterangan gambar ini... (opsional)"}
+                placeholderTextColor={theme.onSurfaceVariant + '80'}
+                value={m.caption}
+                onChangeText={(t) => updateCaption(i, t)}
+              />
+            </View>
+          ))}
 
-        <TouchableOpacity onPress={pickMedia} style={{ height: 56, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: theme.primary + '66', justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-          <MaterialIcons name="add-photo-alternate" size={20} color={theme.primary} />
-          <Text style={{ color: theme.primary, fontWeight: '700', fontSize: 13 }}>+ Tambah Foto/Video ({mediaList.length})</Text>
-        </TouchableOpacity>
-
-        {/* URL Input */}
-        <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>ATAU MASUKKAN LINK GAMBAR</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-          <View style={{ flex: 1, backgroundColor: theme.surfaceContainerLow, borderRadius: 12, padding: 12, marginRight: 8 }}>
-            <TextInput 
-              placeholder="https://..."
-              placeholderTextColor={theme.onSurfaceVariant}
-              value={imageUrl}
-              onChangeText={setImageUrl}
-              style={{ color: theme.onSurface, fontSize: 14 }}
-              autoCapitalize="none"
-              keyboardType="url"
-            />
-          </View>
-          <TouchableOpacity onPress={handleUrlSubmit} style={{ backgroundColor: theme.primaryContainer, padding: 12, borderRadius: 12 }}>
-            <MaterialIcons name="check" size={20} color={theme.onPrimaryContainer} />
+          <TouchableOpacity onPress={pickMedia} style={{ height: 56, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: theme.primary + '66', justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+            <MaterialIcons name="add-photo-alternate" size={20} color={theme.primary} />
+            <Text style={{ color: theme.primary, fontWeight: '700', fontSize: 13 }}>+ Tambah Foto/Video ({mediaList.length})</Text>
           </TouchableOpacity>
-        </View>
 
-        {/* Caption */}
-        <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>CERITA (OPSIONAL)</Text>
-        <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 16, padding: 16, marginBottom: 20, height: 80 }}>
-          <TextInput 
-            placeholder="Ceritakan momen ini..."
-            placeholderTextColor={theme.onSurfaceVariant}
-            value={caption}
-            onChangeText={setCaption}
-            multiline
-            style={{ color: theme.onSurface, fontSize: 14, height: '100%' }}
-          />
-        </View>
+          {/* URL Input */}
+          <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>ATAU MASUKKAN LINK GAMBAR</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+            <View style={{ flex: 1, backgroundColor: theme.surfaceContainerLow, borderRadius: 12, padding: 12, marginRight: 8 }}>
+              <TextInput 
+                nativeID="image-url-input"
+                placeholder="https://..."
+                placeholderTextColor={theme.onSurfaceVariant}
+                value={imageUrl}
+                onChangeText={setImageUrl}
+                style={{ color: theme.onSurface, fontSize: 14 }}
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+            </View>
+            <TouchableOpacity onPress={handleUrlSubmit} style={{ backgroundColor: theme.primaryContainer, padding: 12, borderRadius: 12 }}>
+              <MaterialIcons name="check" size={20} color={theme.onPrimaryContainer} />
+            </TouchableOpacity>
+          </View>
 
-        {/* Actual Amount */}
-        <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>NOMINAL RIIL (RP)</Text>
-        <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 16, padding: 16, marginBottom: 20 }}>
-          <TextInput 
-            placeholder="0"
-            placeholderTextColor={theme.onSurfaceVariant}
-            value={actualAmount}
-            onChangeText={handleActualAmountChange}
-            selection={selectionActual}
-            onSelectionChange={(e) => {
-              const sel = e.nativeEvent.selection;
-              setSelectionActual(sel);
-              selectionActualRef.current = sel;
-            }}
-            keyboardType="numeric"
-            style={{ color: theme.onSurface, fontSize: 18, fontWeight: 'bold' }}
-          />
-        </View>
+          {/* Caption */}
+          <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>CERITA (OPSIONAL)</Text>
+          <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 16, padding: 16, marginBottom: 20, height: 80 }}>
+            <TextInput 
+              placeholder="Ceritakan momen ini..."
+              placeholderTextColor={theme.onSurfaceVariant}
+              value={caption}
+              onChangeText={setCaption}
+              multiline
+              style={{ color: theme.onSurface, fontSize: 14, height: '100%' }}
+            />
+          </View>
+        </Animated.View>
+
+        <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
+          {/* Actual Amount */}
+          <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>NOMINAL RIIL (RP)</Text>
+          <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 16, padding: 16, marginBottom: 20 }}>
+            <TextInput 
+              placeholder="0"
+              placeholderTextColor={theme.onSurfaceVariant}
+              value={actualAmount}
+              onChangeText={handleActualAmountChange}
+              selection={selectionActual}
+              onSelectionChange={(e) => {
+                const sel = e.nativeEvent.selection;
+                setSelectionActual(sel);
+                selectionActualRef.current = sel;
+              }}
+              keyboardType="numeric"
+              style={{ color: theme.onSurface, fontSize: 18, fontWeight: 'bold' }}
+            />
+          </View>
 
         {/* Transaction Picker */}
         <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>TRANSAKSI TERKAIT (OPSIONAL)</Text>
@@ -333,7 +365,8 @@ export const AchieveGoalScreen = () => {
             </TouchableOpacity>
           );
         })}
-      </Animated.ScrollView>
+        </Animated.View>
+      </ScrollView>
     </SafeAreaView>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Image, ActivityIndicator, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,6 +21,44 @@ const TransferScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
+
+  // Animations
+  const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+  const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
+
+  useEffect(() => {
+    Animated.stagger(100, [
+      Animated.parallel([
+        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ])
+    ]).start();
+  }, []);
+
+  const handleBack = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[3], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[3], { toValue: -20, duration: 300, useNativeDriver: true })
+    ]).start(() => navigation.goBack());
+  };
 
   // Baca data jika dalam mode edit
   useEffect(() => {
@@ -188,7 +226,7 @@ const TransferScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
+      <Animated.View style={[styles.header, { opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }]}>
         <View style={styles.headerLeft}>
           <View style={styles.avatarWrapper}>
             {avatar?.startsWith('file://') || avatar?.startsWith('data:image') ? (
@@ -199,62 +237,68 @@ const TransferScreen = ({ navigation, route }) => {
           </View>
           <Text style={styles.headerTitle}>{isEditMode ? 'Edit Transfer' : 'Pindah Dana'}</Text>
         </View>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 8 }}>
+        <TouchableOpacity onPress={handleBack} style={{ padding: 8 }}>
           <MaterialIcons name="close" size={24} color={theme.onSurfaceVariant} />
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       <ScrollView contentContainerStyle={styles.main}>
         <View style={styles.card}>
-          {renderWalletPicker(fromId, setFromId, 'Dari Dompet (Sumber)')}
+          <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
+            {renderWalletPicker(fromId, setFromId, 'Dari Dompet (Sumber)')}
+          </Animated.View>
 
-          <View style={styles.arrowWrap}>
-            <View style={styles.arrowIcon}>
-              <MaterialIcons name="arrow-downward" size={24} color={theme.primary} />
+          <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
+            <View style={styles.arrowWrap}>
+              <View style={styles.arrowIcon}>
+                <MaterialIcons name="arrow-downward" size={24} color={theme.primary} />
+              </View>
             </View>
-          </View>
 
-          {renderWalletPicker(toId, setToId, 'Ke Dompet (Tujuan)')}
+            {renderWalletPicker(toId, setToId, 'Ke Dompet (Tujuan)')}
+          </Animated.View>
 
-          <Text style={[styles.label, { marginTop: 24 }]}>Nominal Transfer</Text>
-          <View style={styles.inputWrapper}>
-            <Text style={styles.currency}>IDR</Text>
-            <TextInput 
-              style={styles.input}
-              placeholder="0"
-              placeholderTextColor={theme.surfaceContainerHighest}
-              keyboardType="numeric"
-              value={amount}
-              onChangeText={handleAmountChange}
-              selection={selectionState}
-              onSelectionChange={(e) => {
-                const sel = e.nativeEvent.selection;
-                setSelectionState(sel);
-                selectionRef.current = sel;
-              }}
-            />
-          </View>
+          <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
+            <Text style={[styles.label, { marginTop: 24 }]}>Nominal Transfer</Text>
+            <View style={styles.inputWrapper}>
+              <Text style={styles.currency}>IDR</Text>
+              <TextInput 
+                style={styles.input}
+                placeholder="0"
+                placeholderTextColor={theme.surfaceContainerHighest}
+                keyboardType="numeric"
+                value={amount}
+                onChangeText={handleAmountChange}
+                selection={selectionState}
+                onSelectionChange={(e) => {
+                  const sel = e.nativeEvent.selection;
+                  setSelectionState(sel);
+                  selectionRef.current = sel;
+                }}
+              />
+            </View>
 
-          <TouchableOpacity 
-            style={[styles.submitBtn, { opacity: loading ? 0.6 : 1 }]} 
-            activeOpacity={0.8} 
-            onPress={handleTransfer}
-            disabled={loading}
-          >
-            <LinearGradient colors={[theme.primary, theme.primaryContainer]} style={styles.submitGradient} start={{x:0, y:0}} end={{x:1, y:1}}>
-              {loading ? (
-                <>
-                  <ActivityIndicator color={theme.onPrimary} size="small" />
-                  <Text style={styles.submitText}>Memproses...</Text>
-                </>
-              ) : (
-                <>
-                  <Text style={styles.submitText}>{isEditMode ? 'Simpan Perubahan' : 'Proses Transfer'}</Text>
-                  <MaterialIcons name={isEditMode ? 'check' : 'send'} size={20} color={theme.onPrimary} />
-                </>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.submitBtn, { opacity: loading ? 0.6 : 1 }]} 
+              activeOpacity={0.8} 
+              onPress={handleTransfer}
+              disabled={loading}
+            >
+              <LinearGradient colors={[theme.primary, theme.primaryContainer]} style={styles.submitGradient} start={{x:0, y:0}} end={{x:1, y:1}}>
+                {loading ? (
+                  <>
+                    <ActivityIndicator color={theme.onPrimary} size="small" />
+                    <Text style={styles.submitText}>Memproses...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.submitText}>{isEditMode ? 'Simpan Perubahan' : 'Proses Transfer'}</Text>
+                    <MaterialIcons name={isEditMode ? 'check' : 'send'} size={20} color={theme.onPrimary} />
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
         </View>
       </ScrollView>
     </SafeAreaView>

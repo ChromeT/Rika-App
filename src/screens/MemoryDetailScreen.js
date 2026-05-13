@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image as ExpoImage } from 'expo-image';
-import { Video, ResizeMode } from 'expo-av';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { ThemeContext } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
@@ -22,11 +22,27 @@ const { width, height } = Dimensions.get('window');
 // Helper to format money
 const formatMoney = (v) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v || 0);
 
+const VideoPlayer = ({ uri, width, height, onClose }) => {
+  const player = useVideoPlayer(uri, (p) => {
+    p.loop = true;
+    p.play();
+  });
+
+  return (
+    <VideoView
+      player={player}
+      style={{ width, height }}
+      contentMode="contain"
+      allowsFullscreen
+      allowsPictureInPicture
+    />
+  );
+};
+
 // --- Media Modal ---
 const MediaModal = ({ visible, mediaList, onClose, startIndex = 0 }) => {
   const insets = useSafeAreaInsets();
   const [currentIdx, setCurrentIdx] = useState(startIndex);
-  const [isPlaying, setIsPlaying] = useState(false);
   const current = mediaList[currentIdx];
   
   if (!current) return null;
@@ -39,21 +55,12 @@ const MediaModal = ({ visible, mediaList, onClose, startIndex = 0 }) => {
         </TouchableOpacity>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           {current.type === 'video' ? (
-            isPlaying ? (
-              <Video
-                source={{ uri: current.url || current.uri }}
-                style={{ width, height: height * 0.75 }}
-                resizeMode={ResizeMode.CONTAIN}
-                shouldPlay
-                isLooping
-                onEnd={() => setIsPlaying(false)}
-              />
-            ) : (
-              <TouchableOpacity style={{ width, height: height * 0.75, justifyContent: 'center', alignItems: 'center', backgroundColor: '#111' }} onPress={() => setIsPlaying(true)}>
-                <MaterialIcons name="play-circle-filled" size={80} color="#fff" />
-                <Text style={{ color: '#fff', marginTop: 10 }}>Klik untuk memutar</Text>
-              </TouchableOpacity>
-            )
+            <VideoPlayer 
+              uri={current.url || current.uri} 
+              width={width} 
+              height={height * 0.75} 
+              onClose={onClose} 
+            />
           ) : (
             <ExpoImage source={{ uri: current.url || current.uri }} style={{ width, height: height * 0.75 }} contentFit="contain" />
           )}
@@ -161,23 +168,43 @@ const MemoryDetailScreen = ({ route }) => {
   const [loading, setLoading] = useState(!goal);
 
   // Animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+  const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
+
   useEffect(() => {
     if (!loading && goal) {
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }).start();
+      Animated.stagger(100, [
+        Animated.parallel([
+          Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+        ]),
+        Animated.parallel([
+          Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+        ]),
+        Animated.parallel([
+          Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+        ]),
+        Animated.parallel([
+          Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+        ])
+      ]).start();
     }
   }, [loading, goal]);
 
   const handleBack = () => {
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => navigation.goBack());
+    Animated.parallel([
+      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[3], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[3], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' })
+    ]).start(() => navigation.goBack());
   };
 
   // Data fetching
@@ -313,17 +340,13 @@ const MemoryDetailScreen = ({ route }) => {
   // Render
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <Animated.ScrollView 
+      <ScrollView 
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={{ paddingBottom: 60 }}
-        style={{
-          opacity: fadeAnim,
-          transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
-        }}
       >
         
         {/* --- HERO SECTION --- */}
-        <View style={{ height: 220, position: 'relative' }}>
+        <Animated.View style={{ height: 220, position: 'relative', opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }}>
           <ExpoImage source={{ uri: heroUri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
           {isVideoMemory && (
             <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
@@ -355,220 +378,226 @@ const MemoryDetailScreen = ({ route }) => {
               {duration > 0 && ` • ${duration} hari perjalanan`}
             </Text>
           </View>
-        </View>
+        </Animated.View>
 
-        {/* --- KETERANGAN --- */}
-        <View style={{ padding: 16 }}>
-          <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>KETERANGAN</Text>
-          {goal.memoryCaption ? (
-            <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 16, padding: 16, borderLeftWidth: 3, borderLeftColor: theme.primary }}>
-              <Text style={{ color: theme.onSurface, fontStyle: 'italic', lineHeight: 22 }}>{goal.memoryCaption}</Text>
-            </View>
-          ) : null}
-          
-          {goal.location && (
-            <TouchableOpacity 
-              onPress={() => goal.latitude && goal.longitude ? Linking.openURL(`https://maps.google.com/?q=${goal.latitude},${goal.longitude}`) : Alert.alert('Lokasi tidak valid') }
-              style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, alignSelf: 'flex-start' }}
-            >
-              <MaterialIcons name="place" size={16} color={theme.primary} />
-              <Text style={{ color: theme.primary, fontSize: 12, fontWeight: 'bold' }}>{goal.location}</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-{/* --- KENANGAN (Masonry 2 Kolom) --- */}
-        {memories.length > 0 && (
-          <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
-            <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>KENANGAN</Text>
+        {/* --- KETERANGAN & SUMMARY --- */}
+        <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
+          <View style={{ padding: 16 }}>
+            <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>KETERANGAN</Text>
+            {goal.memoryCaption ? (
+              <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 16, padding: 16, borderLeftWidth: 3, borderLeftColor: theme.primary }}>
+                <Text style={{ color: theme.onSurface, fontStyle: 'italic', lineHeight: 22 }}>{goal.memoryCaption}</Text>
+              </View>
+            ) : null}
             
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              {/* Kolom Kiri - Item index 0, 2, 4 */}
-              <View style={{ flex: 1, gap: 8 }}>
-                {memories.filter((_, i) => i % 2 === 0).slice(0, 5).map((m, i) => {
-                  const originalIndex = i * 2;
-                  // Heights: 130px, 85px, 100px, 115px, 90px
-                  const heights = [130, 85, 100, 115, 90];
-                  const itemHeight = heights[i % 5];
-                  
-                  return (
-                    <TouchableOpacity key={originalIndex} onPress={() => { setSelectedMediaIndex(originalIndex); setMediaModalVisible(true); }} activeOpacity={0.8}>
-                      <View style={{ borderRadius: 16, overflow: 'hidden', height: itemHeight, position: 'relative', backgroundColor: theme.surfaceContainerLow }}>
-                        <ExpoImage source={{ uri: m.url || m.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-                        {m.type === 'video' && (
-                          <View style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                            <MaterialIcons name="play-circle-filled" size={12} color="#fff" />
-                          </View>
-                        )}
-                        {(m.caption || m.caption === '') && (
-                          <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 8 }}>
-                            <Text style={{ color: '#fff', fontSize: 10, fontWeight: '500' }} numberOfLines={2}>{m.caption || ''}</Text>
-                          </LinearGradient>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-              
-              {/* Kolom Kanan - Item index 1, 3, 5 */}
-              <View style={{ flex: 1, gap: 8 }}>
-                {memories.filter((_, i) => i % 2 !== 0).slice(0, 5).map((m, i) => {
-                  const originalIndex = i * 2 + 1;
-                  // Heights: 130px, 85px, 100px, 115px, 90px
-                  const heights = [130, 85, 100, 115, 90];
-                  const itemHeight = heights[i % 5];
-                  
-                  return (
-                    <TouchableOpacity key={originalIndex} onPress={() => { setSelectedMediaIndex(originalIndex); setMediaModalVisible(true); }} activeOpacity={0.8}>
-                      <View style={{ borderRadius: 16, overflow: 'hidden', height: itemHeight, position: 'relative', backgroundColor: theme.surfaceContainerLow }}>
-                        <ExpoImage source={{ uri: m.url || m.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-                        {m.type === 'video' && (
-                          <View style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                            <MaterialIcons name="play-circle-filled" size={12} color="#fff" />
-                          </View>
-                        )}
-                        {(m.caption || m.caption === '') && (
-                          <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 8 }}>
-                            <Text style={{ color: '#fff', fontSize: 10, fontWeight: '500' }} numberOfLines={2}>{m.caption || ''}</Text>
-                          </LinearGradient>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-                
-                {/* +X lainnya tile */}
-                {memories.length > 5 && (
-                  <TouchableOpacity onPress={() => { setSelectedMediaIndex(0); setMediaModalVisible(true); }} style={{ height: 90, backgroundColor: theme.surfaceContainerLow, borderRadius: 16, justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{ color: theme.primary, fontWeight: 'bold', fontSize: 14 }}>+{memories.length - 5} lainnya</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
+            {goal.location && (
+              <TouchableOpacity 
+                onPress={() => goal.latitude && goal.longitude ? Linking.openURL(`https://maps.google.com/?q=${goal.latitude},${goal.longitude}`) : Alert.alert('Lokasi tidak valid') }
+                style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, alignSelf: 'flex-start' }}
+              >
+                <MaterialIcons name="place" size={16} color={theme.primary} />
+                <Text style={{ color: theme.primary, fontSize: 12, fontWeight: 'bold' }}>{goal.location}</Text>
+              </TouchableOpacity>
+            )}
           </View>
-        )}
 
-        {/* --- ESTIMASI VS RIIL --- */}
-        <View style={{ padding: 16, marginTop: 16 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, textTransform: 'uppercase' }}>ESTIMASI VS RIIL</Text>
-            <View style={{ backgroundColor: (goal.actualAmount || 0) <= goal.targetAmount ? '#10B981' + '22' : theme.error + '22', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-              <Text style={{ fontSize: 10, fontWeight: 'bold', color: (goal.actualAmount || 0) <= goal.targetAmount ? '#10B981' : theme.error }}>
-                {(goal.actualAmount || 0) <= goal.targetAmount ? 'DI BAWAH BUDGET' : 'MELEBIHI BUDGET'}
-              </Text>
+          {/* Moved Summary here for better flow in Block 1 */}
+          <View style={{ padding: 16 }}>
+            <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>RINGKASAN</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+              {[
+                { label: 'Total Pengeluaran', value: `Rp ${formatMoney(totalExpense)}`, icon: 'shopping-cart' },
+                { label: 'Lama Menabung', value: `${durationMonths} bln ${durationDays} hr`, icon: 'date-range' },
+                { label: 'Transaksi Terkait', value: `${relatedTransactions.length} buah`, icon: 'receipt' },
+                { label: 'Rata-rata/Bulan', value: `Rp ${formatMoney(avgSave)}`, icon: 'favorite' },
+              ].map((item, i) => (
+                <View key={i} style={{ width: '48%', backgroundColor: theme.surfaceContainerLow, borderRadius: 16, padding: 16 }}>
+                  <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.primaryContainer + '33', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
+                    <MaterialIcons name={item.icon} size={16} color={theme.primary} />
+                  </View>
+                  <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, marginBottom: 4 }}>{item.label}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '900', color: theme.onSurface }}>{item.value}</Text>
+                </View>
+              ))}
             </View>
           </View>
-          
-          <View style={{ backgroundColor: theme.surfaceContainer, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: theme.outlineVariant + '33' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 36, fontWeight: '900', color: theme.onSurface, letterSpacing: -1 }}>
-                  {Math.round(((goal.actualAmount || 0) / (goal.targetAmount || 1)) * 100)}%
-                </Text>
-                <Text style={{ fontSize: 11, color: theme.onSurfaceVariant, fontWeight: 'bold' }}>DARI TARGET AWAL</Text>
-              </View>
-              <View style={{ height: 50, width: 2, backgroundColor: theme.outlineVariant + '33', marginHorizontal: 20 }} />
-              <View style={{ flex: 1.5 }}>
-                <View style={{ marginBottom: 8 }}>
-                  <Text style={{ fontSize: 10, color: theme.onSurfaceVariant }}>ESTIMASI</Text>
-                  <Text style={{ fontSize: 15, fontWeight: 'bold', color: theme.onSurface }}>Rp {formatMoney(goal.targetAmount)}</Text>
+        </Animated.View>
+
+        {/* --- KENANGAN (Masonry 2 Kolom) --- */}
+        <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }], paddingHorizontal: 16, marginTop: 8 }}>
+          {memories.length > 0 && (
+            <View>
+              <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>KENANGAN</Text>
+              
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {/* Kolom Kiri - Item index 0, 2, 4 */}
+                <View style={{ flex: 1, gap: 8 }}>
+                  {memories.filter((_, i) => i % 2 === 0).slice(0, 5).map((m, i) => {
+                    const originalIndex = i * 2;
+                    // Heights: 130px, 85px, 100px, 115px, 90px
+                    const heights = [130, 85, 100, 115, 90];
+                    const itemHeight = heights[i % 5];
+                    
+                    return (
+                      <TouchableOpacity key={originalIndex} onPress={() => { setSelectedMediaIndex(originalIndex); setMediaModalVisible(true); }} activeOpacity={0.8}>
+                        <View style={{ borderRadius: 16, overflow: 'hidden', height: itemHeight, position: 'relative', backgroundColor: theme.surfaceContainerLow }}>
+                          <ExpoImage source={{ uri: m.url || m.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+                          {m.type === 'video' && (
+                            <View style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                              <MaterialIcons name="play-circle-filled" size={12} color="#fff" />
+                            </View>
+                          )}
+                          {(m.caption || m.caption === '') && (
+                            <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 8 }}>
+                              <Text style={{ color: '#fff', fontSize: 10, fontWeight: '500' }} numberOfLines={2}>{m.caption || ''}</Text>
+                            </LinearGradient>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
-                <View>
-                  <Text style={{ fontSize: 10, color: theme.onSurfaceVariant }}>RIIL (AKTUAL)</Text>
-                  <Text style={{ fontSize: 15, fontWeight: 'bold', color: (goal.actualAmount || 0) <= goal.targetAmount ? '#10B981' : theme.error }}>
-                    Rp {formatMoney(goal.actualAmount || 0)}
+                
+                {/* Kolom Kanan - Item index 1, 3, 5 */}
+                <View style={{ flex: 1, gap: 8 }}>
+                  {memories.filter((_, i) => i % 2 !== 0).slice(0, 5).map((m, i) => {
+                    const originalIndex = i * 2 + 1;
+                    // Heights: 130px, 85px, 100px, 115px, 90px
+                    const heights = [130, 85, 100, 115, 90];
+                    const itemHeight = heights[i % 5];
+                    
+                    return (
+                      <TouchableOpacity key={originalIndex} onPress={() => { setSelectedMediaIndex(originalIndex); setMediaModalVisible(true); }} activeOpacity={0.8}>
+                        <View style={{ borderRadius: 16, overflow: 'hidden', height: itemHeight, position: 'relative', backgroundColor: theme.surfaceContainerLow }}>
+                          <ExpoImage source={{ uri: m.url || m.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+                          {m.type === 'video' && (
+                            <View style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                              <MaterialIcons name="play-circle-filled" size={12} color="#fff" />
+                            </View>
+                          )}
+                          {(m.caption || m.caption === '') && (
+                            <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 8 }}>
+                              <Text style={{ color: '#fff', fontSize: 10, fontWeight: '500' }} numberOfLines={2}>{m.caption || ''}</Text>
+                            </LinearGradient>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                  
+                  {/* +X lainnya tile */}
+                  {memories.length > 5 && (
+                    <TouchableOpacity onPress={() => { setSelectedMediaIndex(0); setMediaModalVisible(true); }} style={{ height: 90, backgroundColor: theme.surfaceContainerLow, borderRadius: 16, justifyContent: 'center', alignItems: 'center' }}>
+                      <Text style={{ color: theme.primary, fontWeight: 'bold', fontSize: 14 }}>+{memories.length - 5} lainnya</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            </View>
+          )}
+        </Animated.View>
+
+        {/* --- DATA SECTIONS --- */}
+        <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
+          {/* --- ESTIMASI VS RIIL --- */}
+          <View style={{ padding: 16, marginTop: 16 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, textTransform: 'uppercase' }}>ESTIMASI VS RIIL</Text>
+              <View style={{ backgroundColor: (goal.actualAmount || 0) <= goal.targetAmount ? '#10B981' + '22' : theme.error + '22', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                <Text style={{ fontSize: 10, fontWeight: 'bold', color: (goal.actualAmount || 0) <= goal.targetAmount ? '#10B981' : theme.error }}>
+                  {(goal.actualAmount || 0) <= goal.targetAmount ? 'DI BAWAH BUDGET' : 'MELEBIHI BUDGET'}
+                </Text>
+              </View>
+            </View>
+            
+            <View style={{ backgroundColor: theme.surfaceContainer, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: theme.outlineVariant + '33' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 36, fontWeight: '900', color: theme.onSurface, letterSpacing: -1 }}>
+                    {Math.round(((goal.actualAmount || 0) / (goal.targetAmount || 1)) * 100)}%
+                  </Text>
+                  <Text style={{ fontSize: 11, color: theme.onSurfaceVariant, fontWeight: 'bold' }}>DARI TARGET AWAL</Text>
+                </View>
+                <View style={{ height: 50, width: 2, backgroundColor: theme.outlineVariant + '33', marginHorizontal: 20 }} />
+                <View style={{ flex: 1.5 }}>
+                  <View style={{ marginBottom: 8 }}>
+                    <Text style={{ fontSize: 10, color: theme.onSurfaceVariant }}>ESTIMASI</Text>
+                    <Text style={{ fontSize: 15, fontWeight: 'bold', color: theme.onSurface }}>Rp {formatMoney(goal.targetAmount)}</Text>
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 10, color: theme.onSurfaceVariant }}>RIIL (AKTUAL)</Text>
+                    <Text style={{ fontSize: 15, fontWeight: 'bold', color: (goal.actualAmount || 0) <= goal.targetAmount ? '#10B981' : theme.error }}>
+                      Rp {formatMoney(goal.actualAmount || 0)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={{ height: 12, backgroundColor: theme.surfaceContainerHighest, borderRadius: 6, marginBottom: 12, overflow: 'hidden' }}>
+                <View style={{ 
+                  height: '100%', 
+                  width: `${Math.min(((goal.actualAmount || 0) / (goal.targetAmount || 1)) * 100, 100)}%`, 
+                  backgroundColor: (goal.actualAmount || 0) <= goal.targetAmount ? theme.primary : theme.error, 
+                  borderRadius: 6 
+                }} />
+              </View>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center', marginTop: 8 }}>
+                <MaterialIcons 
+                  name={(goal.actualAmount || 0) <= goal.targetAmount ? "sentiment-very-satisfied" : "sentiment-neutral"} 
+                  size={16} 
+                  color={(goal.actualAmount || 0) <= goal.targetAmount ? '#10B981' : theme.onSurfaceVariant} 
+                />
+                <Text style={{ fontSize: 12, color: theme.onSurfaceVariant, textAlign: 'center', fontWeight: '500' }}>
+                  {(goal.actualAmount || 0) <= goal.targetAmount ? 'Hemat ' : 'Selisih '} 
+                  <Text style={{ fontWeight: 'bold', color: theme.onSurface }}>Rp {formatMoney(Math.abs((goal.actualAmount || 0) - goal.targetAmount))}</Text>
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* --- TRANSAKSI TERKAIT --- */}
+          <View style={{ padding: 16, marginTop: 8 }}>
+            <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>TRANSAKSI TERKAIT</Text>
+            {relatedTransactions.length === 0 ? (
+              <Text style={{ color: theme.onSurfaceVariant, textAlign: 'center', padding: 20 }}>Belum ada transaksi terkait goal ini</Text>
+            ) : (
+              relatedTransactions.map(tx => (
+                <View key={tx.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '22' }}>
+                  <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: theme.primaryContainer + '33', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                     <MaterialIcons name={tx.icon || 'receipt'} size={18} color={theme.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 13 }}>{tx.name}</Text>
+                    <Text style={{ color: theme.onSurfaceVariant, fontSize: 10 }}>{dayjs(tx.date).format('DD MMM YYYY')}</Text>
+                  </View>
+                  <Text style={{ color: tx.type === 'income' ? theme.primary : theme.error, fontWeight: '900', fontSize: 13 }}>
+                    {tx.type === 'income' ? '+' : '-'}Rp {formatMoney((tx.myContrib || 0) + (tx.partnerContrib || 0))}
                   </Text>
                 </View>
+              ))
+            )}
+          </View>
+
+          {/* --- PERJALANAN MENABUNG --- */}
+          <View style={{ padding: 16, marginTop: 8 }}>
+            <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>PERJALANAN MENABUNG</Text>
+            <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 20, padding: 20 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
+                <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>{created.format('DD MMM')}</Text>
+                <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>{achieved.format('DD MMM')}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                 {timelineMonths.map((month, i) => (
+                   <View key={i} style={{ alignItems: 'center' }}>
+                      <View style={{ width: i === 0 || i === timelineMonths.length - 1 ? 12 : 8, height: i === 0 || i === timelineMonths.length - 1 ? 12 : 8, borderRadius: 6, backgroundColor: theme.primary }} />
+                      {i < timelineMonths.length - 1 && <View style={{ position: 'absolute', left: '50%', top: 4, width: ((width - 100) / (timelineMonths.length - 1)) - 16, height: 2, backgroundColor: theme.primary, zIndex: -1 }} />}
+                      <Text style={{ fontSize: 9, color: theme.onSurfaceVariant, marginTop: 6 }}>{month}</Text>
+                   </View>
+                 ))}
               </View>
             </View>
-
-            <View style={{ height: 12, backgroundColor: theme.surfaceContainerHighest, borderRadius: 6, marginBottom: 12, overflow: 'hidden' }}>
-              <View style={{ 
-                height: '100%', 
-                width: `${Math.min(((goal.actualAmount || 0) / (goal.targetAmount || 1)) * 100, 100)}%`, 
-                backgroundColor: (goal.actualAmount || 0) <= goal.targetAmount ? theme.primary : theme.error, 
-                borderRadius: 6 
-              }} />
-            </View>
-
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center', marginTop: 8 }}>
-              <MaterialIcons 
-                name={(goal.actualAmount || 0) <= goal.targetAmount ? "sentiment-very-satisfied" : "sentiment-neutral"} 
-                size={16} 
-                color={(goal.actualAmount || 0) <= goal.targetAmount ? '#10B981' : theme.onSurfaceVariant} 
-              />
-              <Text style={{ fontSize: 12, color: theme.onSurfaceVariant, textAlign: 'center', fontWeight: '500' }}>
-                {(goal.actualAmount || 0) <= goal.targetAmount ? 'Hemat ' : 'Selisih '} 
-                <Text style={{ fontWeight: 'bold', color: theme.onSurface }}>Rp {formatMoney(Math.abs((goal.actualAmount || 0) - goal.targetAmount))}</Text>
-              </Text>
-            </View>
           </View>
-        </View>
-
-        {/* --- RINGKASAN --- */}
-        <View style={{ padding: 16, marginTop: 8 }}>
-          <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>RINGKASAN</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {[
-              { label: 'Total Pengeluaran', value: `Rp ${formatMoney(totalExpense)}`, icon: 'shopping-cart' },
-              { label: 'Lama Menabung', value: `${durationMonths} bln ${durationDays} hr`, icon: 'date-range' },
-              { label: 'Transaksi Terkait', value: `${relatedTransactions.length} buah`, icon: 'receipt' },
-              { label: 'Rata-rata/Bulan', value: `Rp ${formatMoney(avgSave)}`, icon: 'favorite' },
-            ].map((item, i) => (
-              <View key={i} style={{ width: '48%', backgroundColor: theme.surfaceContainerLow, borderRadius: 16, padding: 16 }}>
-                <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.primaryContainer + '33', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
-                  <MaterialIcons name={item.icon} size={16} color={theme.primary} />
-                </View>
-                <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, marginBottom: 4 }}>{item.label}</Text>
-                <Text style={{ fontSize: 14, fontWeight: '900', color: theme.onSurface }}>{item.value}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* --- TRANSAKSI TERKAIT --- */}
-        <View style={{ padding: 16, marginTop: 8 }}>
-          <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>TRANSAKSI TERKAIT</Text>
-          {relatedTransactions.length === 0 ? (
-            <Text style={{ color: theme.onSurfaceVariant, textAlign: 'center', padding: 20 }}>Belum ada transaksi terkait goal ini</Text>
-          ) : (
-            relatedTransactions.map(tx => (
-              <View key={tx.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '22' }}>
-                <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: theme.primaryContainer + '33', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
-                   <MaterialIcons name={tx.icon || 'receipt'} size={18} color={theme.primary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 13 }}>{tx.name}</Text>
-                  <Text style={{ color: theme.onSurfaceVariant, fontSize: 10 }}>{dayjs(tx.date).format('DD MMM YYYY')}</Text>
-                </View>
-                <Text style={{ color: tx.type === 'income' ? theme.primary : theme.error, fontWeight: '900', fontSize: 13 }}>
-                  {tx.type === 'income' ? '+' : '-'}Rp {formatMoney((tx.myContrib || 0) + (tx.partnerContrib || 0))}
-                </Text>
-              </View>
-            ))
-          )}
-        </View>
-
-        {/* --- PERJALANAN MENABUNG --- */}
-        <View style={{ padding: 16, marginTop: 8 }}>
-          <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>PERJALANAN MENABUNG</Text>
-          <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 20, padding: 20 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
-              <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>{created.format('DD MMM')}</Text>
-              <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>{achieved.format('DD MMM')}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-               {timelineMonths.map((month, i) => (
-                 <View key={i} style={{ alignItems: 'center' }}>
-                    <View style={{ width: i === 0 || i === timelineMonths.length - 1 ? 12 : 8, height: i === 0 || i === timelineMonths.length - 1 ? 12 : 8, borderRadius: 6, backgroundColor: theme.primary }} />
-                    {i < timelineMonths.length - 1 && <View style={{ position: 'absolute', left: '50%', top: 4, width: ((width - 100) / (timelineMonths.length - 1)) - 16, height: 2, backgroundColor: theme.primary, zIndex: -1 }} />}
-                    <Text style={{ fontSize: 9, color: theme.onSurfaceVariant, marginTop: 6 }}>{month}</Text>
-                 </View>
-               ))}
-            </View>
-          </View>
-        </View>
 
         {/* --- CAPSULE TIME --- */}
         <View style={{ padding: 16, marginTop: 8, marginBottom: 20 }}>
@@ -621,8 +650,9 @@ const MemoryDetailScreen = ({ route }) => {
             </TouchableOpacity>
           </View>
         </View>
+      </Animated.View>
 
-      </Animated.ScrollView>
+      </ScrollView>
 
       {/* Modals */}
       <MediaModal 

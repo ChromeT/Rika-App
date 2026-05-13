@@ -1,5 +1,6 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, Image, TextInput, Alert, Animated, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, Image, TextInput, Alert, Animated, Platform, ActivityIndicator } from 'react-native';
+import Text from '../components/ThemeText';
 import dayjs from 'dayjs';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -11,24 +12,58 @@ import { exportToXLS, exportToPDF } from '../utils/exportUtils';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const SettingsScreen = ({ navigation }) => {
-  const { theme, isDarkMode, toggleTheme, changeAccent, accentColor, fontFamily, changeFont } = useContext(ThemeContext);
   const { getBalance, transactions } = useContext(DataContext);
   const { user, householdUsers, householdAvatars, customColors, addCustomColor, logout, avatar, updateAvatar } = useContext(AuthContext);
+  const { theme, isDarkMode, toggleTheme, changeAccent, accentColor, fontFamily, changeFont, customFonts, uploadFont, deleteFont } = useContext(ThemeContext);
   
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
   const [customColorModalVisible, setCustomColorModalVisible] = useState(false);
   const [customHexInput, setCustomHexInput] = useState('');
+  const [fontModalVisible, setFontModalVisible] = useState(false);
+  const [fontLoading, setFontLoading] = useState(false);
 
   // Animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+  const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 800, useNativeDriver: true })
+    Animated.stagger(100, [
+      Animated.parallel([
+        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ])
     ]).start();
   }, []);
+
+  const handleBack = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' })
+    ]).start(() => navigation.goBack());
+  };
+
+  const handleLogout = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnims[0], { toValue: 0, duration: 400, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[1], { toValue: 0, duration: 400, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[2], { toValue: 0, duration: 400, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[0], { toValue: 50, duration: 400, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[1], { toValue: 50, duration: 400, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[2], { toValue: 50, duration: 400, useNativeDriver: Platform.OS !== 'web' })
+    ]).start(() => logout());
+  };
 
   const myName = user?.name || 'Saya';
   const partnerName = householdUsers.find(u => u !== myName);
@@ -103,6 +138,21 @@ const SettingsScreen = ({ navigation }) => {
     setCustomColorModalVisible(false);
   };
 
+  const handleUploadFont = async () => {
+    try {
+      setFontLoading(true);
+      const success = await uploadFont();
+      setFontLoading(false);
+      if (success) {
+        Alert.alert('Berhasil', 'Font kustom telah ditambahkan dan diterapkan!');
+      }
+    } catch (e) {
+      setFontLoading(false);
+      Alert.alert('Error', 'Terjadi kesalahan saat memproses font. Pastikan file valid.');
+      console.error(e);
+    }
+  };
+
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exportPeriod, setExportPeriod] = useState('bulanan');
   const [exportFilters, setExportFilters] = useState({ user: 'Kita', type: 'Semua' });
@@ -172,220 +222,242 @@ const SettingsScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.headerMainTitle, { color: theme.onSurface }]}>Pengaturan</Text>
+      <Animated.View style={[styles.header, { opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <TouchableOpacity onPress={handleBack}>
+            <MaterialIcons name="close" size={24} color={theme.primary} />
+          </TouchableOpacity>
+          <Text style={[styles.headerMainTitle, { color: theme.onSurface }]}>Pengaturan</Text>
+        </View>
         <TouchableOpacity onPress={() => navigation.navigate('Couple')} style={[styles.headerBtn, { backgroundColor: theme.primary + '15' }]}>
            <MaterialIcons name="group" size={24} color={theme.primary} />
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
-      <Animated.ScrollView 
+      <ScrollView 
         contentContainerStyle={styles.main} 
         showsVerticalScrollIndicator={false}
-        style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
       >
         {/* Profile Section */}
-        <LinearGradient 
-          colors={[theme.surfaceContainer, theme.surfaceContainerLow]}
-          style={[styles.profileCard, { borderWidth: 1, borderColor: theme.outlineVariant + '22' }]}
-        >
-           <View style={styles.profileTop}>
-              <View style={styles.userColumn}>
-                 <TouchableOpacity onPress={() => setAvatarModalVisible(true)} style={styles.avatarLarge}>
-                    <View style={[styles.avatarInner, { borderColor: theme.primary + '44' }]}>{renderAvatar(avatar, 40)}</View>
-                    <View style={[styles.avatarBadge, { backgroundColor: theme.primary }]} />
-                 </TouchableOpacity>
-                 <Text style={[styles.profileName, { color: theme.onSurface }]}>{myName}</Text>
-                 <Text style={[styles.profileRole, { color: theme.primary }]}>Saldo: Rp {formatMoney(getBalance(myName))}</Text>
-              </View>
-
-              {hasPartner ? (
-                <>
-                  <View style={styles.vsContainer}>
-                    <View style={[styles.vsLine, { backgroundColor: theme.outlineVariant + '22' }]} />
-                    <MaterialIcons name="favorite" size={20} color={theme.error + 'AA'} />
-                    <View style={[styles.vsLine, { backgroundColor: theme.outlineVariant + '22' }]} />
-                  </View>
-                  <View style={styles.userColumn}>
-                    <View style={styles.avatarLarge}>
-                       <View style={[styles.avatarInner, { borderColor: theme.primary + '22' }]}>
-                          {householdAvatars && householdAvatars[partnerName] 
-                            ? renderAvatar(householdAvatars[partnerName], 40)
-                            : <MaterialIcons name="favorite" size={40} color={theme.primary + '33'} />
-                          }
-                       </View>
-                    </View>
-                    <Text style={[styles.profileName, { color: theme.onSurface }]}>{partnerName}</Text>
-                    <Text style={[styles.profileRole, { color: theme.onSurfaceVariant }]}>Saldo: Rp {formatMoney(getBalance(partnerName))}</Text>
-                  </View>
-                </>
-              ) : (
-                <View style={styles.inviteBox}>
-                   <Text style={[styles.inviteText, { color: theme.onSurfaceVariant }]}>Ajak pasangan bergabung!</Text>
-                   <View style={[styles.codeBadge, { backgroundColor: theme.primary + '15' }]}>
-                      <Text style={[styles.codeText, { color: theme.primary }]}>{user?.householdId}</Text>
-                   </View>
-                </View>
-              )}
-           </View>
-           
-           <TouchableOpacity style={[styles.editProfileBtn, { backgroundColor: theme.primary }]} onPress={() => setAvatarModalVisible(true)}>
-              <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Ubah Profil & Avatar</Text>
-           </TouchableOpacity>
-        </LinearGradient>
-
-        <SectionHeader title="Laporan & Ekspor" badge="Analytics" />
-        <View style={[styles.analyticsCard, { backgroundColor: theme.surfaceContainerLow, borderColor: theme.outlineVariant + '22', borderWidth: 1 }]}>
-           <View style={styles.analyticsHeader}>
-              <View>
-                 <Text style={[styles.analyticsTitle, { color: theme.onSurface }]}>Ikhtisar Keuangan</Text>
-                 <Text style={[styles.analyticsSubtitle, { color: theme.onSurfaceVariant }]}>
-                    {exportPeriod === 'bulanan' ? 'Bulan Ini' : exportPeriod === 'mingguan' ? 'Minggu Ini' : exportPeriod === 'harian' ? 'Hari Ini' : 'Rentang Kustom'}
-                 </Text>
-              </View>
-              <View style={styles.periodPills}>
-                 {['harian', 'mingguan', 'bulanan', 'kustom'].map(p => (
-                   <TouchableOpacity 
-                     key={p} 
-                     onPress={() => setExportPeriod(p)}
-                     style={[styles.periodPill, exportPeriod === p && { backgroundColor: theme.primary }]}
-                   >
-                      <Text style={[styles.periodPillText, { color: exportPeriod === p ? theme.onPrimary : theme.onSurfaceVariant }]}>
-                        {p.charAt(0).toUpperCase() + p.slice(1)}
-                      </Text>
+        <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
+          <LinearGradient 
+            colors={[theme.surfaceContainer, theme.surfaceContainerLow]}
+            style={[styles.profileCard, { borderWidth: 1, borderColor: theme.outlineVariant + '22' }]}
+          >
+             <View style={styles.profileTop}>
+                <View style={styles.userColumn}>
+                   <TouchableOpacity onPress={() => setAvatarModalVisible(true)} style={styles.avatarLarge}>
+                      <View style={[styles.avatarInner, { borderColor: theme.primary + '44' }]}>{renderAvatar(avatar, 40)}</View>
+                      <View style={[styles.avatarBadge, { backgroundColor: theme.primary }]} />
                    </TouchableOpacity>
-                 ))}
-              </View>
-           </View>
-
-           {exportPeriod === 'kustom' && (
-             <View style={styles.customDateRow}>
-                <View style={styles.dateInputGroup}>
-                   <Text style={[styles.dateLabel, { color: theme.onSurfaceVariant }]}>Mulai</Text>
-                   <TextInput 
-                     style={[styles.dateInput, { backgroundColor: theme.surfaceContainerHigh, color: theme.onSurface }]}
-                     value={startDate}
-                     onChangeText={setStartDate}
-                     placeholder="YYYY-MM-DD"
-                   />
+                   <Text style={[styles.profileName, { color: theme.onSurface }]}>{myName}</Text>
+                   <Text style={[styles.profileRole, { color: theme.primary }]}>Saldo: Rp {formatMoney(getBalance(myName))}</Text>
                 </View>
-                <View style={styles.dateInputGroup}>
-                   <Text style={[styles.dateLabel, { color: theme.onSurfaceVariant }]}>Selesai</Text>
-                   <TextInput 
-                     style={[styles.dateInput, { backgroundColor: theme.surfaceContainerHigh, color: theme.onSurface }]}
-                     value={endDate}
-                     onChangeText={setEndDate}
-                     placeholder="YYYY-MM-DD"
-                   />
+
+                {hasPartner ? (
+                  <>
+                    <View style={styles.vsContainer}>
+                      <View style={[styles.vsLine, { backgroundColor: theme.outlineVariant + '22' }]} />
+                      <MaterialIcons name="favorite" size={20} color={theme.error + 'AA'} />
+                      <View style={[styles.vsLine, { backgroundColor: theme.outlineVariant + '22' }]} />
+                    </View>
+                    <View style={styles.userColumn}>
+                      <View style={styles.avatarLarge}>
+                         <View style={[styles.avatarInner, { borderColor: theme.primary + '22' }]}>
+                            {householdAvatars && householdAvatars[partnerName] 
+                              ? renderAvatar(householdAvatars[partnerName], 40)
+                              : <MaterialIcons name="favorite" size={40} color={theme.primary + '33'} />
+                            }
+                         </View>
+                      </View>
+                      <Text style={[styles.profileName, { color: theme.onSurface }]}>{partnerName}</Text>
+                      <Text style={[styles.profileRole, { color: theme.onSurfaceVariant }]}>Saldo: Rp {formatMoney(getBalance(partnerName))}</Text>
+                    </View>
+                  </>
+                ) : (
+                  <View style={styles.inviteBox}>
+                     <Text style={[styles.inviteText, { color: theme.onSurfaceVariant }]}>Ajak pasangan bergabung!</Text>
+                     <View style={[styles.codeBadge, { backgroundColor: theme.primary + '15' }]}>
+                        <Text style={[styles.codeText, { color: theme.primary }]}>{user?.householdId}</Text>
+                     </View>
+                  </View>
+                )}
+             </View>
+             
+             <TouchableOpacity style={[styles.editProfileBtn, { backgroundColor: theme.primary }]} onPress={() => setAvatarModalVisible(true)}>
+                <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Ubah Profil & Avatar</Text>
+             </TouchableOpacity>
+          </LinearGradient>
+        </Animated.View>
+
+        <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
+          <SectionHeader title="Laporan & Ekspor" badge="Analisa" />
+          <View style={[styles.analyticsCard, { backgroundColor: theme.surfaceContainerLow, borderColor: theme.outlineVariant + '22', borderWidth: 1 }]}>
+             <View style={styles.analyticsHeader}>
+                <View>
+                   <Text style={[styles.analyticsTitle, { color: theme.onSurface }]}>Ikhtisar Keuangan</Text>
+                   <Text style={[styles.analyticsSubtitle, { color: theme.onSurfaceVariant }]}>
+                      {exportPeriod === 'bulanan' ? 'Bulan Ini' : exportPeriod === 'mingguan' ? 'Minggu Ini' : exportPeriod === 'harian' ? 'Hari Ini' : 'Rentang Kustom'}
+                   </Text>
+                </View>
+                <View style={styles.periodPills}>
+                   {['harian', 'mingguan', 'bulanan', 'kustom'].map(p => (
+                     <TouchableOpacity 
+                       key={p} 
+                       onPress={() => setExportPeriod(p)}
+                       style={[styles.periodPill, exportPeriod === p && { backgroundColor: theme.primary }]}
+                     >
+                        <Text style={[styles.periodPillText, { color: exportPeriod === p ? theme.onPrimary : theme.onSurfaceVariant }]}>
+                          {p.charAt(0).toUpperCase() + p.slice(1)}
+                        </Text>
+                     </TouchableOpacity>
+                   ))}
                 </View>
              </View>
-           )}
 
-           <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                 <View style={[styles.statIcon, { backgroundColor: '#10B98115' }]}>
-                    <MaterialIcons name="trending-up" size={18} color="#10B981" />
-                 </View>
-                 <View>
-                    <Text style={[styles.statLabel, { color: theme.onSurfaceVariant }]}>Masuk</Text>
-                    <Text style={[styles.statValue, { color: '#10B981' }]}>Rp {formatMoney(stats.income)}</Text>
-                 </View>
-              </View>
-              <View style={styles.statItem}>
-                 <View style={[styles.statIcon, { backgroundColor: theme.error + '15' }]}>
-                    <MaterialIcons name="trending-down" size={18} color={theme.error} />
-                 </View>
-                 <View>
-                    <Text style={[styles.statLabel, { color: theme.onSurfaceVariant }]}>Keluar</Text>
-                    <Text style={[styles.statValue, { color: theme.error }]}>Rp {formatMoney(stats.expense)}</Text>
-                 </View>
-              </View>
-           </View>
-
-           <TouchableOpacity 
-             style={[styles.generateBtn, { backgroundColor: theme.primary }]} 
-             onPress={() => setExportModalVisible(true)}
-           >
-              <MaterialIcons name="file-download" size={20} color={theme.onPrimary} />
-              <Text style={[styles.generateBtnText, { color: theme.onPrimary }]}>Ekspor Laporan ({stats.count})</Text>
-           </TouchableOpacity>
-        </View>
-
-        <SectionHeader title="Kustomisasi" />
-        <View style={styles.settingGroup}>
-          <SettingRow icon="category" title="Kelola Kategori" desc="Atur kategori transaksi Anda" onPress={() => navigation.navigate("Categories")} />
-          <SettingRow icon="dark-mode" title="Mode Gelap" desc="Aktifkan tampilan mode malam">
-            <Switch 
-              value={isDarkMode} 
-              onValueChange={toggleTheme}
-              trackColor={{ false: theme.outlineVariant + '44', true: theme.primary }}
-              thumbColor="#fff"
-            />
-          </SettingRow>
-          
-          <View style={[styles.paletteContainer, { backgroundColor: theme.surfaceContainerLow }]}>
-            <View style={styles.paletteHeader}>
-               <View style={[styles.paletteIconBg, { backgroundColor: theme.surfaceContainerHigh }]}>
-                 <MaterialIcons name="palette" size={20} color={theme.primary} />
+             {exportPeriod === 'kustom' && (
+               <View style={styles.customDateRow}>
+                  <View style={styles.dateInputGroup}>
+                     <Text style={[styles.dateLabel, { color: theme.onSurfaceVariant }]}>Mulai</Text>
+                     <TextInput 
+                       nativeID="start-date-input"
+                       style={[styles.dateInput, { backgroundColor: theme.surfaceContainerHigh, color: theme.onSurface }]}
+                       value={startDate}
+                       onChangeText={setStartDate}
+                       placeholder="YYYY-MM-DD"
+                     />
+                  </View>
+                  <View style={styles.dateInputGroup}>
+                     <Text style={[styles.dateLabel, { color: theme.onSurfaceVariant }]}>Selesai</Text>
+                     <TextInput 
+                       nativeID="end-date-input"
+                       style={[styles.dateInput, { backgroundColor: theme.surfaceContainerHigh, color: theme.onSurface }]}
+                       value={endDate}
+                       onChangeText={setEndDate}
+                       placeholder="YYYY-MM-DD"
+                     />
+                  </View>
                </View>
-               <View>
-                 <Text style={[styles.paletteTitle, { color: theme.onSurface }]}>Warna Aksen</Text>
-                 <Text style={[styles.paletteSubtitle, { color: theme.onSurfaceVariant }]}>Pilih warna kesukaan kita</Text>
-               </View>
-            </View>
-            <View style={styles.paletteList}>
-              {palettes.map((hex, i) => {
-                const isActive = accentColor === hex;
-                return (
-                  <TouchableOpacity 
-                    key={i} 
-                    activeOpacity={0.8}
-                    style={[
-                      styles.paletteDot, 
-                      { backgroundColor: hex, justifyContent: 'center', alignItems: 'center' }, 
-                      isActive && styles.paletteDotActive
-                    ]} 
-                    onPress={() => changeAccent(hex)}
-                  >
-                    {isActive && <MaterialIcons name="check" size={20} color="#fff" />}
-                  </TouchableOpacity>
-                );
-              })}
-              <TouchableOpacity 
-                style={[styles.paletteDot, styles.plusBtn]} 
-                onPress={() => setCustomColorModalVisible(true)}
-              >
-                <MaterialIcons name="add" size={24} color={theme.onSurfaceVariant} />
-              </TouchableOpacity>
-            </View>
+             )}
+
+             <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                   <View style={[styles.statIcon, { backgroundColor: '#10B98115' }]}>
+                      <MaterialIcons name="trending-up" size={18} color="#10B981" />
+                   </View>
+                   <View>
+                      <Text style={[styles.statLabel, { color: theme.onSurfaceVariant }]}>Masuk</Text>
+                      <Text style={[styles.statValue, { color: '#10B981' }]}>Rp {formatMoney(stats.income)}</Text>
+                   </View>
+                </View>
+                <View style={styles.statItem}>
+                   <View style={[styles.statIcon, { backgroundColor: theme.error + '15' }]}>
+                      <MaterialIcons name="trending-down" size={18} color={theme.error} />
+                   </View>
+                   <View>
+                      <Text style={[styles.statLabel, { color: theme.onSurfaceVariant }]}>Keluar</Text>
+                      <Text style={[styles.statValue, { color: theme.error }]}>Rp {formatMoney(stats.expense)}</Text>
+                   </View>
+                </View>
+             </View>
+
+             <TouchableOpacity 
+               style={[styles.generateBtn, { backgroundColor: theme.primary }]} 
+               onPress={() => setExportModalVisible(true)}
+             >
+                <MaterialIcons name="file-download" size={20} color={theme.onPrimary} />
+                <Text style={[styles.generateBtnText, { color: theme.onPrimary }]}>Ekspor Laporan ({stats.count})</Text>
+             </TouchableOpacity>
           </View>
 
-          <View style={[styles.paletteContainer, { backgroundColor: theme.surfaceContainerLow, marginTop: 12 }]}>
-            <View style={styles.paletteHeader}>
-               <MaterialIcons name="format-size" size={20} color={theme.primary} />
-               <Text style={[styles.paletteTitle, { color: theme.onSurface }]}>Pilihan Font</Text>
-            </View>
-            <View style={styles.fontGrid}>
-              {availableFonts.map((font) => (
-                <TouchableOpacity
-                  key={font.name}
-                  style={[styles.fontItem, { backgroundColor: fontFamily === font.name ? theme.primary : theme.surfaceContainerHighest }]}
-                  onPress={() => changeFont(font.name)}
+          <SectionHeader title="Kustomisasi" />
+          <View style={styles.settingGroup}>
+            <SettingRow icon="category" title="Kelola Kategori" desc="Atur kategori transaksi Anda" onPress={() => navigation.navigate("Categories")} />
+            <SettingRow icon="dark-mode" title="Mode Gelap" desc="Aktifkan tampilan mode malam">
+              <Switch 
+                value={isDarkMode} 
+                onValueChange={toggleTheme}
+                trackColor={{ false: theme.outlineVariant + '44', true: theme.primary }}
+                thumbColor="#fff"
+              />
+            </SettingRow>
+            
+            <View style={[styles.paletteContainer, { backgroundColor: theme.surfaceContainerLow }]}>
+              <View style={styles.paletteHeader}>
+                 <View style={[styles.paletteIconBg, { backgroundColor: theme.surfaceContainerHigh }]}>
+                   <MaterialIcons name="palette" size={20} color={theme.primary} />
+                 </View>
+                 <View>
+                   <Text style={[styles.paletteTitle, { color: theme.onSurface }]}>Warna Aksen</Text>
+                   <Text style={[styles.paletteSubtitle, { color: theme.onSurfaceVariant }]}>Pilih warna kesukaan kita</Text>
+                 </View>
+              </View>
+              <View style={styles.paletteList}>
+                {palettes.map((hex, i) => {
+                  const isActive = accentColor === hex;
+                  return (
+                    <TouchableOpacity 
+                      key={i} 
+                      activeOpacity={0.8}
+                      style={[
+                        styles.paletteDot, 
+                        { backgroundColor: hex, justifyContent: 'center', alignItems: 'center' }, 
+                        isActive && styles.paletteDotActive
+                      ]} 
+                      onPress={() => changeAccent(hex)}
+                    >
+                      {isActive && <MaterialIcons name="check" size={20} color="#fff" />}
+                    </TouchableOpacity>
+                  );
+                })}
+                <TouchableOpacity 
+                  style={[styles.paletteDot, styles.plusBtn]} 
+                  onPress={() => setCustomColorModalVisible(true)}
                 >
-                  <Text style={[styles.fontItemText, { color: fontFamily === font.name ? theme.onPrimary : theme.onSurfaceVariant }]}>{font.displayName}</Text>
+                  <MaterialIcons name="add" size={24} color={theme.onSurfaceVariant} />
                 </TouchableOpacity>
-              ))}
+              </View>
+            </View>
+
+            <View style={[styles.paletteContainer, { backgroundColor: theme.surfaceContainerLow, marginTop: 12 }]}>
+              <View style={styles.paletteHeader}>
+                 <View style={[styles.paletteIconBg, { backgroundColor: theme.surfaceContainerHigh }]}>
+                    <MaterialIcons name="format-size" size={20} color={theme.primary} />
+                 </View>
+                 <View>
+                    <Text style={[styles.paletteTitle, { color: theme.onSurface }]}>Gaya Font</Text>
+                    <Text style={[styles.paletteSubtitle, { color: theme.onSurfaceVariant }]}>Ketuk untuk ganti gaya tulisan</Text>
+                 </View>
+              </View>
+              
+              <View style={styles.paletteList}>
+                <TouchableOpacity
+                  style={[styles.fontItem, { backgroundColor: theme.primary, flex: 1, marginRight: 12 }]}
+                  onPress={() => setFontModalVisible(true)}
+                >
+                  <Text style={[styles.fontItemText, { color: theme.onPrimary, fontFamily: fontFamily }]}>
+                    {availableFonts.find(f => f.name === fontFamily)?.displayName || customFonts.find(f => f.name === fontFamily)?.displayName || 'Custom Font'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.paletteDot, styles.plusBtn]} 
+                  onPress={() => setFontModalVisible(true)}
+                >
+                  <MaterialIcons name="add" size={24} color={theme.onSurfaceVariant} />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
 
-        <TouchableOpacity style={[styles.logoutBtn, { backgroundColor: theme.error + '10' }]} onPress={logout}>
-          <MaterialIcons name="logout" size={24} color={theme.error} />
-          <Text style={[styles.logoutText, { color: theme.error }]}>Log Out</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={[styles.logoutBtn, { backgroundColor: theme.error + '10' }]} onPress={handleLogout}>
+            <MaterialIcons name="logout" size={24} color={theme.error} />
+            <Text style={[styles.logoutText, { color: theme.error }]}>Log Out</Text>
+          </TouchableOpacity>
+        </Animated.View>
         
 
-      </Animated.ScrollView>
+      </ScrollView>
 
       {/* Modals remain mostly similar but with premium touch */}
       {/* ... (Other modals from SettingsScreen) */}
@@ -443,6 +515,75 @@ const SettingsScreen = ({ navigation }) => {
         </View>
       </Modal>
 
+      {/* Manage Fonts Modal */}
+      <Modal visible={fontModalVisible} transparent animationType="slide" onRequestClose={() => setFontModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface, maxHeight: '85%' }]}>
+             <Text style={[styles.modalTitle, { color: theme.onSurface, marginBottom: 8 }]}>Kelola Font</Text>
+             <Text style={{ color: theme.onSurfaceVariant, textAlign: 'center', marginBottom: 24, fontSize: 13 }}>Pilih gaya tulisan yang paling pas buat kita</Text>
+             
+             <ScrollView showsVerticalScrollIndicator={false} style={{ marginBottom: 20 }}>
+                <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 14, marginBottom: 12, marginTop: 8 }}>Font Sistem</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
+                   {availableFonts.map((font) => (
+                     <TouchableOpacity
+                       key={font.name}
+                       style={[styles.fontItem, { backgroundColor: fontFamily === font.name ? theme.primary : theme.surfaceContainerLow, borderWidth: 1, borderColor: theme.outlineVariant + '22' }]}
+                       onPress={() => changeFont(font.name)}
+                     >
+                       <Text style={[styles.fontItemText, { color: fontFamily === font.name ? theme.onPrimary : theme.onSurface, fontFamily: font.name }]}>{font.displayName}</Text>
+                     </TouchableOpacity>
+                   ))}
+                </View>
+
+                <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 14, marginBottom: 12 }}>Font Kustom</Text>
+                <View style={{ gap: 10 }}>
+                   {customFonts.length > 0 ? customFonts.map((font) => (
+                     <View key={font.name} style={{ flexDirection: 'row', gap: 10 }}>
+                        <TouchableOpacity
+                          style={[styles.fontItem, { flex: 1, backgroundColor: fontFamily === font.name ? theme.primary : theme.surfaceContainerLow, borderWidth: 1, borderColor: theme.outlineVariant + '22' }]}
+                          onPress={() => changeFont(font.name)}
+                        >
+                          <Text style={[styles.fontItemText, { color: fontFamily === font.name ? theme.onPrimary : theme.onSurface, fontFamily: font.name }]}>{font.displayName}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: theme.error + '11', justifyContent: 'center', alignItems: 'center' }}
+                          onPress={() => {
+                            Alert.alert('Hapus Font', `Yakin mau hapus font "${font.displayName}"?`, [
+                              { text: 'Batal', style: 'cancel' },
+                              { text: 'Hapus', style: 'destructive', onPress: () => deleteFont(font.name) }
+                            ]);
+                          }}
+                        >
+                          <MaterialIcons name="delete-outline" size={20} color={theme.error} />
+                        </TouchableOpacity>
+                     </View>
+                   )) : (
+                     <Text style={{ color: theme.onSurfaceVariant, fontSize: 12, fontStyle: 'italic', padding: 12 }}>Belum ada font kustom yang diunggah.</Text>
+                   )}
+                </View>
+             </ScrollView>
+
+             <TouchableOpacity 
+                style={[styles.modalActionBtn, { backgroundColor: theme.primary, marginBottom: 12 }]} 
+                onPress={handleUploadFont}
+                disabled={fontLoading}
+             >
+                {fontLoading ? <ActivityIndicator color={theme.onPrimary} /> : (
+                  <>
+                    <MaterialIcons name="cloud-upload" size={20} color={theme.onPrimary} />
+                    <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Unggah Font Baru (.ttf/.otf)</Text>
+                  </>
+                )}
+             </TouchableOpacity>
+
+             <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setFontModalVisible(false)}>
+              <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Tutup</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Custom Color Modal */}
       <Modal visible={customColorModalVisible} transparent animationType="slide" onRequestClose={() => setCustomColorModalVisible(false)}>
         <View style={styles.modalOverlay}>
@@ -451,6 +592,7 @@ const SettingsScreen = ({ navigation }) => {
              <Text style={{ color: theme.onSurfaceVariant, textAlign: 'center', marginBottom: 24, fontSize: 13 }}>Input hex code atau pilih dari warna tersimpan</Text>
              
              <TextInput 
+               nativeID="custom-hex-input"
                style={[styles.hexInput, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface, borderColor: theme.outlineVariant + '44', borderWidth: 1 }]} 
                placeholder="#HEXCODE" 
                placeholderTextColor={theme.onSurfaceVariant}
@@ -564,9 +706,8 @@ const styles = StyleSheet.create({
   paletteDotActive: { width: 38, height: 38, borderRadius: 19 },
   plusBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
   savedColorDot: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-  fontGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  fontItem: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 },
-  fontItemText: { fontSize: 12, fontWeight: 'bold' },
+  fontItem: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  fontItemText: { fontSize: 13, fontWeight: 'bold' },
 
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 20, borderRadius: 24, gap: 12 },
   logoutText: { fontSize: 16, fontWeight: 'bold' },

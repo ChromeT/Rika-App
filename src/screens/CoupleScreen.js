@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Share, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Share, Alert, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +20,63 @@ const CoupleScreen = ({ navigation }) => {
 
   const [showAllRoadmap, setShowAllRoadmap] = React.useState(false);
   const [showAllHistory, setShowAllHistory] = React.useState(false);
+
+  // Animations
+  const fadeAnims = React.useRef([
+    new Animated.Value(0), // Header
+    new Animated.Value(0), // Couple Card
+    new Animated.Value(0), // Stats Section
+    new Animated.Value(0), // Info Section
+    new Animated.Value(0), // Timeline Section
+  ]).current;
+
+  const slideAnims = React.useRef([
+    new Animated.Value(20),
+    new Animated.Value(20),
+    new Animated.Value(20),
+    new Animated.Value(20),
+    new Animated.Value(20),
+  ]).current;
+
+  React.useEffect(() => {
+    Animated.stagger(100, [
+      Animated.parallel([
+        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[4], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[4], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ])
+    ]).start();
+  }, []);
+
+  const handleBack = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[3], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[4], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[3], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[4], { toValue: -20, duration: 300, useNativeDriver: true })
+    ]).start(() => navigation.goBack());
+  };
 
   const myName = user?.name || 'Saya';
   const partnerName = householdUsers.find(u => u !== myName);
@@ -53,17 +110,17 @@ const CoupleScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.surface }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <MaterialIcons name="arrow-back" size={24} color={theme.onSurface} />
+      <Animated.View style={[styles.header, { backgroundColor: theme.surface, opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }]}>
+        <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
+          <MaterialIcons name="close" size={24} color={theme.onSurface} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.onSurface }]}>Ruang Kita</Text>
         <View style={{ width: 40 }} />
-      </View>
+      </Animated.View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Couple Card */}
-        <View style={[styles.coupleCard, { backgroundColor: theme.surfaceContainerLow }]}>
+        <Animated.View style={[styles.coupleCard, { backgroundColor: theme.surfaceContainerLow, opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }]}>
           <View style={styles.avatarsRow}>
             <View style={styles.avatarContainer}>
               <View style={[styles.avatarFrame, { borderColor: theme.primary + '33' }]}>
@@ -109,233 +166,239 @@ const CoupleScreen = ({ navigation }) => {
               </Text>
             </TouchableOpacity>
           )}
-        </View>
+        </Animated.View>
 
-        {/* Combined Stats */}
-        <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Kekuatan Finansial</Text>
-        <LinearGradient 
-          colors={[theme.primary, theme.primaryContainer]} 
-          start={{x:0, y:0}} 
-          end={{x:1, y:1}} 
-          style={styles.statsCard}
-        >
-          <View>
-            <Text style={styles.statsLabel}>TOTAL ASET GABUNGAN</Text>
-            <Text style={styles.totalValue}>Rp {formatMoney(totalAssets)}</Text>
-          </View>
-          <View style={styles.statsIconBg}>
-            <MaterialIcons name="account-balance-wallet" size={32} color={theme.onPrimary} />
-          </View>
-        </LinearGradient>
-
-        <View style={styles.breakdownRow}>
-          <View style={[styles.miniStat, { backgroundColor: theme.surfaceContainerLow }]}>
-            <Text style={[styles.miniLabel, { color: theme.onSurfaceVariant }]}>MILIK {myName.toUpperCase()}</Text>
-            <Text style={[styles.miniValue, { color: theme.onSurface }]}>Rp {formatMoney(myBalance)}</Text>
-          </View>
-          <View style={[styles.miniStat, { backgroundColor: theme.surfaceContainerLow }]}>
-            <Text style={[styles.miniLabel, { color: theme.onSurfaceVariant }]}>MILIK PASANGAN</Text>
-            <Text style={[styles.miniValue, { color: theme.onSurface }]}>Rp {formatMoney(partnerBalance)}</Text>
-          </View>
-        </View>
-
-        {/* Household Info */}
-        <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Informasi Rumah Tangga</Text>
-        <View style={[styles.infoCard, { backgroundColor: theme.surfaceContainerLow }]}>
-          <View style={styles.infoRow}>
+        {/* Combined Stats Section */}
+        <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
+          <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Kekuatan Finansial</Text>
+          <LinearGradient 
+            colors={[theme.primary, theme.primaryContainer]} 
+            start={{x:0, y:0}} 
+            end={{x:1, y:1}} 
+            style={styles.statsCard}
+          >
             <View>
-              <Text style={[styles.infoLabel, { color: theme.onSurfaceVariant }]}>ID RUMAH TANGGA</Text>
-              <Text style={[styles.infoValue, { color: theme.onSurface }]}>{user?.householdId}</Text>
+              <Text style={styles.statsLabel}>TOTAL ASET GABUNGAN</Text>
+              <Text style={styles.totalValue}>Rp {formatMoney(totalAssets)}</Text>
             </View>
-            <TouchableOpacity style={[styles.copyBtn, { backgroundColor: theme.primary + '22' }]} onPress={copyToClipboard}>
-              <MaterialIcons name="share" size={18} color={theme.primary} />
-            </TouchableOpacity>
-          </View>
-          <View style={[styles.divider, { backgroundColor: theme.outlineVariant + '22' }]} />
-          <View style={styles.infoRow}>
-            <View>
-              <Text style={[styles.infoLabel, { color: theme.onSurfaceVariant }]}>STATUS KONEKSI</Text>
-              <Text style={[styles.infoValue, { color: hasPartner ? '#10B981' : theme.error }]}>
-                {hasPartner ? 'Terhubung Aktif' : 'Menunggu Pasangan'}
-              </Text>
+            <View style={styles.statsIconBg}>
+              <MaterialIcons name="account-balance-wallet" size={32} color={theme.onPrimary} />
             </View>
-            <MaterialIcons name={hasPartner ? "verified-user" : "hourglass-empty"} size={24} color={hasPartner ? '#10B981' : theme.error} />
+          </LinearGradient>
+
+          <View style={styles.breakdownRow}>
+            <View style={[styles.miniStat, { backgroundColor: theme.surfaceContainerLow }]}>
+              <Text style={[styles.miniLabel, { color: theme.onSurfaceVariant }]}>MILIK {myName.toUpperCase()}</Text>
+              <Text style={[styles.miniValue, { color: theme.onSurface }]}>Rp {formatMoney(myBalance)}</Text>
+            </View>
+            <View style={[styles.miniStat, { backgroundColor: theme.surfaceContainerLow }]}>
+              <Text style={[styles.miniLabel, { color: theme.onSurfaceVariant }]}>MILIK PASANGAN</Text>
+              <Text style={[styles.miniValue, { color: theme.onSurface }]}>Rp {formatMoney(partnerBalance)}</Text>
+            </View>
           </View>
-        </View>
+        </Animated.View>
 
-        <TouchableOpacity 
-          style={[styles.mottoCard, { backgroundColor: theme.primary + '0D', borderColor: theme.primary + '33', borderWidth: 1, borderStyle: 'dashed', marginBottom: 32 }]}
-          activeOpacity={0.8}
-        >
-          <MaterialIcons name="auto-awesome" size={24} color={theme.primary} style={{ marginBottom: 8 }} />
-          <Text style={[styles.mottoText, { color: theme.onSurface }]}>
-            "Gak apa-apa, kita mulai dari awal, ya?"
-          </Text>
-          <Text style={[styles.mottoAuthor, { color: theme.primary }]}>— SORE</Text>
-        </TouchableOpacity>
+        {/* Household Info Section */}
+        <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
+          <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Informasi Rumah Tangga</Text>
+          <View style={[styles.infoCard, { backgroundColor: theme.surfaceContainerLow }]}>
+            <View style={styles.infoRow}>
+              <View>
+                <Text style={[styles.infoLabel, { color: theme.onSurfaceVariant }]}>ID RUMAH TANGGA</Text>
+                <Text style={[styles.infoValue, { color: theme.onSurface }]}>{user?.householdId}</Text>
+              </View>
+              <TouchableOpacity style={[styles.copyBtn, { backgroundColor: theme.primary + '22' }]} onPress={copyToClipboard}>
+                <MaterialIcons name="share" size={18} color={theme.primary} />
+              </TouchableOpacity>
+            </View>
+            <View style={[styles.divider, { backgroundColor: theme.outlineVariant + '22' }]} />
+            <View style={styles.infoRow}>
+              <View>
+                <Text style={[styles.infoLabel, { color: theme.onSurfaceVariant }]}>STATUS KONEKSI</Text>
+                <Text style={[styles.infoValue, { color: hasPartner ? '#10B981' : theme.error }]}>
+                  {hasPartner ? 'Terhubung Aktif' : 'Menunggu Pasangan'}
+                </Text>
+              </View>
+              <MaterialIcons name={hasPartner ? "verified-user" : "hourglass-empty"} size={24} color={hasPartner ? '#10B981' : theme.error} />
+            </View>
+          </View>
 
-        {/* Timeline Milestones */}
-        <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Timeline Kebersamaan</Text>
-        <View style={{ paddingBottom: 60 }}>
-          {(() => {
-            const now = dayjs();
-            
-            // Helper to determine status and visual info
-            const getGoalStatusInfo = (g) => {
-              const progress = g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0;
-              const isGoalAchieved = g.status === 'achieved' || g.achieved === true;
-              if (isGoalAchieved) return { icon: 'stars', color: '#FFB800', badge: 'Terwujud', type: 'ACHIEVED', progress };
-              if (progress >= 100) return { icon: 'flag', color: '#10B981', badge: 'Siap Lunas', type: 'READY', progress };
-              if (progress > 0) return { icon: 'donut-large', color: theme.primary, badge: `Berjalan ${progress.toFixed(0)}%`, type: 'PROGRESS', progress };
-              return { icon: 'lightbulb', color: theme.onSurfaceVariant, badge: 'Rencana Baru', type: 'NEW', progress };
-            };
+          <TouchableOpacity 
+            style={[styles.mottoCard, { backgroundColor: theme.primary + '0D', borderColor: theme.primary + '33', borderWidth: 1, borderStyle: 'dashed', marginBottom: 32 }]}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="auto-awesome" size={24} color={theme.primary} style={{ marginBottom: 8 }} />
+            <Text style={[styles.mottoText, { color: theme.onSurface }]}>
+              "Gak apa-apa, kita mulai dari awal, ya?"
+            </Text>
+            <Text style={[styles.mottoAuthor, { color: theme.primary }]}>— SORE</Text>
+          </TouchableOpacity>
+        </Animated.View>        {/* Timeline Milestones Section */}
+        <Animated.View style={{ opacity: fadeAnims[4], transform: [{ translateY: slideAnims[4] }] }}>
+          <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Timeline Kebersamaan</Text>
+          <View style={{ paddingBottom: 60 }}>
+            {(() => {
+              const now = dayjs();
+              
+              // Helper to determine status and visual info
+              const getGoalStatusInfo = (g) => {
+                const progress = g.targetAmount > 0 ? (g.currentAmount / g.targetAmount) * 100 : 0;
+                const isGoalAchieved = g.status === 'achieved' || g.achieved === true;
+                if (isGoalAchieved) return { icon: 'stars', color: '#FFB800', badge: 'Terwujud', type: 'ACHIEVED', progress };
+                if (progress >= 100) return { icon: 'flag', color: '#10B981', badge: 'Siap Lunas', type: 'READY', progress };
+                if (progress > 0) return { icon: 'donut-large', color: theme.primary, badge: `Berjalan ${progress.toFixed(0)}%`, type: 'PROGRESS', progress };
+                return { icon: 'lightbulb', color: theme.onSurfaceVariant, badge: 'Rencana Baru', type: 'NEW', progress };
+              };
 
-            const pastMilestones = [
-              { title: 'Awal Kisah Kita', date: relationshipStart, icon: 'favorite', color: theme.primary, desc: 'Momen pertama kalian resmi terhubung dan mulai berpetualang di Rika.', type: 'SYSTEM' },
-            ];
+              const pastMilestones = [
+                { title: 'Awal Kisah Kita', date: relationshipStart, icon: 'favorite', color: theme.primary, desc: 'Momen pertama kalian resmi terhubung dan mulai berpetualang di Rika.', type: 'SYSTEM' },
+              ];
 
-            // Achieved goals
-            goals.filter(g => g.status === 'achieved' || g.achieved === true).forEach(g => {
-              const info = getGoalStatusInfo(g);
-              pastMilestones.push({
-                id: g.id,
-                title: `Goal Terwujud: ${g.name}`,
-                date: dayjs(g.achievedAt || g.createdAt),
-                icon: info.icon,
-                color: info.color,
-                desc: `Satu mimpi berhasil kita wujudkan. Kebanggaan yang tak terlupakan!`,
-                type: 'ACHIEVED',
-                badge: info.badge
-              });
-            });
-
-            // High assets
-            if (totalAssets > 5000000) {
-              // Find the date when this might have happened (approx by latest transaction)
-              const latestTxDate = transactions.length > 0 ? dayjs(transactions[0].date) : dayjs();
-              pastMilestones.push({ 
-                title: 'Benteng Keuangan: 5 Juta!', 
-                date: latestTxDate, 
-                icon: 'shield', 
-                color: '#10B981', 
-                desc: 'Aset gabungan kita menembus 5 Juta. Fondasi masa depan makin kokoh!', 
-                type: 'SYSTEM' 
-              });
-            }
-
-            // Future Roadmap
-            const roadmapItems = goals
-              .filter(g => g.status !== 'achieved' && g.achieved !== true && g.targetDate)
-              .sort((a,b) => new Date(a.targetDate) - new Date(b.targetDate))
-              .map(g => {
+              // Achieved goals
+              goals.filter(g => g.status === 'achieved' || g.achieved === true).forEach(g => {
                 const info = getGoalStatusInfo(g);
-                const tDate = dayjs(g.targetDate);
-                return {
+                pastMilestones.push({
                   id: g.id,
-                  title: g.name,
-                  date: tDate,
+                  title: `Goal Terwujud: ${g.name}`,
+                  date: dayjs(g.achievedAt || g.createdAt),
                   icon: info.icon,
                   color: info.color,
-                  desc: g.description || `Target Roadmap: Rencana pencapaian goal ini.`,
-                  isFuture: true,
-                  badge: info.badge,
-                  progress: info.progress,
-                  type: info.type
-                };
+                  desc: `Satu mimpi berhasil kita wujudkan. Kebanggaan yang tak terlupakan!`,
+                  type: 'ACHIEVED',
+                  badge: info.badge
+                });
               });
 
-            const renderMilestone = (m, idx, list) => (
-              <TouchableOpacity 
-                key={m.id || idx} 
-                activeOpacity={0.7}
-                onPress={() => m.id && navigation.navigate('GoalDetail', { goalId: m.id })}
-                style={styles.milestoneItem}
-              >
-                <View style={styles.milestoneLeft}>
-                  <View style={[styles.milestoneIconBg, { backgroundColor: m.color + (m.isFuture ? '11' : '22'), borderWidth: m.isFuture ? 1 : 0, borderColor: m.color + '44' }]}>
-                    <MaterialIcons name={m.icon} size={18} color={m.color} />
+              // High assets
+              if (totalAssets > 5000000) {
+                // Find the date when this might have happened (approx by latest transaction)
+                const latestTxDate = transactions.length > 0 ? dayjs(transactions[0].date) : dayjs();
+                pastMilestones.push({ 
+                  title: 'Benteng Keuangan: 5 Juta!', 
+                  date: latestTxDate, 
+                  icon: 'shield', 
+                  color: '#10B981', 
+                  desc: 'Aset gabungan kita menembus 5 Juta. Fondasi masa depan makin kohkoh!', 
+                  type: 'SYSTEM' 
+                });
+              }
+
+              // Future Roadmap
+              const roadmapItems = goals
+                .filter(g => g.status !== 'achieved' && g.achieved !== true && g.targetDate)
+                .sort((a,b) => new Date(a.targetDate) - new Date(b.targetDate))
+                .map(g => {
+                  const info = getGoalStatusInfo(g);
+                  const tDate = dayjs(g.targetDate);
+                  return {
+                    id: g.id,
+                    title: g.name,
+                    date: tDate,
+                    icon: info.icon,
+                    color: info.color,
+                    desc: g.description || `Target Roadmap: Rencana pencapaian goal ini.`,
+                    isFuture: true,
+                    badge: info.badge,
+                    progress: info.progress,
+                    type: info.type
+                  };
+                });
+
+              const renderMilestone = (m, idx, list) => (
+                <TouchableOpacity 
+                  key={m.id || idx} 
+                  activeOpacity={0.7}
+                  onPress={() => m.id && navigation.navigate('GoalDetail', { goalId: m.id })}
+                  style={styles.milestoneItem}
+                >
+                  <View style={styles.milestoneLeft}>
+                    <View style={[styles.milestoneIconBg, { backgroundColor: m.color + (m.isFuture ? '11' : '22'), borderWidth: m.isFuture ? 1 : 0, borderColor: m.color + '44' }]}>
+                      <MaterialIcons name={m.icon} size={18} color={m.color} />
+                    </View>
+                    {idx !== list.length - 1 && (
+                      <View style={[
+                        styles.milestoneLine, 
+                        { backgroundColor: m.isFuture ? 'transparent' : theme.outlineVariant + '44' },
+                        m.isFuture && { borderLeftWidth: 2, borderLeftColor: theme.outlineVariant + '44', borderStyle: 'dashed' }
+                      ]} />
+                    )}
                   </View>
-                  {idx !== list.length - 1 && (
-                    <View style={[
-                      styles.milestoneLine, 
-                      { backgroundColor: m.isFuture ? 'transparent' : theme.outlineVariant + '44' },
-                      m.isFuture && { borderLeftWidth: 2, borderLeftColor: theme.outlineVariant + '44', borderStyle: 'dashed' }
-                    ]} />
-                  )}
-                </View>
-                <View style={styles.milestoneRight}>
-                  <View style={styles.milestoneHeader}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.milestoneTitle, { color: theme.onSurface }]} numberOfLines={1}>{m.title}</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <View style={[styles.miniBadge, { backgroundColor: m.color + '1A' }]}>
-                          <Text style={[styles.miniBadgeText, { color: m.color }]}>{m.badge || (m.isFuture ? 'ROADMAP' : 'MEMORI')}</Text>
+                  <View style={styles.milestoneRight}>
+                    <View style={styles.milestoneHeader}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.milestoneTitle, { color: theme.onSurface }]} numberOfLines={1}>{m.title}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <View style={[styles.miniBadge, { backgroundColor: m.color + '1A' }]}>
+                            <Text style={[styles.miniBadgeText, { color: m.color }]}>{m.badge || (m.isFuture ? 'ROADMAP' : 'MEMORI')}</Text>
+                          </View>
+                          <Text style={[styles.milestoneDate, { color: theme.onSurfaceVariant }]}>{m.date.format('DD-MM-YYYY')}</Text>
                         </View>
-                        <Text style={[styles.milestoneDate, { color: theme.onSurfaceVariant }]}>{m.date.format('DD-MM-YYYY')}</Text>
                       </View>
                     </View>
+                    
+                    {m.progress !== undefined && m.type !== 'ACHIEVED' && (
+                      <View style={styles.miniProgressContainer}>
+                        <View style={[styles.miniProgressBar, { backgroundColor: theme.surfaceContainerHighest }]}>
+                          <View style={[styles.miniProgressFill, { width: `${m.progress}%`, backgroundColor: m.color }]} />
+                        </View>
+                      </View>
+                    )}
+
+                    <Text style={[styles.milestoneDesc, { color: theme.onSurfaceVariant }]} numberOfLines={2}>{m.desc}</Text>
                   </View>
-                  
-                  {m.progress !== undefined && m.type !== 'ACHIEVED' && (
-                    <View style={styles.miniProgressContainer}>
-                      <View style={[styles.miniProgressBar, { backgroundColor: theme.surfaceContainerHighest }]}>
-                        <View style={[styles.miniProgressFill, { width: `${m.progress}%`, backgroundColor: m.color }]} />
+                </TouchableOpacity>
+              );
+
+              const sortedPast = pastMilestones.sort((a,b) => b.date - a.date);
+              const visibleRoadmap = showAllRoadmap ? roadmapItems : roadmapItems.slice(0, 3);
+              const visiblePast = showAllHistory ? sortedPast : sortedPast.slice(0, 3);
+
+              return (
+                <>
+                  {roadmapItems.length > 0 && (
+                    <View style={{ marginBottom: 24 }}>
+                      <View style={styles.roadmapHeader}>
+                        <MaterialIcons name="flight-takeoff" size={16} color={theme.primary} />
+                        <Text style={[styles.roadmapHeaderText, { color: theme.primary }]}>ROADMAP MASA DEPAN</Text>
+                      </View>
+                      <View style={[styles.timelineCard, { backgroundColor: theme.surfaceContainerLow, borderStyle: 'dashed', borderWidth: 1, borderColor: theme.primary + '33' }]}>
+                        {visibleRoadmap.map((m, idx) => renderMilestone(m, idx, visibleRoadmap))}
+                        
+                        {roadmapItems.length > 3 && (
+                          <TouchableOpacity style={styles.showMoreBtn} onPress={() => setShowAllRoadmap(!showAllRoadmap)}>
+                            <Text style={[styles.showMoreText, { color: theme.primary }]}>
+                              {showAllRoadmap ? 'Ringkas Roadmap' : `Lihat ${roadmapItems.length - 3} Goal Lainnya`}
+                            </Text>
+                            <MaterialIcons name={showAllRoadmap ? "expand-less" : "expand-more"} size={18} color={theme.primary} />
+                          </TouchableOpacity>
+                        )}
                       </View>
                     </View>
                   )}
 
-                  <Text style={[styles.milestoneDesc, { color: theme.onSurfaceVariant }]} numberOfLines={2}>{m.desc}</Text>
-                </View>
-              </TouchableOpacity>
-            );
-
-            const sortedPast = pastMilestones.sort((a,b) => b.date - a.date);
-            const visibleRoadmap = showAllRoadmap ? roadmapItems : roadmapItems.slice(0, 3);
-            const visiblePast = showAllHistory ? sortedPast : sortedPast.slice(0, 3);
-
-            return (
-              <>
-                {roadmapItems.length > 0 && (
-                  <View style={{ marginBottom: 24 }}>
+                  <View>
                     <View style={styles.roadmapHeader}>
-                      <MaterialIcons name="flight-takeoff" size={16} color={theme.primary} />
-                      <Text style={[styles.roadmapHeaderText, { color: theme.primary }]}>ROADMAP MASA DEPAN</Text>
+                      <MaterialIcons name="history" size={16} color={theme.onSurfaceVariant} />
+                      <Text style={[styles.roadmapHeaderText, { color: theme.onSurfaceVariant }]}>JEJAK KENANGAN</Text>
                     </View>
-                    <View style={[styles.timelineCard, { backgroundColor: theme.surfaceContainerLow, borderStyle: 'dashed', borderWidth: 1, borderColor: theme.primary + '33' }]}>
-                      {visibleRoadmap.map((m, idx) => renderMilestone(m, idx, visibleRoadmap))}
+                    <View style={[styles.timelineCard, { backgroundColor: theme.surfaceContainerLow }]}>
+                      {visiblePast.map((m, idx) => renderMilestone(m, idx, visiblePast))}
                       
-                      {roadmapItems.length > 3 && (
-                        <TouchableOpacity style={styles.showMoreBtn} onPress={() => setShowAllRoadmap(!showAllRoadmap)}>
-                          <Text style={[styles.showMoreText, { color: theme.primary }]}>
-                            {showAllRoadmap ? 'Ringkas Roadmap' : `Lihat ${roadmapItems.length - 3} Goal Lainnya`}
+                      {sortedPast.length > 3 && (
+                        <TouchableOpacity style={styles.showMoreBtn} onPress={() => setShowAllHistory(!showAllHistory)}>
+                          <Text style={[styles.showMoreText, { color: theme.onSurfaceVariant }]}>
+                            {showAllHistory ? 'Tutup Kotak Kenangan' : `Buka ${sortedPast.length - 3} Kenangan Lainnya`}
                           </Text>
-                          <MaterialIcons name={showAllRoadmap ? "expand-less" : "expand-more"} size={18} color={theme.primary} />
+                          <MaterialIcons name={showAllHistory ? "expand-less" : "expand-more"} size={18} color={theme.onSurfaceVariant} />
                         </TouchableOpacity>
                       )}
                     </View>
                   </View>
-                )}
-
-                <View style={styles.roadmapHeader}>
-                  <MaterialIcons name="history" size={16} color={theme.onSurfaceVariant} />
-                  <Text style={[styles.roadmapHeaderText, { color: theme.onSurfaceVariant }]}>JEJAK KENANGAN</Text>
-                </View>
-                <View style={[styles.timelineCard, { backgroundColor: theme.surfaceContainerLow }]}>
-                  {visiblePast.map((m, idx) => renderMilestone(m, idx, visiblePast))}
-                  
-                  {sortedPast.length > 3 && (
-                    <TouchableOpacity style={styles.showMoreBtn} onPress={() => setShowAllHistory(!showAllHistory)}>
-                      <Text style={[styles.showMoreText, { color: theme.onSurfaceVariant }]}>
-                        {showAllHistory ? 'Tutup Kotak Kenangan' : `Buka ${sortedPast.length - 3} Kenangan Lainnya`}
-                      </Text>
-                      <MaterialIcons name={showAllHistory ? "expand-less" : "expand-more"} size={18} color={theme.onSurfaceVariant} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </>
-            );
-          })()}
-        </View>
+                </>
+              );
+            })()}
+          </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );

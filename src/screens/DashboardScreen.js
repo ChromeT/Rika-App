@@ -1,5 +1,6 @@
 import React, { useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Dimensions, Modal, Image, Alert, Animated, ActivityIndicator, RefreshControl, Platform } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Dimensions, Modal, Image, Alert, Animated, ActivityIndicator, RefreshControl, Platform } from 'react-native';
+import Text from '../components/ThemeText';
 import { ScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -85,9 +86,9 @@ const DashboardScreen = ({ navigation, route }) => {
     setToastMsg(msg);
     setToastVisible(true);
     Animated.sequence([
-      Animated.timing(toastAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.timing(toastAnim, { toValue: 1, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
       Animated.delay(2000),
-      Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: true })
+      Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' })
     ]).start(() => setToastVisible(false));
   };
 
@@ -204,10 +205,10 @@ const DashboardScreen = ({ navigation, route }) => {
 
   useEffect(() => {
     const animations = sectionsAnim.map((anim, index) => 
-      Animated.spring(anim, { toValue: 1, delay: index * 80, useNativeDriver: true, tension: 50, friction: 8 })
+      Animated.spring(anim, { toValue: 1, delay: index * 80, useNativeDriver: Platform.OS !== 'web', tension: 50, friction: 8 })
     );
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
       Animated.stagger(80, animations)
     ]).start();
   }, []);
@@ -260,7 +261,7 @@ const DashboardScreen = ({ navigation, route }) => {
 
   const toggleFab = () => {
     const toValue = fabOpen ? 0 : 1;
-    Animated.spring(fabAnim, { toValue, useNativeDriver: true, bounciness: 8 }).start();
+    Animated.spring(fabAnim, { toValue, useNativeDriver: Platform.OS !== 'web', bounciness: 8 }).start();
     setFabOpen(!fabOpen);
   };
 
@@ -755,7 +756,7 @@ const DashboardScreen = ({ navigation, route }) => {
               {/* Left Side: Professional Donut Chart */}
               <View style={{ width: 140, height: 140, position: 'relative', justifyContent: 'center', alignItems: 'center' }}>
                 <Svg width="140" height="140" viewBox="0 0 120 120">
-                  <G rotation="-90" origin="60, 60">
+                  <G rotation={-90} originX={60} originY={60}>
                     <Circle cx="60" cy="60" r={RADIUS} stroke={theme.surfaceContainerHighest + '44'} strokeWidth="10" fill="none" />
                     {segments.map((seg, i) => {
                       let offset = segments.slice(0, i).reduce((s, x) => s + x.dash, 0);
@@ -764,7 +765,7 @@ const DashboardScreen = ({ navigation, route }) => {
                   </G>
                 </Svg>
                 <View style={{ position: 'absolute', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 9, color: theme.onSurfaceVariant, fontWeight: '900', letterSpacing: 1.5, opacity: 0.7 }}>TOTAL</Text>
+                  <Text style={{ fontSize: 9, color: theme.onSurfaceVariant, fontWeight: '900', letterSpacing: 1.5, opacity: 0.9 }}>TOTAL</Text>
                   <Text style={{ fontSize: 13, fontWeight: '900', color: theme.onSurface, marginTop: 2 }}>Rp {formatMoney(totalExpense)}</Text>
                 </View>
               </View>
@@ -1289,7 +1290,7 @@ const DashboardScreen = ({ navigation, route }) => {
                   }}
                   style={[styles.input, { justifyContent: 'center', position: 'relative', overflow: 'hidden' }]}
                 >
-                  <View style={{ width: '100%' }} pointerEvents="none">
+                  <View style={{ width: '100%', pointerEvents: 'none' }}>
                     <Text style={{ color: theme.onSurface }}>
                       {billDueDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} 
                       {(() => {
@@ -1594,12 +1595,12 @@ const styles = StyleSheet.create({
   },
   main: { paddingHorizontal: 24, paddingTop: 20 },
   heroCard: { borderRadius: 36, padding: 28, marginBottom: 24 },
-  heroLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 8 },
-  heroValue: { color: '#fff', fontSize: 32, fontWeight: '900', letterSpacing: -1 },
-  filterRow: { flexDirection: 'row', gap: 8, marginTop: 20 },
-  filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.15)' },
+  heroLabel: { color: 'rgba(255,255,255,0.9)', fontSize: 11, fontWeight: '900', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 1 },
+  heroValue: { color: '#fff', fontSize: 34, fontWeight: '900', letterSpacing: -1.5 },
+  filterRow: { flexDirection: 'row', gap: 8, marginTop: 24 },
+  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)' },
   filterChipActive: { backgroundColor: '#fff' },
-  filterChipText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
+  filterChipText: { color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: 'bold' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   sectionTitle: { fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
   walletScroll: { marginHorizontal: -24, paddingHorizontal: 24 },
@@ -1612,7 +1613,14 @@ const styles = StyleSheet.create({
   txName: { fontSize: 14, fontWeight: 'bold' },
   txAmount: { fontSize: 14, fontWeight: '900' },
   fabContainer: { position: 'absolute', bottom: 100, right: 24, alignItems: 'flex-end' },
-  fabMain: { width: 64, height: 64, borderRadius: 24, overflow: 'hidden', elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
+  fabMain: { 
+    width: 64, height: 64, borderRadius: 24, overflow: 'hidden', elevation: 8,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
+      android: { shadowColor: '#000' },
+      web: { boxShadow: '0 4px 8px rgba(0,0,0,0.3)' }
+    })
+  },
   fabGradient: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   fabAction: { position: 'absolute', bottom: 8, right: 0 },
   fabMini: { width: 48, height: 48, borderRadius: 18, justifyContent: 'center', alignItems: 'center', elevation: 4 },
@@ -1623,7 +1631,14 @@ const styles = StyleSheet.create({
   toastContent: { backgroundColor: '#1a1f21', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   toastText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#14181a', borderRadius: 32, padding: 24, width: '90%', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  modalContent: { 
+    backgroundColor: '#14181a', borderRadius: 32, padding: 24, width: '90%', elevation: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20 },
+      android: { shadowColor: '#000' },
+      web: { boxShadow: '0 10px 20px rgba(0,0,0,0.3)' }
+    })
+  },
 });
 
 export default DashboardScreen;

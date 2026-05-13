@@ -1,12 +1,12 @@
 import React, { useContext, useState, useMemo, useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, ActivityIndicator, TextInput, Alert, Modal, Animated } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions, ActivityIndicator, TextInput, Alert, Modal, Animated, Platform } from 'react-native';
 import { ScrollView, FlatList } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
-import { Video, ResizeMode } from 'expo-av';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ThemeContext } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
@@ -16,6 +16,27 @@ import { uploadMultipleToCloudinary } from '../utils/cloudinaryUpload';
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
 
+const VideoPreview = ({ uri, theme }) => {
+  const player = useVideoPlayer(uri, (p) => {
+    p.loop = false;
+    p.play();
+    p.muted = true;
+  });
+
+  return (
+    <View style={{ width: '100%', height: 120, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+      <VideoView
+        player={player}
+        style={{ width: '100%', height: 120 }}
+        contentMode="cover"
+      />
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.1)' }}>
+        <MaterialIcons name="play-circle-filled" size={48} color="rgba(255,255,255,0.7)" />
+      </View>
+    </View>
+  );
+};
+
 const ActiveGoalItem = React.memo(({ item, index, navigation, safeTheme, formatMoney }) => {
   const itemAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -23,7 +44,7 @@ const ActiveGoalItem = React.memo(({ item, index, navigation, safeTheme, formatM
       toValue: 1,
       duration: 350,
       delay: index * 40,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
     }).start();
   }, []);
 
@@ -32,7 +53,7 @@ const ActiveGoalItem = React.memo(({ item, index, navigation, safeTheme, formatM
   return (
     <Animated.View style={{ 
       opacity: itemAnim, 
-      transform: [{ translateY: itemAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
+      transform: [{ scale: itemAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }],
       marginBottom: 20, 
       backgroundColor: safeTheme.surface, 
       borderRadius: 32, 
@@ -79,15 +100,22 @@ const ActiveGoalItem = React.memo(({ item, index, navigation, safeTheme, formatM
 
           {/* Bottom Info Floating Section */}
           <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20 }}>
-            <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', letterSpacing: -0.5, marginBottom: 12, textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: {width:0, height:2}, textShadowRadius: 4 }}>{item.name}</Text>
+            <Text style={{ 
+              color: '#fff', fontSize: 24, fontWeight: '900', letterSpacing: -0.5, marginBottom: 12,
+              ...Platform.select({
+                ios: { textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: {width:0, height:2}, textShadowRadius: 4 },
+                android: { textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: {width:0, height:2}, textShadowRadius: 4 },
+                web: { textShadow: '0 2px 4px rgba(0,0,0,0.3)' }
+              })
+            }}>{item.name}</Text>
             
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}>
                <View>
-                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: 'bold', marginBottom: 2 }}>TERKUMPUL</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 10, fontWeight: 'bold', marginBottom: 2 }}>TERKUMPUL</Text>
                   <Text style={{ color: safeTheme.primary, fontSize: 18, fontWeight: '900' }}>Rp {formatMoney(item.currentAmount)}</Text>
                </View>
                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: 'bold', marginBottom: 2 }}>TARGET</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 10, fontWeight: 'bold', marginBottom: 2 }}>TARGET</Text>
                   <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800' }}>Rp {formatMoney(item.targetAmount)}</Text>
                </View>
             </View>
@@ -114,7 +142,7 @@ const AchievedGoalItem = React.memo(({ item, index, navigation, safeTheme, forma
       toValue: 1,
       duration: 350,
       delay: index * 40,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
     }).start();
   }, []);
 
@@ -192,22 +220,41 @@ export const AddGoalScreen = () => {
   const { addGoal, addNotification, updateGoal } = useContext(DataContext);
   
   // Animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+  const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 350,
-      useNativeDriver: true,
-    }).start();
+    Animated.stagger(100, [
+      Animated.parallel([
+        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ])
+    ]).start();
   }, []);
 
   const handleBack = () => {
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => navigation.goBack());
+    Animated.parallel([
+      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[3], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[3], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' })
+    ]).start(() => navigation.goBack());
   };
 
   // Fallback theme if not loaded yet
@@ -377,11 +424,10 @@ export const AddGoalScreen = () => {
   };
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: safeTheme.background }} edges={['top']}>
-      <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: safeTheme.outlineVariant + '22' }}>
-          <TouchableOpacity onPress={handleBack}>
-            <MaterialIcons name="close" size={24} color={safeTheme.onSurface} />
-          </TouchableOpacity>
+      <Animated.View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: safeTheme.outlineVariant + '22', opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }}>
+        <TouchableOpacity onPress={handleBack}>
+          <MaterialIcons name="close" size={24} color={safeTheme.onSurface} />
+        </TouchableOpacity>
         <Text style={{ fontSize: 18, fontWeight: 'bold', color: safeTheme.onSurface }}>Goal Baru</Text>
         <TouchableOpacity 
           onPress={handleSave} 
@@ -394,7 +440,7 @@ export const AddGoalScreen = () => {
             <Text style={{ color: safeTheme.onPrimary, fontWeight: 'bold' }}>Simpan</Text>
           )}
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       {uploading && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}>
@@ -403,126 +449,119 @@ export const AddGoalScreen = () => {
         </View>
       )}
 
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
-        {/* Media List with Captions */}
-        {mediaList.map((m, i) => (
-          <View key={i} style={{ marginBottom: 12, backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 16, overflow: 'hidden' }}>
-            {m.type === 'video' ? (
-              <View style={{ width: '100%', height: 120, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
-                <Video
-                  source={{ uri: m.uri }}
-                  style={{ width: '100%', height: 120 }}
-                  resizeMode={ResizeMode.COVER}
-                  shouldPlay={false}
-                  isLooping={false}
-                />
-                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                  <MaterialIcons name="play-circle-filled" size={48} color="rgba(255,255,255,0.9)" />
-                </View>
-              </View>
-            ) : (
-              <Image source={{ uri: m.uri }} style={{ width: '100%', height: 120 }} />
-            )}
-            <TouchableOpacity onPress={() => removeMedia(i)} style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 14, padding: 4 }}>
-              <MaterialIcons name="close" size={16} color="#fff" />
-            </TouchableOpacity>
-            <TextInput
-              style={{ padding: 10, color: safeTheme.onSurface, fontSize: 13 }}
-              placeholder={m.type === 'video' ? "Keterangan video ini... (opsional)" : "Keterangan gambar ini... (opsional)"}
-              placeholderTextColor={safeTheme.onSurfaceVariant + '80'}
-              value={m.caption}
-              onChangeText={(t) => updateCaption(i, t)}
-            />
-          </View>
-        ))}
+      <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+        {/* Media Section */}
+        <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
+          {mediaList.map((m, i) => (
+            <View key={i} style={{ marginBottom: 12, backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 16, overflow: 'hidden' }}>
+              {m.type === 'video' ? (
+                <VideoPreview uri={m.uri} theme={safeTheme} />
+              ) : (
+                <Image source={{ uri: m.uri }} style={{ width: '100%', height: 120 }} />
+              )}
+              <TouchableOpacity onPress={() => removeMedia(i)} style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 14, padding: 4 }}>
+                <MaterialIcons name="close" size={16} color="#fff" />
+              </TouchableOpacity>
+              <TextInput
+                style={{ padding: 10, color: safeTheme.onSurface, fontSize: 13 }}
+                placeholder={m.type === 'video' ? "Keterangan video ini... (opsional)" : "Keterangan gambar ini... (opsional)"}
+                placeholderTextColor={safeTheme.onSurfaceVariant + '80'}
+                value={m.caption}
+                onChangeText={(t) => updateCaption(i, t)}
+              />
+            </View>
+          ))}
 
-        <TouchableOpacity onPress={pickMedia} style={{ height: 56, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: safeTheme.primary + '66', justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 16 }}>
-          <MaterialIcons name="add-photo-alternate" size={20} color={safeTheme.primary} />
-          <Text style={{ color: safeTheme.primary, fontWeight: '700', fontSize: 13 }}>+ Tambah Foto/Video ({mediaList.length})</Text>
-        </TouchableOpacity>
-
-        <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>LINK GAMBAR (PASTI BERFUNGSI)</Text>
-        <Text style={{ fontSize: 10, color: safeTheme.onSurfaceVariant, marginBottom: 12 }}>Copy link gambar dari Google Images, Unsplash, dll.</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-          <View style={{ flex: 1, backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 12, marginRight: 8 }}>
-            <TextInput 
-              placeholder="https://contoh.com/gambar.jpg"
-              placeholderTextColor={safeTheme.onSurfaceVariant}
-              value={imageUrl}
-              onChangeText={setImageUrl}
-              style={{ color: safeTheme.onSurface, fontSize: 14 }}
-              autoCapitalize="none"
-              keyboardType="url"
-            />
-          </View>
-          <TouchableOpacity onPress={handleUrlSubmit} style={{ backgroundColor: safeTheme.primaryContainer, padding: 12, borderRadius: 12 }}>
-            <MaterialIcons name="check" size={20} color={safeTheme.onPrimaryContainer} />
+          <TouchableOpacity onPress={pickMedia} style={{ height: 56, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: safeTheme.primary + '66', justifyContent: 'center', alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+            <MaterialIcons name="add-photo-alternate" size={20} color={safeTheme.primary} />
+            <Text style={{ color: safeTheme.primary, fontWeight: '700', fontSize: 13 }}>+ Tambah Foto/Video ({mediaList.length})</Text>
           </TouchableOpacity>
-        </View>
 
-        <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>NAMA GOAL</Text>
-        <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16 }}>
-          <TextInput 
-            placeholder="Contoh: Liburan ke Jepang" 
-            placeholderTextColor={safeTheme.onSurfaceVariant}
-            value={name}
-            onChangeText={setName}
-            style={{ color: safeTheme.onSurface, fontSize: 16 }}
-          />
-        </View>
+          <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>LINK GAMBAR (PASTI BERFUNGSI)</Text>
+          <Text style={{ fontSize: 10, color: safeTheme.onSurfaceVariant, marginBottom: 12 }}>Copy link gambar dari Google Images, Unsplash, dll.</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+            <View style={{ flex: 1, backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 12, marginRight: 8 }}>
+              <TextInput 
+                placeholder="https://contoh.com/gambar.jpg"
+                placeholderTextColor={safeTheme.onSurfaceVariant}
+                value={imageUrl}
+                onChangeText={setImageUrl}
+                style={{ color: safeTheme.onSurface, fontSize: 14 }}
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+            </View>
+            <TouchableOpacity onPress={handleUrlSubmit} style={{ backgroundColor: safeTheme.primaryContainer, padding: 12, borderRadius: 12 }}>
+              <MaterialIcons name="check" size={20} color={safeTheme.onPrimaryContainer} />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
 
-        <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>DESKRIPSI (OPSIONAL)</Text>
-        <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16, height: 80 }}>
-          <TextInput 
-            placeholder="Ceritakan tentang goal ini..." 
-            placeholderTextColor={safeTheme.onSurfaceVariant}
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            style={{ color: safeTheme.onSurface, fontSize: 14 }}
-          />
-        </View>
-
-        <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>TARGET NOMINAL (RP)</Text>
-        <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16 }}>
-          <TextInput 
-            placeholder="0" 
-            placeholderTextColor={safeTheme.onSurfaceVariant}
-            value={target}
-            onChangeText={handleTargetChange}
-            selection={selectionTarget}
-            onSelectionChange={(e) => {
-              const sel = e.nativeEvent.selection;
-              setSelectionTarget(sel);
-              selectionTargetRef.current = sel;
-            }}
-            keyboardType="numeric"
-            style={{ color: safeTheme.onSurface, fontSize: 16, fontWeight: 'bold' }}
-          />
-        </View>
-
-        <View style={{ marginTop: 16 }}>
-          <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>TARGET TANGGAL DICAPAI (ROADMAP)</Text>
-          <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <MaterialIcons name="explore" size={20} color={safeTheme.primary} />
-            <input 
-              type="date"
-              value={targetDate}
-              onChange={(e) => setTargetDate(e.target.value)}
-              style={{ 
-                backgroundColor: 'transparent', 
-                color: safeTheme.onSurface, 
-                fontSize: '16px', 
-                border: 'none', 
-                outline: 'none',
-                flex: 1,
-                fontFamily: 'inherit'
-              }}
+        {/* Nama & Deskripsi */}
+        <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
+          <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>NAMA GOAL</Text>
+          <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <TextInput 
+              placeholder="Contoh: Liburan ke Jepang" 
+              placeholderTextColor={safeTheme.onSurfaceVariant}
+              value={name}
+              onChangeText={setName}
+              style={{ color: safeTheme.onSurface, fontSize: 16 }}
             />
           </View>
-        </View>
-        </ScrollView>
-      </Animated.View>
+
+          <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>DESKRIPSI (OPSIONAL)</Text>
+          <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16, height: 80 }}>
+            <TextInput 
+              placeholder="Ceritakan tentang goal ini..." 
+              placeholderTextColor={safeTheme.onSurfaceVariant}
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              style={{ color: safeTheme.onSurface, fontSize: 14 }}
+            />
+          </View>
+        </Animated.View>
+
+        {/* Target & Roadmap */}
+        <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
+          <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>TARGET NOMINAL (RP)</Text>
+          <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16 }}>
+            <TextInput 
+              placeholder="0" 
+              placeholderTextColor={safeTheme.onSurfaceVariant}
+              value={target}
+              onChangeText={handleTargetChange}
+              selection={selectionTarget}
+              onSelectionChange={(e) => {
+                const sel = e.nativeEvent.selection;
+                setSelectionTarget(sel);
+                selectionTargetRef.current = sel;
+              }}
+              keyboardType="numeric"
+              style={{ color: safeTheme.onSurface, fontSize: 16, fontWeight: 'bold' }}
+            />
+          </View>
+
+          <View style={{ marginTop: 16 }}>
+            <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>TARGET TANGGAL DICAPAI (ROADMAP)</Text>
+            <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <MaterialIcons name="explore" size={20} color={safeTheme.primary} />
+              <TextInput 
+                value={targetDate}
+                onChangeText={setTargetDate}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={safeTheme.onSurfaceVariant}
+                style={{ 
+                  color: safeTheme.onSurface, 
+                  fontSize: 16, 
+                  flex: 1
+                }}
+              />
+            </View>
+          </View>
+        </Animated.View>
+      </ScrollView>
     </SafeAreaView>
 
   );
@@ -557,16 +596,36 @@ const GoalsScreen = ({ navigation, route }) => {
   }, [route.params?.initialTab]);
   
   // Animations
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+  const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 350,
-      useNativeDriver: true,
-    }).start();
-  }, []); // Only run once on mount, not on activeTab change
+    Animated.stagger(100, [
+      Animated.parallel([
+        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ])
+    ]).start();
+  }, []);
+
+  const handleBack = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' })
+    ]).start(() => navigation.goBack());
+  };
 
   useEffect(() => {
     if (route.params?.activeTab) {
@@ -637,9 +696,9 @@ const GoalsScreen = ({ navigation, route }) => {
     setToastMsg(msg);
     setToastVisible(true);
     Animated.sequence([
-      Animated.timing(toastAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.timing(toastAnim, { toValue: 1, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
       Animated.delay(2000),
-      Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: true })
+      Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' })
     ]).start(() => setToastVisible(false));
   };
 
@@ -941,15 +1000,15 @@ const GoalsScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: safeTheme.background }} edges={['top']}>
       {/* Header */}
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 20, backgroundColor: safeTheme.surface }}>
+      <Animated.View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 20, backgroundColor: safeTheme.surface, opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }}>
         <Text style={{ fontSize: 24, fontWeight: 'bold', color: safeTheme.primary }}>Goals</Text>
         <TouchableOpacity onPress={handleAddGoal} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: safeTheme.primary, justifyContent: 'center', alignItems: 'center' }}>
           <MaterialIcons name="add" size={24} color={safeTheme.onPrimary} />
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       {/* Tabs */}
-      <View style={{ flexDirection: 'row', backgroundColor: safeTheme.surface, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: safeTheme.outlineVariant + '22' }}>
+      <Animated.View style={{ flexDirection: 'row', backgroundColor: safeTheme.surface, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: safeTheme.outlineVariant + '22', opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
         <TouchableOpacity 
           onPress={() => setActiveTab('active')}
           style={{ paddingVertical: 12, marginRight: 24, borderBottomWidth: activeTab === 'active' ? 2 : 0, borderBottomColor: safeTheme.primary }}
@@ -962,43 +1021,46 @@ const GoalsScreen = ({ navigation, route }) => {
         >
           <Text style={{ fontSize: 14, fontWeight: activeTab === 'achieved' ? 'bold' : '500', color: activeTab === 'achieved' ? safeTheme.primary : safeTheme.onSurfaceVariant }}>Telah tercapai</Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
-      {/* Content - Active Tab */}
-      {activeTab === 'active' && (
-        <FlatList
-          data={activeGoals || []}
-          renderItem={renderActiveGoalCard}
-          keyExtractor={(item, index) => item?.id || `active-${index}`}
-          contentContainerStyle={{ padding: 16 }}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={{ alignItems: 'center', paddingTop: 60 }}>
-              <MaterialIcons name="flag" size={60} color={safeTheme.onSurfaceVariant + '44'} />
-              <Text style={{ color: safeTheme.onSurfaceVariant, marginTop: 16, fontSize: 16 }}>Belum ada goal aktif</Text>
-              <Text style={{ color: safeTheme.onSurfaceVariant + '88', marginTop: 4, fontSize: 12 }}>Tekan + untuk membuat goal baru</Text>
-            </View>
-          }
-        />
-      )}
+      {/* Content Section */}
+      <Animated.View style={{ flex: 1, opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
+        {/* Content - Active Tab */}
+        {activeTab === 'active' && (
+          <FlatList
+            data={activeGoals || []}
+            renderItem={renderActiveGoalCard}
+            keyExtractor={(item, index) => item?.id || `active-${index}`}
+            contentContainerStyle={{ padding: 16 }}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={{ alignItems: 'center', paddingTop: 60 }}>
+                <MaterialIcons name="flag" size={60} color={safeTheme.onSurfaceVariant + '44'} />
+                <Text style={{ color: safeTheme.onSurfaceVariant, marginTop: 16, fontSize: 16 }}>Belum ada goal aktif</Text>
+                <Text style={{ color: safeTheme.onSurfaceVariant + '88', marginTop: 4, fontSize: 12 }}>Tekan + untuk membuat goal baru</Text>
+              </View>
+            }
+          />
+        )}
 
-      {/* Content - Achieved Tab */}
-      {activeTab === 'achieved' && (
-        <FlatList
-          data={achievedGoals || []}
-          renderItem={renderAchievedGoalItem}
-          keyExtractor={(item, index) => item?.id || `achieved-${index}`}
-          numColumns={2}
-          contentContainerStyle={{ padding: 12 }}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={{ alignItems: 'center', paddingTop: 60 }}>
-              <MaterialIcons name="emoji-events" size={60} color={safeTheme.onSurfaceVariant + '44'} />
-              <Text style={{ color: safeTheme.onSurfaceVariant, marginTop: 16, fontSize: 16 }}>Belum ada goal tercapai</Text>
-            </View>
-          }
-        />
-      )}
+        {/* Content - Achieved Tab */}
+        {activeTab === 'achieved' && (
+          <FlatList
+            data={achievedGoals || []}
+            renderItem={renderAchievedGoalItem}
+            keyExtractor={(item, index) => item?.id || `achieved-${index}`}
+            numColumns={2}
+            contentContainerStyle={{ padding: 12 }}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={{ alignItems: 'center', paddingTop: 60 }}>
+                <MaterialIcons name="emoji-events" size={60} color={safeTheme.onSurfaceVariant + '44'} />
+                <Text style={{ color: safeTheme.onSurfaceVariant, marginTop: 16, fontSize: 16 }}>Belum ada goal tercapai</Text>
+              </View>
+            }
+          />
+        )}
+      </Animated.View>
       <EditModal />
 
       {/* Delete Confirmation Modal */}

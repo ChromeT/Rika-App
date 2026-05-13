@@ -154,23 +154,41 @@ const GoalDetailScreen = ({ route }) => {
 
   // Animations
   const scrollY = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+  const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
 
   useEffect(() => {
-    const anim = Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 400,
-      useNativeDriver: true,
-    });
-    anim.start();
+    Animated.stagger(100, [
+      Animated.parallel([
+        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ])
+    ]).start();
   }, []);
 
   const handleBack = () => {
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => navigation.goBack());
+    Animated.parallel([
+      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[3], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[3], { toValue: -20, duration: 300, useNativeDriver: true })
+    ]).start(() => navigation.goBack());
   };
 
   // Progress calculations
@@ -294,7 +312,7 @@ const GoalDetailScreen = ({ route }) => {
         scrollEventThrottle={16}
       >
         {/* Hero Image Section */}
-        <View style={{ height: HEADER_HEIGHT, backgroundColor: '#000', overflow: 'hidden' }}>
+        <Animated.View style={{ height: HEADER_HEIGHT, backgroundColor: '#000', overflow: 'hidden', opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }}>
           <Animated.View style={{ flex: 1, transform: [{ scale: imageScale }] }}>
             {goal.previewImage ? (
               <ExpoImage 
@@ -318,7 +336,7 @@ const GoalDetailScreen = ({ route }) => {
 
           {/* Title Info */}
           <View style={{ position: 'absolute', bottom: 30, left: 24, right: 24 }}>
-            <Animated.View style={{ opacity: fadeAnim }}>
+            <View>
               <Text style={{ color: '#fff', fontSize: 34, fontWeight: '900', letterSpacing: -1 }}>{goal.name}</Text>
               {targetDate && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
@@ -332,97 +350,101 @@ const GoalDetailScreen = ({ route }) => {
                   )}
                 </View>
               )}
-            </Animated.View>
+            </View>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Content Section */}
-        <Animated.View style={{ 
+        <View style={{ 
           padding: 24, 
           paddingTop: 32, 
           backgroundColor: safeTheme.background, 
           borderTopLeftRadius: 40, 
           borderTopRightRadius: 40, 
           marginTop: -30,
-          minHeight: 600,
-          opacity: fadeAnim,
-          transform: [{ translateY: fadeAnim.interpolate({ inputRange:[0,1], outputRange:[20,0] }) }]
+          minHeight: 600
         }}>
           {/* Description */}
-          {goal.description && (
-            <Text style={{ color: safeTheme.onSurfaceVariant, fontSize: 15, lineHeight: 24, marginBottom: 32 }}>{goal.description}</Text>
-          )}
+          <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
+            {goal.description && (
+              <Text style={{ color: safeTheme.onSurfaceVariant, fontSize: 15, lineHeight: 24, marginBottom: 32 }}>{goal.description}</Text>
+            )}
+          </Animated.View>
 
           {/* Premium Progress Card */}
-          <LinearGradient 
-            colors={[safeTheme.surfaceContainer, safeTheme.surfaceContainerLow]}
-            style={{ borderRadius: 32, padding: 24, marginBottom: 32, borderWidth: 1, borderColor: safeTheme.outlineVariant + '22', shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 6 }}
-          >
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <View>
-                <Text style={{ fontSize: 11, fontWeight: 'bold', color: safeTheme.primary, marginBottom: 6, letterSpacing: 1 }}>SALDO SAAT INI</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-                  <Text style={{ fontSize: 18, fontWeight: 'bold', color: safeTheme.primary, marginRight: 4 }}>Rp</Text>
-                  <Text style={{ fontSize: 32, fontWeight: '900', color: safeTheme.onSurface, letterSpacing: -1 }}>{formatMoney(goal.currentAmount)}</Text>
+          <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
+            <LinearGradient 
+              colors={[safeTheme.surfaceContainer, safeTheme.surfaceContainerLow]}
+              style={{ borderRadius: 32, padding: 24, marginBottom: 32, borderWidth: 1, borderColor: safeTheme.outlineVariant + '22', shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 6 }}
+            >
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <View>
+                  <Text style={{ fontSize: 11, fontWeight: 'bold', color: safeTheme.primary, marginBottom: 6, letterSpacing: 1 }}>SALDO SAAT INI</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: safeTheme.primary, marginRight: 4 }}>Rp</Text>
+                    <Text style={{ fontSize: 32, fontWeight: '900', color: safeTheme.onSurface, letterSpacing: -1 }}>{formatMoney(goal.currentAmount)}</Text>
+                  </View>
+                </View>
+                <View style={{ width: 56, height: 56, borderRadius: 20, backgroundColor: safeTheme.primary + '15', justifyContent: 'center', alignItems: 'center' }}>
+                  <MaterialIcons name="auto-graph" size={28} color={safeTheme.primary} />
                 </View>
               </View>
-              <View style={{ width: 56, height: 56, borderRadius: 20, backgroundColor: safeTheme.primary + '15', justifyContent: 'center', alignItems: 'center' }}>
-                <MaterialIcons name="auto-graph" size={28} color={safeTheme.primary} />
+              
+              <View style={{ height: 14, backgroundColor: safeTheme.surfaceContainerHighest, borderRadius: 7, marginBottom: 20, overflow: 'hidden' }}>
+                <LinearGradient 
+                  colors={[safeTheme.primary, safeTheme.primary + 'CC']} 
+                  start={{x:0, y:0}} 
+                  end={{x:1, y:0}} 
+                  style={{ height: '100%', width: `${progress}%`, borderRadius: 7 }} 
+                />
               </View>
-            </View>
-            
-            <View style={{ height: 14, backgroundColor: safeTheme.surfaceContainerHighest, borderRadius: 7, marginBottom: 20, overflow: 'hidden' }}>
-              <LinearGradient 
-                colors={[safeTheme.primary, safeTheme.primary + 'CC']} 
-                start={{x:0, y:0}} 
-                end={{x:1, y:0}} 
-                style={{ height: '100%', width: `${progress}%`, borderRadius: 7 }} 
-              />
-            </View>
-            
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View>
-                <Text style={{ fontSize: 20, fontWeight: '900', color: safeTheme.onSurface }}>{progress.toFixed(0)}%</Text>
-                <Text style={{ fontSize: 10, color: safeTheme.onSurfaceVariant, fontWeight: 'bold' }}>DARI RP {formatMoney(goal.targetAmount)}</Text>
+              
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View>
+                  <Text style={{ fontSize: 20, fontWeight: '900', color: safeTheme.onSurface }}>{progress.toFixed(0)}%</Text>
+                  <Text style={{ fontSize: 10, color: safeTheme.onSurfaceVariant, fontWeight: 'bold' }}>DARI RP {formatMoney(goal.targetAmount)}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={{ fontSize: 16, fontWeight: 'bold', color: remaining > 0 ? safeTheme.error : '#81C784' }}>
+                    {remaining > 0 ? `Rp ${formatMoney(remaining)}` : 'TERCAPAI!'}
+                  </Text>
+                  <Text style={{ fontSize: 10, color: safeTheme.onSurfaceVariant, fontWeight: 'bold' }}>{remaining > 0 ? 'KEKURANGAN' : 'MIMPI JADI NYATA'}</Text>
+                </View>
               </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: remaining > 0 ? safeTheme.error : '#81C784' }}>
-                  {remaining > 0 ? `Rp ${formatMoney(remaining)}` : 'TERCAPAI!'}
-                </Text>
-                <Text style={{ fontSize: 10, color: safeTheme.onSurfaceVariant, fontWeight: 'bold' }}>{remaining > 0 ? 'KEKURANGAN' : 'MIMPI JADI NYATA'}</Text>
-              </View>
-            </View>
-          </LinearGradient>
+            </LinearGradient>
 
-          {/* Primary Actions */}
-          <View style={{ flexDirection: 'row', gap: 16, marginBottom: 48 }}>
-            <TouchableOpacity 
-              onPress={() => setFundingModalVisible(true)}
-              style={{ flex: 1, backgroundColor: safeTheme.primary, height: 64, borderRadius: 24, justifyContent: 'center', alignItems: 'center', shadowColor: safeTheme.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <MaterialIcons name="add" size={24} color={safeTheme.onPrimary} />
-                <Text style={{ color: safeTheme.onPrimary, fontWeight: 'bold', fontSize: 16 }}>Tambah Dana</Text>
-              </View>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              onPress={handleMarkAchieved}
-              style={{ width: 64, height: 64, backgroundColor: safeTheme.surfaceContainerHighest, borderRadius: 24, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: safeTheme.outlineVariant + '33' }}
-            >
-              <MaterialIcons name="task-alt" size={32} color={safeTheme.primary} />
-            </TouchableOpacity>
-          </View>
+            {/* Primary Actions */}
+            <View style={{ flexDirection: 'row', gap: 16, marginBottom: 48 }}>
+              <TouchableOpacity 
+                onPress={() => setFundingModalVisible(true)}
+                style={{ flex: 1, backgroundColor: safeTheme.primary, height: 64, borderRadius: 24, justifyContent: 'center', alignItems: 'center', shadowColor: safeTheme.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <MaterialIcons name="add" size={24} color={safeTheme.onPrimary} />
+                  <Text style={{ color: safeTheme.onPrimary, fontWeight: 'bold', fontSize: 16 }}>Tambah Dana</Text>
+                </View>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                onPress={handleMarkAchieved}
+                style={{ width: 64, height: 64, backgroundColor: safeTheme.surfaceContainerHighest, borderRadius: 24, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: safeTheme.outlineVariant + '33' }}
+              >
+                <MaterialIcons name="task-alt" size={32} color={safeTheme.primary} />
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
 
-          {/* Journey Timeline */}
-          <View>
+          {/* Journey Timeline Header */}
+          <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
               <Text style={{ fontSize: 20, fontWeight: '900', color: safeTheme.onSurface, letterSpacing: -0.5 }}>Langkah Perjuangan</Text>
               <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: safeTheme.surfaceContainerLow, justifyContent: 'center', alignItems: 'center' }}>
                 <MaterialIcons name="history" size={20} color={safeTheme.onSurfaceVariant} />
               </View>
             </View>
+          </Animated.View>
 
+            <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
             {(() => {
               const displayHistory = Array.isArray(goal.history) ? [...goal.history] : [];
               if (displayHistory.length === 0 && (goal.currentAmount || 0) > 0) {
@@ -479,8 +501,8 @@ const GoalDetailScreen = ({ route }) => {
                 </View>
               );
             })()}
-          </View>
-        </Animated.View>
+          </Animated.View>
+        </View>
       </Animated.ScrollView>
 
       <AddFundingModal

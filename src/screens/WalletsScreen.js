@@ -1,5 +1,6 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Modal, Animated, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Dimensions, Modal, Animated, Platform } from 'react-native';
+import Text from '../components/ThemeText';
 import { ScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -53,15 +54,48 @@ const WalletsScreen = ({ route }) => {
   }, [walletId]);
 
   // Animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+  const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 800, useNativeDriver: true })
+    Animated.stagger(100, [
+      Animated.parallel([
+        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[4], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[4], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ])
     ]).start();
   }, []);
+
+  const handleBack = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[3], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[4], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[3], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[4], { toValue: -20, duration: 300, useNativeDriver: true })
+    ]).start(() => navigation.goBack());
+  };
 
   const formatMoney = (v) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v || 0);
 
@@ -108,77 +142,85 @@ const WalletsScreen = ({ route }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-      <View style={[styles.header, { backgroundColor: theme.background }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
-          <MaterialIcons name="arrow-back" size={24} color={theme.onSurface} />
+      <Animated.View style={[styles.header, { backgroundColor: theme.background, opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }]}>
+        <TouchableOpacity onPress={handleBack} style={styles.headerBtn}>
+          <MaterialIcons name="arrow-back-ios-new" size={20} color={theme.onSurface} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.onSurface }]}>Dompet Saya</Text>
+        <Text style={[styles.headerTitle, { color: theme.onSurface }]}>Sumber Dana</Text>
         <TouchableOpacity onPress={() => navigation.navigate('AddAccount')} style={styles.headerBtn}>
           <MaterialIcons name="add" size={28} color={theme.primary} />
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
-      <Animated.ScrollView 
+      <ScrollView 
         ref={scrollRef}
         contentContainerStyle={styles.content}
-        style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
+        showsVerticalScrollIndicator={false}
       >
         {/* Summary Card */}
-        <LinearGradient
-          colors={[theme.primary, theme.primary + 'BB']}
-          style={styles.summaryCard}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View>
-              <Text style={styles.summaryLabel}>Total Saldo Gabungan</Text>
-              <Text style={styles.summaryValue}>Rp {formatMoney(totalBalance)}</Text>
+        <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
+          <LinearGradient
+            colors={[theme.primary, theme.primary + 'BB']}
+            style={styles.summaryCard}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View>
+                <Text style={styles.summaryLabel}>Total Saldo Gabungan</Text>
+                <Text style={styles.summaryValue}>Rp {formatMoney(totalBalance)}</Text>
+              </View>
+              <View style={styles.summaryIcon}>
+                <MaterialIcons name="people" size={32} color="#fff" />
+              </View>
             </View>
-            <View style={styles.summaryIcon}>
-              <MaterialIcons name="people" size={32} color="#fff" />
+            <View style={styles.summaryFooter}>
+               <Text style={styles.summaryFooterText}>Mengelola {accounts.length} akun keuangan bersama</Text>
             </View>
-          </View>
-          <View style={styles.summaryFooter}>
-             <Text style={styles.summaryFooterText}>Mengelola {accounts.length} akun keuangan bersama</Text>
-          </View>
-        </LinearGradient>
+          </LinearGradient>
+        </Animated.View>
 
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Daftar Dompet</Text>
-          <Text style={{ color: theme.onSurfaceVariant, fontSize: 12 }}>{myAccounts.length} Akun</Text>
-        </View>
-
-        {myAccounts.length === 0 ? (
-          <View style={[styles.emptyContainer, { backgroundColor: theme.surfaceContainerLow, marginBottom: 24 }]}>
-            <MaterialIcons name="person-outline" size={48} color={theme.onSurfaceVariant + '22'} />
-            <Text style={[styles.emptyText, { color: theme.onSurfaceVariant }]}>Belum ada dompet pribadi.{"\n"}Tekan + untuk menambah.</Text>
+        <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Daftar Dompet</Text>
+            <Text style={{ color: theme.onSurfaceVariant, fontSize: 12 }}>{myAccounts.length} Akun</Text>
           </View>
-        ) : (
-          <View style={[styles.accountList, { marginBottom: 32 }]}>
-            {myAccounts.map((acc, index) => renderWalletItem(acc, index, false))}
-          </View>
-        )}
+        </Animated.View>
 
-        {partnerAccounts.length > 0 && (
-          <>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Dompet Pasangan</Text>
-              <Text style={{ color: theme.onSurfaceVariant, fontSize: 12 }}>Pantauan</Text>
+        <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
+          {myAccounts.length === 0 ? (
+            <View style={[styles.emptyContainer, { backgroundColor: theme.surfaceContainerLow, marginBottom: 24 }]}>
+              <MaterialIcons name="person-outline" size={48} color={theme.onSurfaceVariant + '22'} />
+              <Text style={[styles.emptyText, { color: theme.onSurfaceVariant }]}>Belum ada dompet pribadi.{"\n"}Tekan + untuk menambah.</Text>
             </View>
-            <View style={styles.accountList}>
-              {partnerAccounts.map((acc, index) => renderWalletItem(acc, index, true))}
+          ) : (
+            <View style={[styles.accountList, { marginBottom: 32 }]}>
+              {myAccounts.map((acc, index) => renderWalletItem(acc, index, false))}
             </View>
-          </>
-        )}
+          )}
 
-        <View style={[styles.infoBox, { backgroundColor: theme.surfaceContainerLow }]}>
-          <MaterialIcons name="info-outline" size={20} color={theme.primary} />
-          <Text style={[styles.infoText, { color: theme.onSurfaceVariant }]}>
-            Keamanan terjaga: Kamu hanya bisa mengelola dompet milikmu sendiri. Dompet pasangan bersifat hanya baca.
-          </Text>
-        </View>
-      </Animated.ScrollView>
+          {partnerAccounts.length > 0 && (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Dompet Pasangan</Text>
+                <Text style={{ color: theme.onSurfaceVariant, fontSize: 12 }}>Pantauan</Text>
+              </View>
+              <View style={styles.accountList}>
+                {partnerAccounts.map((acc, index) => renderWalletItem(acc, index, true))}
+              </View>
+            </>
+          )}
+        </Animated.View>
+
+        <Animated.View style={{ opacity: fadeAnims[4], transform: [{ translateY: slideAnims[4] }] }}>
+          <View style={[styles.infoBox, { backgroundColor: theme.surfaceContainerLow }]}>
+            <MaterialIcons name="info-outline" size={20} color={theme.primary} />
+            <Text style={[styles.infoText, { color: theme.onSurfaceVariant }]}>
+              Keamanan terjaga: Kamu hanya bisa mengelola dompet milikmu sendiri. Dompet pasangan bersifat hanya baca.
+            </Text>
+          </View>
+        </Animated.View>
+      </ScrollView>
 
       {/* Action Modal */}
       <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>

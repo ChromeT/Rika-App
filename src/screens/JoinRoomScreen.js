@@ -1,5 +1,5 @@
-import React, { useContext, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import React, { useContext, useState, useRef, useEffect } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeContext } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
@@ -12,6 +12,44 @@ const JoinRoomScreen = ({ navigation }) => {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Animations
+  const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+  const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
+
+  useEffect(() => {
+    Animated.stagger(100, [
+      Animated.parallel([
+        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: true })
+      ])
+    ]).start();
+  }, []);
+
+  const handleBack = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnims[3], { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: true }),
+      Animated.timing(slideAnims[3], { toValue: -20, duration: 300, useNativeDriver: true })
+    ]).start(() => navigation.goBack());
+  };
 
   const handleJoin = async () => {
     if (!name.trim() || !code.trim()) return Alert.alert('Error', 'Nama dan Kode harus diisi');
@@ -40,39 +78,45 @@ const JoinRoomScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+      <Animated.View style={[styles.header, { opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }]}>
+        <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
           <MaterialIcons name="arrow-back" size={20} color={theme.onSurface} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Gabung / Masuk Ruang</Text>
-      </View>
+      </Animated.View>
 
       <View style={styles.content}>
-        <Text style={styles.label}>Panggilan Anda (Sama jika masuk kembali)</Text>
-        <TextInput 
-          style={styles.input} 
-          placeholder="Masukkan nama Anda" 
-          placeholderTextColor={theme.onSurfaceVariant + '80'}
-          value={name}
-          onChangeText={setName}
-        />
+        <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
+          <Text style={styles.label}>Panggilan Anda (Sama jika masuk kembali)</Text>
+          <TextInput 
+            style={styles.input} 
+            placeholder="Masukkan nama Anda" 
+            placeholderTextColor={theme.onSurfaceVariant + '80'}
+            value={name}
+            onChangeText={setName}
+          />
+        </Animated.View>
 
-        <Text style={styles.label}>Kode Pasangan</Text>
-        <TextInput 
-          style={[styles.input, styles.codeInput]} 
-          placeholder="X8P2K9" 
-          placeholderTextColor={theme.onSurfaceVariant + '40'}
-          value={code}
-          onChangeText={setCode}
-          autoCapitalize="characters"
-          maxLength={6}
-        />
+        <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
+          <Text style={styles.label}>Kode Pasangan</Text>
+          <TextInput 
+            style={[styles.input, styles.codeInput]} 
+            placeholder="X8P2K9" 
+            placeholderTextColor={theme.onSurfaceVariant + '40'}
+            value={code}
+            onChangeText={setCode}
+            autoCapitalize="characters"
+            maxLength={6}
+          />
+        </Animated.View>
 
-        <TouchableOpacity style={styles.btnPrimary} activeOpacity={0.8} onPress={handleJoin} disabled={loading}>
-          <LinearGradient colors={[theme.primary, theme.primaryContainer]} style={styles.gradientPrimary} start={{x:0, y:0}} end={{x:1, y:1}}>
-            {loading ? <ActivityIndicator color={theme.onPrimary} /> : <Text style={styles.btnPrimaryText}>Gabung Sekarang</Text>}
-          </LinearGradient>
-        </TouchableOpacity>
+        <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
+          <TouchableOpacity style={styles.btnPrimary} activeOpacity={0.8} onPress={handleJoin} disabled={loading}>
+            <LinearGradient colors={[theme.primary, theme.primaryContainer]} style={styles.gradientPrimary} start={{x:0, y:0}} end={{x:1, y:1}}>
+              {loading ? <ActivityIndicator color={theme.onPrimary} /> : <Text style={styles.btnPrimaryText}>Gabung Sekarang</Text>}
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
       </View>
     </SafeAreaView>
   );

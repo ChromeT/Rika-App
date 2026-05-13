@@ -105,15 +105,42 @@ const TransactionHistoryScreen = ({ route }) => {
   const [loading, setLoading] = useState(false);
 
   // Animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+  const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 800, useNativeDriver: true })
+    Animated.stagger(100, [
+      Animated.parallel([
+        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ]),
+      Animated.parallel([
+        Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+      ])
     ]).start();
-  }, []); // Only run once on mount
+  }, []);
+
+  const handleBack = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(fadeAnims[3], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnims[3], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' })
+    ]).start(() => navigation.goBack());
+  };
 
   const formatMoney = (amount) =>
     new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(amount || 0);
@@ -215,7 +242,7 @@ const TransactionHistoryScreen = ({ route }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <Animated.View style={[styles.header, { opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }]}>
         <View style={styles.headerLeft}>
           <Text style={[styles.headerTitle, { color: theme.onSurface }]}>Riwayat Keuangan</Text>
         </View>
@@ -226,16 +253,15 @@ const TransactionHistoryScreen = ({ route }) => {
             <MaterialIcons name={avatar || 'person'} size={20} color={theme.primary} />
           )}
         </View>
-      </View>
+      </Animated.View>
 
-      <Animated.ScrollView 
+      <ScrollView 
         ref={scrollRef}
         contentContainerStyle={styles.main}
-        style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
         showsVerticalScrollIndicator={false}
       >
         {/* Summary Mini Cards */}
-        <View style={styles.summaryGrid}>
+        <Animated.View style={[styles.summaryGrid, { opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }]}>
            <LinearGradient colors={[theme.primary, theme.primary + 'AA']} style={styles.summaryCard}>
               <Text style={styles.summaryLabel}>Total Masuk</Text>
               <Text style={styles.summaryValue}>Rp {formatMoney(totalIncome)}</Text>
@@ -244,13 +270,16 @@ const TransactionHistoryScreen = ({ route }) => {
               <Text style={styles.summaryLabel}>Total Keluar</Text>
               <Text style={styles.summaryValue}>Rp {formatMoney(totalExpense)}</Text>
            </LinearGradient>
-        </View>
+        </Animated.View>
 
         {/* Search & Date Picker Pill */}
-        <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+        <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
+          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
           <View style={[styles.searchBox, { flex: 1, backgroundColor: theme.surfaceContainerLow, borderColor: theme.outlineVariant + '22', marginBottom: 0 }]}>
             <MaterialIcons name="search" size={20} color={theme.onSurfaceVariant} />
             <TextInput 
+              nativeID="search-transactions"
+              name="search-transactions"
               style={[styles.searchInput, { color: theme.onSurface }]} 
               placeholder="Cari transaksi..." 
               placeholderTextColor={theme.onSurfaceVariant}
@@ -320,34 +349,36 @@ const TransactionHistoryScreen = ({ route }) => {
              </TouchableOpacity>
            ))}
         </ScrollView>
+      </Animated.View>
 
         {/* List Content */}
-        {grouped.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={{ width: 120, height: 120, borderRadius: 60, backgroundColor: theme.surfaceContainerLow, justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
-               <MaterialIcons name="receipt-long" size={60} color={theme.primary + '22'} />
+        <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
+          {grouped.length === 0 ? (
+            <View style={styles.emptyState}>
+              <View style={{ width: 120, height: 120, borderRadius: 60, backgroundColor: theme.surfaceContainerLow, justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+                 <MaterialIcons name="receipt-long" size={60} color={theme.primary + '22'} />
+              </View>
+              <Text style={[styles.emptyText, { color: theme.onSurface }]}>Belum ada catatan</Text>
+              <Text style={[styles.emptySubText, { color: theme.onSurfaceVariant }]}>Catatan transaksi Anda akan muncul di sini.</Text>
             </View>
-            <Text style={[styles.emptyText, { color: theme.onSurface }]}>Belum ada catatan</Text>
-            <Text style={[styles.emptySubText, { color: theme.onSurfaceVariant }]}>Catatan transaksi Anda akan muncul di sini.</Text>
-          </View>
-        ) : grouped.map(([date, txs], gIdx) => (
-          <View 
-            key={date} 
-            style={{ marginBottom: 24 }}
-            onLayout={(e) => {
-              dateLayouts.current[date] = e.nativeEvent.layout.y;
-            }}
-          >
-            <View style={styles.dateHeader}>
-               <Text style={[styles.dateText, { color: theme.primary }]}>{date}</Text>
-               <View style={[styles.dateLine, { backgroundColor: theme.outlineVariant + '22' }]} />
+          ) : grouped.map(([date, txs], gIdx) => (
+            <View 
+              key={date} 
+              style={{ marginBottom: 24 }}
+              onLayout={(e) => {
+                dateLayouts.current[date] = e.nativeEvent.layout.y;
+              }}
+            >
+              <View style={styles.dateHeader}>
+                 <Text style={[styles.dateText, { color: theme.primary }]}>{date}</Text>
+                 <View style={[styles.dateLine, { backgroundColor: theme.outlineVariant + '22' }]} />
+              </View>
+              {txs.map((tx, idx) => renderTransactionItem({ item: tx, index: idx, date }))}
             </View>
-            {txs.map((tx, idx) => renderTransactionItem({ item: tx, index: idx, date }))}
-          </View>
-        ))}
-
-        <View style={{ height: 80 }} />
-      </Animated.ScrollView>
+          ))}
+          <View style={{ height: 80 }} />
+        </Animated.View>
+      </ScrollView>
 
       {/* Date Picker Modal */}
       <Modal visible={dateModalVisible} transparent animationType="slide" onRequestClose={() => setDateModalVisible(false)}>
@@ -500,7 +531,7 @@ const TransactionCard = ({ tx, index, theme, myName, loading, accounts, formatMo
     Animated.spring(itemAnim, {
       toValue: 1,
       delay: index * 40,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
       tension: 50,
       friction: 8
     }).start();

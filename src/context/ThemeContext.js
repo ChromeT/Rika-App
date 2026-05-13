@@ -1,6 +1,9 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Font from 'expo-font';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 
 export const themes = {
   dark: {
@@ -70,12 +73,11 @@ export const ThemeContext = createContext();
 // Available fonts for selection
 export const availableFonts = [
   { name: 'System', displayName: 'System Default' },
-  { name: 'serif', displayName: 'Elegant Serif' },
+  { name: 'PlusJakartaSans-Regular', displayName: 'Modern Jakarta' },
+  { name: 'BeVietnamPro-Light', displayName: 'Minimalist Light' },
+  { name: 'PlusJakartaSans-ExtraBold', displayName: 'Bold Sans' },
   { name: 'monospace', displayName: 'Modern Mono' },
-  { name: 'sans-serif', displayName: 'Clean Sans' },
-  { name: 'sans-serif-light', displayName: 'Minimalist Light' },
-  { name: 'sans-serif-medium', displayName: 'Bold Sans' },
-  { name: 'Roboto', displayName: 'Roboto' },
+  { name: 'serif', displayName: 'Elegant Serif' },
 ];
 
 export const ThemeProvider = ({ children }) => {
@@ -83,6 +85,7 @@ export const ThemeProvider = ({ children }) => {
   const [accentColor, setAccentColor] = useState(null);
   const [themeLoaded, setThemeLoaded] = useState(false);
   const [fontFamily, setFontFamily] = useState('System');
+  const [customFonts, setCustomFonts] = useState([]); // List of {name, displayName, uri}
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -94,16 +97,115 @@ export const ThemeProvider = ({ children }) => {
         const storedAccent = await AsyncStorage.getItem('@rika_accent');
         if (storedAccent) setAccentColor(storedAccent);
 
+        // Load custom fonts list
+        const storedCustomFonts = await AsyncStorage.getItem('@rika_custom_fonts');
+        if (storedCustomFonts) {
+          const parsed = JSON.parse(storedCustomFonts);
+          setCustomFonts(parsed);
+          
+          // Register all custom fonts individually to prevent one fail from blocking all
+          for (const f of parsed) {
+            try {
+              await Font.loadAsync({ [f.name]: { uri: f.uri } });
+            } catch (fe) {
+              console.warn(`Failed to load custom font: ${f.name}`, fe);
+            }
+          }
+        }
+
         const storedFont = await AsyncStorage.getItem('@rika_font');
         if (storedFont) setFontFamily(storedFont);
       } catch (e) {
         console.error('Failed to load theme settings', e);
       } finally {
+        // Ensure we always unlock the UI
         setThemeLoaded(true);
       }
     };
     loadSettings();
   }, []);
+
+  const uploadFont = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        
+        const ext = asset.name.split('.').pop().toLowerCase();
+        if (ext !== 'ttf' && ext !== 'otf') {
+          Alert.alert('Format Salah', 'Harap pilih file dengan ekstensi .ttf atau .otf');
+          return false;
+        }
+
+        const fontName = asset.name.split('.')[0].replace(/[^a-zA-Z0-9]/g, '') + Date.now();
+        let finalUri = asset.uri;
+
+        if (Platform.OS === 'web') {
+          // --- WEB LOGIC ---
+          try {
+            const response = await fetch(asset.uri);
+            const blob = await response.blob();
+            
+            finalUri = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          } catch (webErr) {
+            console.error('Web font processing error:', webErr);
+            Alert.alert('Error', 'Gagal memproses file di browser: ' + webErr.message);
+            return false;
+          }
+        } else {
+          // --- NATIVE LOGIC (iOS & Android) ---
+          try {
+            const fontsDir = `${FileSystem.documentDirectory}fonts/`;
+            // Check if makeDirectoryAsync exists (legacy vs new API)
+            if (FileSystem.makeDirectoryAsync) {
+              await FileSystem.makeDirectoryAsync(fontsDir, { intermediates: true });
+            }
+            const destPath = `${fontsDir}${asset.name}`;
+            await FileSystem.copyAsync({ from: asset.uri, to: destPath });
+            finalUri = destPath;
+          } catch (nativeErr) {
+            console.error('Native font storage error:', nativeErr);
+            // Fallback to original URI if copy fails
+          }
+        }
+
+        // Load it immediately
+        try {
+          await new Promise(r => setTimeout(r, 100));
+          // Using { uri } object is the most consistent across all 3 platforms
+          await Font.loadAsync({ [fontName]: { uri: finalUri } });
+        } catch (loadErr) {
+          console.error('Initial font load error:', loadErr);
+          Alert.alert('Gagal Load', 'Sistem tidak dapat memproses file font ini. ' + loadErr.message);
+          return false;
+        }
+
+        // Save to list
+        const newCustomFonts = [...customFonts, { name: fontName, displayName: asset.name, uri: finalUri }];
+        setCustomFonts(newCustomFonts);
+        await AsyncStorage.setItem('@rika_custom_fonts', JSON.stringify(newCustomFonts));
+        
+        // Auto select it
+        await changeFont(fontName);
+        
+        return true;
+      }
+    } catch (e) {
+      console.error('Error uploading font:', e);
+      Alert.alert('Error', 'Gagal mengunggah font: ' + e.message);
+      return false;
+    }
+    return false;
+  };
 
   const changeAccent = async (colorHex) => {
     setAccentColor(colorHex);
@@ -153,8 +255,36 @@ export const ThemeProvider = ({ children }) => {
     );
   }
 
+  const deleteFont = async (fontName) => {
+    try {
+      const newCustomFonts = customFonts.filter(f => f.name !== fontName);
+      setCustomFonts(newCustomFonts);
+      await AsyncStorage.setItem('@rika_custom_fonts', JSON.stringify(newCustomFonts));
+      
+      // If the deleted font was the current one, fallback to System
+      if (fontFamily === fontName) {
+        await changeFont('System');
+      }
+      return true;
+    } catch (e) {
+      console.error('Error deleting font:', e);
+      return false;
+    }
+  };
+
   return (
-    <ThemeContext.Provider value={{ theme, isDarkMode, toggleTheme, changeAccent, accentColor, fontFamily, changeFont }}>
+    <ThemeContext.Provider value={{ 
+      theme, 
+      isDarkMode, 
+      toggleTheme, 
+      changeAccent, 
+      accentColor, 
+      fontFamily, 
+      changeFont, 
+      customFonts, 
+      uploadFont,
+      deleteFont
+    }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -4,12 +4,23 @@ import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
+import { 
+  PlusJakartaSans_400Regular, 
+  PlusJakartaSans_700Bold, 
+  PlusJakartaSans_800ExtraBold 
+} from '@expo-google-fonts/plus-jakarta-sans';
+import { 
+  BeVietnamPro_300Light, 
+  BeVietnamPro_400Regular, 
+  BeVietnamPro_600SemiBold 
+} from '@expo-google-fonts/be-vietnam-pro';
 import { MaterialIcons } from '@expo/vector-icons';
 import { ThemeProvider, ThemeContext } from './src/context/ThemeContext';
 import { DataProvider } from './src/context/DataContext';
 import { AuthProvider } from './src/context/AuthContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigator';
+import { Text } from 'react-native';
 
 const RootApp = () => {
   const themeContext = React.useContext(ThemeContext);
@@ -43,6 +54,12 @@ const RootApp = () => {
 export default function App() {
   const [fontsLoaded] = useFonts({
     ...MaterialIcons.font,
+    'PlusJakartaSans-Regular': PlusJakartaSans_400Regular,
+    'PlusJakartaSans-Bold': PlusJakartaSans_700Bold,
+    'PlusJakartaSans-ExtraBold': PlusJakartaSans_800ExtraBold,
+    'BeVietnamPro-Light': BeVietnamPro_300Light,
+    'BeVietnamPro-Regular': BeVietnamPro_400Regular,
+    'BeVietnamPro-SemiBold': BeVietnamPro_600SemiBold,
   });
 
   if (!fontsLoaded) {
