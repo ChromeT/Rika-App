@@ -14,7 +14,7 @@
     "backgroundColor": "#0b0f10",
     "newArchEnabled": false,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/rika-logo-transparent.png",
       "resizeMode": "contain",
       "backgroundColor": "#0b0f10"
     },
@@ -23,7 +23,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/rika-logo-transparent.png",
         "backgroundColor": "#0b0f10"
       },
       "edgeToEdgeEnabled": true,
