@@ -266,8 +266,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateAnniversaryDate = async (newDate) => {
+    if (user && user.householdId) {
+      try {
+        await updateDoc(doc(db, 'households', user.householdId), {
+          anniversaryDate: newDate
+        });
+      } catch (e) {
+        console.error('Failed to update anniversary date', e);
+      }
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, householdUsers, householdAvatars, householdData, customColors, addCustomColor, loading, createHousehold, joinHousehold, loginWithData, logout, avatar, updateAvatar, lastReadNotif, markNotificationsAsRead }}>
+    <AuthContext.Provider value={{ user, householdUsers, householdAvatars, householdData, customColors, addCustomColor, loading, createHousehold, joinHousehold, loginWithData, logout, avatar, updateAvatar, lastReadNotif, markNotificationsAsRead, updateAnniversaryDate }}>
       {children}
     </AuthContext.Provider>
   );

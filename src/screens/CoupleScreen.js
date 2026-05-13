@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useRef } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Share, Alert, Animated, Platform, ActivityIndicator } from 'react-native';
 import Text from '../components/ThemeText';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import * as Clipboard from 'expo-clipboard';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { ThemeContext } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import { DataContext } from '../context/DataContext';
@@ -19,11 +20,13 @@ const { width } = Dimensions.get('window');
 
 const CoupleScreen = ({ navigation }) => {
   const { theme } = useContext(ThemeContext);
-  const { user, householdUsers, householdAvatars, householdData, avatar } = useContext(AuthContext);
+  const { user, householdUsers, householdAvatars, householdData, avatar, updateAnniversaryDate } = useContext(AuthContext);
   const { getBalance, goals, transactions } = useContext(DataContext);
 
-  const [showAllRoadmap, setShowAllRoadmap] = React.useState(false);
-  const [showAllHistory, setShowAllHistory] = React.useState(false);
+  const [showAllRoadmap, setShowAllRoadmap] = useState(false);
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const dateInputRef = useRef(null);
 
   // Animations
   const fadeAnims = React.useRef([
@@ -102,8 +105,30 @@ const CoupleScreen = ({ navigation }) => {
     }
   };
 
-  const relationshipStart = householdData?.createdAt ? dayjs(householdData.createdAt) : dayjs();
+  const relationshipStart = (householdData?.anniversaryDate || householdData?.createdAt) 
+    ? dayjs(householdData.anniversaryDate || householdData.createdAt) 
+    : dayjs();
   const durationText = getDurationText(relationshipStart);
+
+  const handleEditAnniversary = () => {
+    if (Platform.OS === 'web') {
+      if (dateInputRef.current?.showPicker) {
+        try { dateInputRef.current.showPicker(); } catch (e) {}
+      } else {
+        dateInputRef.current?.click();
+      }
+    } else {
+      setShowDatePicker(true);
+    }
+  };
+
+  const onDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      updateAnniversaryDate(selectedDate.toISOString());
+      Alert.alert('Berhasil', 'Hari bersama kalian telah diperbarui.');
+    }
+  };
 
 
 
@@ -165,13 +190,35 @@ const CoupleScreen = ({ navigation }) => {
               </View>
               <TouchableOpacity 
                 activeOpacity={0.7} 
-                onPress={() => Alert.alert('Edit Hari Bersama', 'Permintaan ganti tanggal jadian akan dikirim ke pasangan untuk disetujui.')}
+                onPress={handleEditAnniversary}
                 style={{ marginTop: 12, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, backgroundColor: theme.primary + '10' }}
               >
                 <Text style={{ fontSize: 10, fontWeight: '800', color: theme.primary, textAlign: 'center' }}>
                   {durationText.toUpperCase()}
                 </Text>
+                {Platform.OS === 'web' && (
+                  <input 
+                    ref={dateInputRef}
+                    type="date" 
+                    value={relationshipStart.format('YYYY-MM-DD')}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        updateAnniversaryDate(new Date(e.target.value).toISOString());
+                      }
+                    }}
+                    style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+                  />
+                )}
               </TouchableOpacity>
+              {Platform.OS !== 'web' && showDatePicker && (
+                <DateTimePicker
+                  value={relationshipStart.toDate()}
+                  mode="date"
+                  display="default"
+                  maximumDate={new Date()}
+                  onChange={onDateChange}
+                />
+              )}
             </View>
 
             <View style={styles.avatarContainer}>
