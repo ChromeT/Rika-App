@@ -10,6 +10,7 @@ import { DataContext } from '../context/DataContext';
 import { AuthContext } from '../context/AuthContext';
 import { exportToXLS, exportToPDF } from '../utils/exportUtils';
 import { LinearGradient } from 'expo-linear-gradient';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const SettingsScreen = ({ navigation }) => {
   const { getBalance, transactions } = useContext(DataContext);
@@ -170,6 +171,8 @@ const SettingsScreen = ({ navigation }) => {
   const [startDate, setStartDate] = useState(dayjs().startOf('month').format('YYYY-MM-DD'));
   const [endDate, setEndDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [isCustomRange, setIsCustomRange] = useState(false);
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
 
   const startExport = (period) => {
     setExportPeriod(period);
@@ -309,43 +312,81 @@ const SettingsScreen = ({ navigation }) => {
                       {exportPeriod === 'bulanan' ? 'Bulan Ini' : exportPeriod === 'mingguan' ? 'Minggu Ini' : exportPeriod === 'harian' ? 'Hari Ini' : 'Rentang Kustom'}
                    </Text>
                 </View>
-                <View style={styles.periodPills}>
-                   {['harian', 'mingguan', 'bulanan', 'kustom'].map(p => (
-                     <TouchableOpacity 
-                       key={p} 
-                       onPress={() => setExportPeriod(p)}
-                       style={[styles.periodPill, exportPeriod === p && { backgroundColor: theme.primary }]}
-                     >
-                        <Text style={[styles.periodPillText, { color: exportPeriod === p ? theme.onPrimary : theme.onSurfaceVariant }]}>
-                          {p.charAt(0).toUpperCase() + p.slice(1)}
-                        </Text>
-                     </TouchableOpacity>
-                   ))}
-                </View>
+                 <View style={[styles.periodPills, { backgroundColor: theme.surfaceContainerHigh }]}>
+                    {['harian', 'mingguan', 'bulanan', 'kustom'].map(p => (
+                      <TouchableOpacity 
+                        key={p} 
+                        onPress={() => setExportPeriod(p)}
+                        style={[styles.periodPill, exportPeriod === p && { backgroundColor: theme.primary }]}
+                      >
+                         <Text style={[styles.periodPillText, { color: exportPeriod === p ? theme.onPrimary : theme.onSurfaceVariant }]}>
+                           {p === 'harian' ? 'Harian' : p === 'mingguan' ? 'Mingguan' : p === 'bulanan' ? 'Bulanan' : 'Kustom'}
+                         </Text>
+                      </TouchableOpacity>
+                    ))}
+                 </View>
              </View>
 
              {exportPeriod === 'kustom' && (
                <View style={styles.customDateRow}>
                   <View style={styles.dateInputGroup}>
                      <Text style={[styles.dateLabel, { color: theme.onSurfaceVariant }]}>Mulai</Text>
-                     <TextInput 
-                       nativeID="start-date-input"
-                       style={[styles.dateInput, { backgroundColor: theme.surfaceContainerHigh, color: theme.onSurface }]}
-                       value={startDate}
-                       onChangeText={setStartDate}
-                       placeholder="YYYY-MM-DD"
-                     />
+                     <TouchableOpacity 
+                        onPress={() => {
+                          if (Platform.OS === 'web') document.getElementById('settings-start-date')?.showPicker?.() || document.getElementById('settings-start-date')?.click();
+                          else setShowStartPicker(true);
+                        }}
+                        style={[styles.dateInput, { backgroundColor: theme.surfaceContainerHigh, justifyContent: 'center' }]}
+                     >
+                        <Text style={{ color: theme.onSurface, fontSize: 13, fontWeight: '700' }}>{dayjs(startDate).format('DD MMM YYYY')}</Text>
+                     </TouchableOpacity>
                   </View>
                   <View style={styles.dateInputGroup}>
                      <Text style={[styles.dateLabel, { color: theme.onSurfaceVariant }]}>Selesai</Text>
-                     <TextInput 
-                       nativeID="end-date-input"
-                       style={[styles.dateInput, { backgroundColor: theme.surfaceContainerHigh, color: theme.onSurface }]}
-                       value={endDate}
-                       onChangeText={setEndDate}
-                       placeholder="YYYY-MM-DD"
-                     />
+                     <TouchableOpacity 
+                        onPress={() => {
+                          if (Platform.OS === 'web') document.getElementById('settings-end-date')?.showPicker?.() || document.getElementById('settings-end-date')?.click();
+                          else setShowEndPicker(true);
+                        }}
+                        style={[styles.dateInput, { backgroundColor: theme.surfaceContainerHigh, justifyContent: 'center' }]}
+                     >
+                        <Text style={{ color: theme.onSurface, fontSize: 13, fontWeight: '700' }}>{dayjs(endDate).format('DD MMM YYYY')}</Text>
+                     </TouchableOpacity>
                   </View>
+
+                  {(showStartPicker || showEndPicker) && Platform.OS !== 'web' && (
+                    <DateTimePicker
+                      value={new Date(showStartPicker ? startDate : endDate)}
+                      mode="date"
+                      display="default"
+                      onChange={(event, selectedDate) => {
+                        setShowStartPicker(false);
+                        setShowEndPicker(false);
+                        if (selectedDate) {
+                          const formatted = dayjs(selectedDate).format('YYYY-MM-DD');
+                          if (showStartPicker) setStartDate(formatted);
+                          else setEndDate(formatted);
+                        }
+                      }}
+                    />
+                  )}
+
+                  {Platform.OS === 'web' && (
+                    <View style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}>
+                      <input 
+                        type="date" 
+                        id="settings-start-date"
+                        value={startDate}
+                        onChange={(e) => { if(e.target.value) setStartDate(e.target.value); }}
+                      />
+                      <input 
+                        type="date" 
+                        id="settings-end-date"
+                        value={endDate}
+                        onChange={(e) => { if(e.target.value) setEndDate(e.target.value); }}
+                      />
+                    </View>
+                  )}
                </View>
              )}
 
@@ -698,9 +739,9 @@ const styles = StyleSheet.create({
   analyticsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
   analyticsTitle: { fontSize: 16, fontWeight: '900' },
   analyticsSubtitle: { fontSize: 12, fontWeight: '500' },
-  periodPills: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 12, padding: 4, gap: 4 },
-  periodPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
-  periodPillText: { fontSize: 10, fontWeight: '800' },
+  periodPills: { flexDirection: 'row', borderRadius: 16, padding: 6, gap: 6, flex: 1, marginLeft: 16 },
+  periodPill: { flex: 1, paddingVertical: 8, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  periodPillText: { fontSize: 10, fontWeight: '900' },
   
   customDateRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
   dateInputGroup: { flex: 1 },
