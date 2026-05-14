@@ -305,14 +305,20 @@ const SettingsScreen = ({ navigation }) => {
         <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
           <SectionHeader title="Laporan & Ekspor" badge="Analisa" />
           <View style={[styles.analyticsCard, { backgroundColor: theme.surfaceContainerLow, borderColor: theme.outlineVariant + '22', borderWidth: 1 }]}>
-             <View style={styles.analyticsHeader}>
-                <View>
-                   <Text style={[styles.analyticsTitle, { color: theme.onSurface }]}>Ikhtisar Keuangan</Text>
-                   <Text style={[styles.analyticsSubtitle, { color: theme.onSurfaceVariant }]}>
-                      {exportPeriod === 'bulanan' ? 'Bulan Ini' : exportPeriod === 'mingguan' ? 'Minggu Ini' : exportPeriod === 'harian' ? 'Hari Ini' : 'Rentang Kustom'}
-                   </Text>
+             <View style={{ marginBottom: 24 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                   <View>
+                      <Text style={[styles.analyticsTitle, { color: theme.onSurface }]}>Ikhtisar Keuangan</Text>
+                      <Text style={[styles.analyticsSubtitle, { color: theme.onSurfaceVariant }]}>
+                         {exportPeriod === 'bulanan' ? 'Bulan Ini' : exportPeriod === 'mingguan' ? 'Minggu Ini' : exportPeriod === 'harian' ? 'Hari Ini' : 'Rentang Kustom'}
+                      </Text>
+                   </View>
+                   <View style={[styles.badge, { backgroundColor: theme.primary + '15' }]}>
+                      <MaterialIcons name="analytics" size={14} color={theme.primary} />
+                   </View>
                 </View>
-                 <View style={[styles.periodPills, { backgroundColor: theme.surfaceContainerHigh }]}>
+
+                <View style={[styles.periodPills, { backgroundColor: theme.surfaceContainerHigh, marginLeft: 0 }]}>
                     {['harian', 'mingguan', 'bulanan', 'kustom'].map(p => (
                       <TouchableOpacity 
                         key={p} 
@@ -324,7 +330,7 @@ const SettingsScreen = ({ navigation }) => {
                          </Text>
                       </TouchableOpacity>
                     ))}
-                 </View>
+                </View>
              </View>
 
              {exportPeriod === 'kustom' && (
@@ -739,9 +745,9 @@ const styles = StyleSheet.create({
   analyticsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
   analyticsTitle: { fontSize: 16, fontWeight: '900' },
   analyticsSubtitle: { fontSize: 12, fontWeight: '500' },
-  periodPills: { flexDirection: 'row', borderRadius: 16, padding: 6, gap: 6, flex: 1, marginLeft: 16 },
-  periodPill: { flex: 1, paddingVertical: 8, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  periodPillText: { fontSize: 10, fontWeight: '900' },
+  periodPills: { flexDirection: 'row', borderRadius: 16, padding: 6, gap: 6, width: '100%' },
+  periodPill: { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  periodPillText: { fontSize: 11, fontWeight: '900' },
   
   customDateRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
   dateInputGroup: { flex: 1 },
