@@ -850,7 +850,10 @@ const DashboardScreen = ({ navigation, route }) => {
             {timeFilter === 'Kustom' && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24, backgroundColor: theme.surfaceContainerHighest + '33', padding: 12, borderRadius: 20, borderWidth: 1, borderColor: theme.outlineVariant + '11' }}>
                 <TouchableOpacity 
-                  onPress={() => setShowStartPicker(true)}
+                  onPress={() => {
+                    if (Platform.OS === 'web') document.getElementById('custom-start-date')?.showPicker?.() || document.getElementById('custom-start-date')?.click();
+                    else setShowStartPicker(true);
+                  }}
                   style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: theme.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.outlineVariant + '22' }}
                 >
                   <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, fontWeight: 'bold', marginBottom: 2 }}>MULAI</Text>
@@ -860,7 +863,10 @@ const DashboardScreen = ({ navigation, route }) => {
                 <MaterialIcons name="arrow-forward" size={16} color={theme.outlineVariant} />
 
                 <TouchableOpacity 
-                  onPress={() => setShowEndPicker(true)}
+                  onPress={() => {
+                    if (Platform.OS === 'web') document.getElementById('custom-end-date')?.showPicker?.() || document.getElementById('custom-end-date')?.click();
+                    else setShowEndPicker(true);
+                  }}
                   style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: theme.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.outlineVariant + '22' }}
                 >
                   <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, fontWeight: 'bold', marginBottom: 2 }}>SELESAI</Text>
@@ -884,20 +890,30 @@ const DashboardScreen = ({ navigation, route }) => {
                 )}
                 
                 {Platform.OS === 'web' && (
-                  <>
+                  <View style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}>
                     <input 
                       type="date" 
-                      style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
-                      ref={ref => { if(showStartPicker && ref) { ref.showPicker ? ref.showPicker() : ref.click(); setShowStartPicker(false); } }}
-                      onChange={(e) => setCustomStartDate(new Date(e.target.value))}
+                      id="custom-start-date"
+                      value={customStartDate.toISOString().split('T')[0]}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setCustomStartDate(new Date(e.target.value));
+                          setShowStartPicker(false);
+                        }
+                      }}
                     />
                     <input 
                       type="date" 
-                      style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
-                      ref={ref => { if(showEndPicker && ref) { ref.showPicker ? ref.showPicker() : ref.click(); setShowEndPicker(false); } }}
-                      onChange={(e) => setCustomEndDate(new Date(e.target.value))}
+                      id="custom-end-date"
+                      value={customEndDate.toISOString().split('T')[0]}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setCustomEndDate(new Date(e.target.value));
+                          setShowEndPicker(false);
+                        }
+                      }}
                     />
-                  </>
+                  </View>
                 )}
               </View>
             )}
