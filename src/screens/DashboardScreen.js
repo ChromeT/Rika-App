@@ -36,6 +36,11 @@ const DashboardScreen = ({ navigation, route }) => {
   
   const [filter, setFilter] = useState('Kita');
   const [timeFilter, setTimeFilter] = useState('Bulan ini');
+  const [customStartDate, setCustomStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [customEndDate, setCustomEndDate] = useState(new Date());
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+  
   const [notifyVisible, setNotifyVisible] = useState(false);
   const [isEditingBill, setIsEditingBill] = useState(false);
   const [billModalVisible, setBillModalVisible] = useState(false);
@@ -235,12 +240,27 @@ const DashboardScreen = ({ navigation, route }) => {
     if (!tx) return false;
     const txDate = new Date(tx.date);
     const today = new Date();
+    today.setHours(23,59,59,999);
+    
     let timeMatch = true;
-    if (timeFilter === 'Hari ini') timeMatch = txDate.toDateString() === today.toDateString();
-    else if (timeFilter === 'Minggu ini') {
-      const lastWeek = new Date(); lastWeek.setDate(today.getDate() - 7);
+    if (timeFilter === 'Hari ini') {
+      timeMatch = txDate.toDateString() === today.toDateString();
+    } else if (timeFilter === 'Minggu ini') {
+      const lastWeek = new Date();
+      lastWeek.setDate(today.getDate() - 7);
+      lastWeek.setHours(0,0,0,0);
       timeMatch = txDate >= lastWeek;
-    } else if (timeFilter === 'Bulan ini') timeMatch = txDate.getMonth() === today.getMonth() && txDate.getFullYear() === today.getFullYear();
+    } else if (timeFilter === 'Bulan ini') {
+      timeMatch = txDate.getMonth() === today.getMonth() && txDate.getFullYear() === today.getFullYear();
+    } else if (timeFilter === 'Tahun ini') {
+      timeMatch = txDate.getFullYear() === today.getFullYear();
+    } else if (timeFilter === 'Kustom') {
+      const start = new Date(customStartDate); start.setHours(0,0,0,0);
+      const end = new Date(customEndDate); end.setHours(23,59,59,999);
+      timeMatch = txDate >= start && txDate <= end;
+    } else if (timeFilter === 'Semua Waktu') {
+      timeMatch = true;
+    }
     
     let userMatch = true;
     if (filter === 'Saya') userMatch = tx.owner === myName;
@@ -797,20 +817,90 @@ const DashboardScreen = ({ navigation, route }) => {
               </View>
             </View>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 24, marginHorizontal: -4 }}>
-              {['Hari ini', 'Minggu ini', 'Bulan ini', 'Tahun ini', 'Semua Waktu'].map(tf => (
-                <TouchableOpacity 
-                  key={tf} 
-                  onPress={() => setTimeFilter(tf)} 
-                  style={[
-                    { marginHorizontal: 4, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, backgroundColor: theme.surfaceContainerHighest },
-                    timeFilter === tf && { backgroundColor: theme.primary }
-                  ]}
-                >
-                  <Text style={{ color: timeFilter === tf ? theme.onPrimary : theme.onSurfaceVariant, fontSize: 12, fontWeight: 'bold' }}>{tf}</Text>
-                </TouchableOpacity>
-              ))}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16, marginHorizontal: -24 }}>
+              <View style={{ flexDirection: 'row', paddingHorizontal: 24, gap: 8 }}>
+                {['Hari ini', 'Minggu ini', 'Bulan ini', 'Tahun ini', 'Semua Waktu', 'Kustom'].map(tf => (
+                  <TouchableOpacity 
+                    key={tf} 
+                    onPress={() => setTimeFilter(tf)} 
+                    style={[
+                      { 
+                        paddingHorizontal: 16, 
+                        paddingVertical: 8, 
+                        borderRadius: 14, 
+                        backgroundColor: theme.surfaceContainerHighest + '44',
+                        borderWidth: 1,
+                        borderColor: theme.outlineVariant + '11'
+                      },
+                      timeFilter === tf && { backgroundColor: theme.primary, borderColor: theme.primary }
+                    ]}
+                  >
+                    <Text style={{ 
+                      color: timeFilter === tf ? theme.onPrimary : theme.onSurfaceVariant, 
+                      fontSize: 12, 
+                      fontWeight: 'bold' 
+                    }}>
+                      {tf}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </ScrollView>
+
+            {timeFilter === 'Kustom' && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24, backgroundColor: theme.surfaceContainerHighest + '33', padding: 12, borderRadius: 20, borderWidth: 1, borderColor: theme.outlineVariant + '11' }}>
+                <TouchableOpacity 
+                  onPress={() => setShowStartPicker(true)}
+                  style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: theme.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.outlineVariant + '22' }}
+                >
+                  <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, fontWeight: 'bold', marginBottom: 2 }}>MULAI</Text>
+                  <Text style={{ fontSize: 12, color: theme.onSurface, fontWeight: '900' }}>{customStartDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</Text>
+                </TouchableOpacity>
+                
+                <MaterialIcons name="arrow-forward" size={16} color={theme.outlineVariant} />
+
+                <TouchableOpacity 
+                  onPress={() => setShowEndPicker(true)}
+                  style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: theme.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.outlineVariant + '22' }}
+                >
+                  <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, fontWeight: 'bold', marginBottom: 2 }}>SELESAI</Text>
+                  <Text style={{ fontSize: 12, color: theme.onSurface, fontWeight: '900' }}>{customEndDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</Text>
+                </TouchableOpacity>
+
+                {(showStartPicker || showEndPicker) && Platform.OS !== 'web' && (
+                  <DateTimePicker
+                    value={showStartPicker ? customStartDate : customEndDate}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      setShowStartPicker(false);
+                      setShowEndPicker(false);
+                      if (selectedDate) {
+                        if (showStartPicker) setCustomStartDate(selectedDate);
+                        else setCustomEndDate(selectedDate);
+                      }
+                    }}
+                  />
+                )}
+                
+                {Platform.OS === 'web' && (
+                  <>
+                    <input 
+                      type="date" 
+                      style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+                      ref={ref => { if(showStartPicker && ref) { ref.showPicker ? ref.showPicker() : ref.click(); setShowStartPicker(false); } }}
+                      onChange={(e) => setCustomStartDate(new Date(e.target.value))}
+                    />
+                    <input 
+                      type="date" 
+                      style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+                      ref={ref => { if(showEndPicker && ref) { ref.showPicker ? ref.showPicker() : ref.click(); setShowEndPicker(false); } }}
+                      onChange={(e) => setCustomEndDate(new Date(e.target.value))}
+                    />
+                  </>
+                )}
+              </View>
+            )}
 
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
               {/* Left Side: Professional Donut Chart */}
