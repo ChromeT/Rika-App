@@ -108,7 +108,16 @@ const SettingsScreen = ({ navigation }) => {
 
   const SettingRow = ({ icon, title, desc, children, onPress }) => (
     <TouchableOpacity 
-      style={[styles.settingRow, { backgroundColor: theme.surfaceContainerLow }]} 
+      style={[styles.settingRow, { 
+        backgroundColor: theme.surfaceContainerLow,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        elevation: 3,
+        borderWidth: 1,
+        borderColor: theme.outlineVariant + '15'
+      }]} 
       onPress={onPress}
       activeOpacity={onPress ? 0.7 : 1}
     >
@@ -646,7 +655,16 @@ const styles = StyleSheet.create({
   headerBtn: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   main: { paddingHorizontal: 24, paddingBottom: 100 },
   
-  profileCard: { borderRadius: 32, padding: 24, marginBottom: 32 },
+  profileCard: { 
+    borderRadius: 32, 
+    padding: 24, 
+    marginBottom: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4
+  },
   profileTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   userColumn: { alignItems: 'center', flex: 1 },
   avatarLarge: { width: 80, height: 80, marginBottom: 12 },
@@ -667,7 +685,16 @@ const styles = StyleSheet.create({
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   badgeText: { fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
 
-  analyticsCard: { borderRadius: 32, padding: 24, marginBottom: 32 },
+  analyticsCard: { 
+    borderRadius: 32, 
+    padding: 24, 
+    marginBottom: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3
+  },
   analyticsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
   analyticsTitle: { fontSize: 16, fontWeight: '900' },
   analyticsSubtitle: { fontSize: 12, fontWeight: '500' },
@@ -696,7 +723,15 @@ const styles = StyleSheet.create({
   settingTitle: { fontSize: 15, fontWeight: 'bold' },
   settingDesc: { fontSize: 12 },
 
-  paletteContainer: { padding: 24, borderRadius: 32 },
+  paletteContainer: { 
+    padding: 24, 
+    borderRadius: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2
+  },
   paletteHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 24 },
   paletteIconBg: { width: 44, height: 44, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   paletteTitle: { fontSize: 16, fontWeight: '900' },

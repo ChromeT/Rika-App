@@ -108,7 +108,7 @@ const CategoriesScreen = ({ navigation }) => {
   };
 
   const renderItem = ({ item }) => (
-    <View style={[styles.catItem, { backgroundColor: theme.surfaceContainer }]}>
+    <View style={[styles.catItem, { backgroundColor: theme.surfaceContainerLow }]}>
       <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View style={[styles.iconWrap, { backgroundColor: theme.primaryContainer + '33' }]}>
           <MaterialIcons name={item.icon} size={20} color={theme.primary} />
@@ -152,7 +152,21 @@ const CategoriesScreen = ({ navigation }) => {
     btnGradient: { padding: 16, alignItems: 'center' },
     btnText: { color: theme.onPrimary, fontWeight: 'bold', fontSize: 16 },
     list: { padding: 16 },
-    catItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 16, marginBottom: 8, gap: 12 },
+    catItem: { 
+      flexDirection: 'row', 
+      alignItems: 'center', 
+      padding: 14, 
+      borderRadius: 20, 
+      marginBottom: 10, 
+      gap: 12,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.06,
+      shadowRadius: 10,
+      elevation: 2,
+      borderWidth: 1,
+      borderColor: theme.outlineVariant + '10'
+    },
     iconWrap: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
     catName: { fontSize: 14, fontWeight: '600' },
   });

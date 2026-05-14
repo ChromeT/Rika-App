@@ -224,7 +224,11 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     setUser(null);
     setHouseholdUsers([]);
+    setAvatar('person');
+    setHouseholdAvatars({});
+    setHouseholdData(null);
     await AsyncStorage.removeItem('@rika_user');
+    await AsyncStorage.removeItem('@rika_avatar');
   };
 
   const updateAvatar = async (iconName) => {

@@ -706,7 +706,7 @@ const DashboardScreen = ({ navigation, route }) => {
           onLayout={(e) => { sectionLayouts.current.expense = e.nativeEvent.layout.y; }}
           style={{ opacity: sectionsAnim[3], transform: [{ translateY: sectionsAnim[3].interpolate({ inputRange:[0,1], outputRange:[20,0] }) }], marginTop: 24 }}
         >
-          <View style={[styles.card, { backgroundColor: theme.surfaceContainerLow, padding: 24, borderRadius: 32, marginBottom: 24 }]}>
+          <View style={[styles.surfaceCard, { backgroundColor: theme.surfaceContainerLow, padding: 24, borderRadius: 32, marginBottom: 24, borderWidth: 1, borderColor: theme.outlineVariant + '15' }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Pengeluaran</Text>
               
@@ -1043,14 +1043,18 @@ const DashboardScreen = ({ navigation, route }) => {
                   onLayout={(e) => { 
                     itemLayouts.current[`recent_${tx.id}`] = { localY: e.nativeEvent.layout.y, section: 'recent' }; 
                   }} 
-                  style={{ 
-                    backgroundColor: highlightedId === `recent_${tx.id}` ? 
-                      highlightAnim.interpolate({ inputRange: [0, 1], outputRange: [theme.surfaceContainerLow, theme.primary + '33'] }) : 
-                      theme.surfaceContainerLow, 
-                    borderRadius: 24, marginBottom: 12, borderWidth: 1, 
-                    borderColor: highlightedId === `recent_${tx.id}` ? theme.primary : 'transparent',
-                    overflow: 'hidden'
-                  }}>
+                  style={[
+                    styles.surfaceCard,
+                    { 
+                      backgroundColor: highlightedId === `recent_${tx.id}` ? 
+                        highlightAnim.interpolate({ inputRange: [0, 1], outputRange: [theme.surfaceContainerLow, theme.primary + '33'] }) : 
+                        theme.surfaceContainerLow, 
+                      marginBottom: 12, 
+                      borderWidth: 1, 
+                      borderColor: highlightedId === `recent_${tx.id}` ? theme.primary : theme.outlineVariant + '15',
+                      overflow: 'hidden'
+                    }
+                  ]}>
                  <TouchableOpacity style={styles.txItem} onPress={() => openQuickEdit(tx)}>
                   <View style={[styles.txIcon, { backgroundColor: (tx.type === 'income' ? theme.primary : theme.error) + '15' }]}>
                     <MaterialIcons name={tx.icon || (tx.type === 'income' ? 'add' : 'remove')} size={20} color={tx.type === 'income' ? theme.primary : theme.error} />
@@ -1619,7 +1623,28 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   sectionTitle: { fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
   walletScroll: { marginHorizontal: -24, paddingHorizontal: 24 },
-  walletCard: { width: 160, padding: 16, borderRadius: 24, marginRight: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  surfaceCard: {
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  walletCard: { 
+    width: 160, 
+    padding: 16, 
+    borderRadius: 24, 
+    marginRight: 12, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+  },
   walletIcon: { width: 40, height: 40, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   walletName: { fontSize: 13, fontWeight: 'bold' },
   walletBalance: { fontSize: 11, fontWeight: '900', marginTop: 2 },

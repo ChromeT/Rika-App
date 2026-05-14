@@ -24,15 +24,27 @@ export const DataProvider = ({ children }) => {
   const [categories, setCategories] = useState({ expense: [], income: [] });
   const [loading, setLoading] = useState(true);
 
-  // Load Categories (Tetap lokal)
+  // Load & Sync Categories with Cloud
   useEffect(() => {
-    const loadCats = async () => {
+    const syncCats = async () => {
+      // 1. Jika di Cloud (Firestore) sudah ada, pakai itu
+      if (householdData && householdData.categories) {
+        setCategories(householdData.categories);
+        // Backup ke lokal buat offline
+        await AsyncStorage.setItem('@rika_cats_v2', JSON.stringify(householdData.categories));
+        return;
+      }
+
+      // 2. Jika di Cloud belum ada, cek lokal (Migrasi)
       try {
         const storedCats = await AsyncStorage.getItem('@rika_cats_v2');
+        let catsToUse = null;
+
         if (storedCats) {
-          setCategories(JSON.parse(storedCats));
+          catsToUse = JSON.parse(storedCats);
         } else {
-          const initialCats = {
+          // Default awal
+          catsToUse = {
             expense: [
               { name: 'Makanan', icon: 'restaurant' },
               { name: 'Transport', icon: 'directions-car' },
@@ -47,15 +59,25 @@ export const DataProvider = ({ children }) => {
               { name: 'Hadiah', icon: 'redeem' }
             ]
           };
-          setCategories(initialCats);
-          await AsyncStorage.setItem('@rika_cats_v2', JSON.stringify(initialCats));
+          await AsyncStorage.setItem('@rika_cats_v2', JSON.stringify(catsToUse));
+        }
+
+        setCategories(catsToUse);
+
+        // 3. Jika sudah login tapi di Firestore belum ada, upload (Migrasi ke Cloud)
+        if (user && user.householdId && !householdData?.categories) {
+          console.log('Migrating categories to Cloud...');
+          await updateDoc(doc(db, 'households', user.householdId), {
+            categories: catsToUse
+          });
         }
       } catch (e) {
-        console.error('Failed to load categories', e);
+        console.error('Failed to sync categories', e);
       }
     };
-    loadCats();
-  }, []);
+
+    syncCats();
+  }, [householdData?.categories, user?.householdId]);
 
   // Listen to Real-time Collections from Firebase
   useEffect(() => {
@@ -669,14 +691,21 @@ export const DataProvider = ({ children }) => {
 
   const addCategory = async (type, newCat) => {
     try {
-      setCategories(prev => {
-        const updatedCats = {
-          ...prev,
-          [type]: [...prev[type], newCat]
-        };
-        AsyncStorage.setItem('@rika_cats_v2', JSON.stringify(updatedCats));
-        return updatedCats;
-      });
+      const updatedCats = {
+        ...categories,
+        [type]: [...categories[type], newCat]
+      };
+      
+      // Update Local State & Storage
+      setCategories(updatedCats);
+      await AsyncStorage.setItem('@rika_cats_v2', JSON.stringify(updatedCats));
+
+      // Update Cloud
+      if (user && user.householdId) {
+        await updateDoc(doc(db, 'households', user.householdId), {
+          categories: updatedCats
+        });
+      }
     } catch (e) {
       console.error('Failed to save category', e);
     }
@@ -684,16 +713,22 @@ export const DataProvider = ({ children }) => {
 
   const updateCategory = async (type, oldName, newCat) => {
     try {
-      setCategories(prev => {
-        const updatedCats = { ...prev };
-        const idx = updatedCats[type].findIndex(c => c.name === oldName);
-        if (idx !== -1) {
-          updatedCats[type][idx] = newCat;
-          AsyncStorage.setItem('@rika_cats_v2', JSON.stringify(updatedCats));
-          return updatedCats;
+      const updatedCats = { ...categories };
+      const idx = updatedCats[type].findIndex(c => c.name === oldName);
+      if (idx !== -1) {
+        updatedCats[type][idx] = newCat;
+        
+        // Update Local State & Storage
+        setCategories(updatedCats);
+        await AsyncStorage.setItem('@rika_cats_v2', JSON.stringify(updatedCats));
+
+        // Update Cloud
+        if (user && user.householdId) {
+          await updateDoc(doc(db, 'households', user.householdId), {
+            categories: updatedCats
+          });
         }
-        return prev;
-      });
+      }
     } catch (e) {
       console.error('Failed to update category', e);
     }
@@ -701,14 +736,21 @@ export const DataProvider = ({ children }) => {
 
   const deleteCategory = async (type, catName) => {
     try {
-      setCategories(prev => {
-        const updatedCats = {
-          ...prev,
-          [type]: prev[type].filter(c => c.name !== catName)
-        };
-        AsyncStorage.setItem('@rika_cats_v2', JSON.stringify(updatedCats));
-        return updatedCats;
-      });
+      const updatedCats = {
+        ...categories,
+        [type]: categories[type].filter(c => c.name !== catName)
+      };
+
+      // Update Local State & Storage
+      setCategories(updatedCats);
+      await AsyncStorage.setItem('@rika_cats_v2', JSON.stringify(updatedCats));
+
+      // Update Cloud
+      if (user && user.householdId) {
+        await updateDoc(doc(db, 'households', user.householdId), {
+          categories: updatedCats
+        });
+      }
     } catch (e) {
       console.error('Failed to delete category', e);
     }
