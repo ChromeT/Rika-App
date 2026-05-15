@@ -12,7 +12,7 @@ import { exportToXLS, exportToPDF } from '../utils/exportUtils';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const SettingsScreen = ({ navigation }) => {
-  const { getBalance, transactions } = useContext(DataContext);
+  const { getBalance, transactions, accounts } = useContext(DataContext);
   const { user, householdUsers, householdAvatars, customColors, addCustomColor, logout, avatar, updateAvatar } = useContext(AuthContext);
   const { theme, isDarkMode, toggleTheme, changeAccent, accentColor, fontFamily, changeFont, customFonts, uploadFont, deleteFont } = useContext(ThemeContext);
   
@@ -188,9 +188,9 @@ const SettingsScreen = ({ navigation }) => {
       : exportPeriod.charAt(0).toUpperCase() + exportPeriod.slice(1);
 
     if (format === 'PDF') {
-      exportToPDF(filtered, periodLabel, user?.name || 'User', exportFilters, []);
+      exportToPDF(filtered, periodLabel, user?.name || 'User', exportFilters, accounts || []);
     } else {
-      exportToXLS(filtered, periodLabel, user?.name || 'User', exportFilters, []);
+      exportToXLS(filtered, periodLabel, user?.name || 'User', exportFilters, accounts || []);
     }
     setExportModalVisible(false);
   };
@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24 },
   headerMainTitle: { fontSize: 26, fontWeight: '900', letterSpacing: -1 },
   headerBtn: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  main: { paddingHorizontal: 24, paddingBottom: 100 },
+  main: { paddingHorizontal: 24, paddingBottom: 150 },
   
   profileCard: { 
     borderRadius: 32, 

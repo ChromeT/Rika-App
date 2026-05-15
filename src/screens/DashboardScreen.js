@@ -74,6 +74,9 @@ const DashboardScreen = ({ navigation, route }) => {
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(() => {
     setRefreshing(true);
+    // Reset filters to default
+    setFilter('Kita');
+    setTimeFilter('Bulan ini');
     setTimeout(() => setRefreshing(false), 1200);
   }, []);
 
@@ -133,6 +136,9 @@ const DashboardScreen = ({ navigation, route }) => {
   useEffect(() => {
     const unsubscribe = navigation.addListener('tabPress', (e) => {
       if (navigation.isFocused()) {
+        // Scroll to top
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+        // Trigger refresh and reset filters
         onRefresh();
       }
     });
@@ -572,8 +578,8 @@ const DashboardScreen = ({ navigation, route }) => {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       <View style={[styles.header, { backgroundColor: theme.background }]}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.avatarWrapper}>
-            {avatar?.startsWith('data:image') || avatar?.startsWith('file://') ? (
+          <TouchableOpacity onPress={() => navigation.navigate('Couple')} style={styles.avatarWrapper}>
+            {avatar?.startsWith('file://') || avatar?.startsWith('data:image') ? (
               <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />
             ) : (
               <MaterialIcons name={avatar || 'person'} size={24} color={theme.primary} />
@@ -1652,7 +1658,7 @@ const styles = StyleSheet.create({
   txIcon: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   txName: { fontSize: 14, fontWeight: 'bold' },
   txAmount: { fontSize: 14, fontWeight: '900' },
-  fabContainer: { position: 'absolute', bottom: 100, right: 24, alignItems: 'flex-end' },
+  fabContainer: { position: 'absolute', bottom: 115, right: 24, alignItems: 'flex-end' },
   fabMain: { 
     width: 64, height: 64, borderRadius: 24, overflow: 'hidden', elevation: 8,
     ...Platform.select({

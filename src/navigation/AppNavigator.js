@@ -87,24 +87,21 @@ const MainTabs = () => {
         tabBarInactiveTintColor: theme.onSurfaceVariant,
         tabBarShowIcon: true,
         tabBarIconStyle: {
-          width: '100%',
-          alignItems: 'center',
-          justifyContent: 'center',
+          alignSelf: 'center',
         },
         tabBarLabelStyle: {
           fontWeight: '800',
           fontSize: 10,
           textTransform: 'none',
-          marginTop: 2,
-          width: '100%',
           textAlign: 'center',
+          alignSelf: 'center',
+          marginTop: 0.1,
         },
         tabBarItemStyle: {
           height: 75,
           flexDirection: 'column',
-          justifyContent: 'center',
           alignItems: 'center',
-          paddingTop: 12,
+          paddingTop: 22,
         },
       })}
     >

@@ -96,30 +96,51 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
       ]);
     });
 
-    const ws = XLSX.utils.aoa_to_sheet(rows);
+    // Sanitize rows to ensure no null/undefined values reach XLSX
+    const sanitizedRows = rows.map(row => 
+      row.map(cell => {
+        if (cell === null || cell === undefined) return '-';
+        // Ensure no complex objects are passed as cell values
+        if (typeof cell === 'object' && !(cell instanceof Date)) return JSON.stringify(cell);
+        return cell;
+      })
+    );
+
+    const ws = XLSX.utils.aoa_to_sheet(sanitizedRows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Laporan Rika');
 
-    const filename = `Rika_Report_${period}_${Date.now()}.xlsx`;
+    const timestamp = Date.now();
+    const filename = `Rika_Report_${timestamp}.xlsx`;
 
-    const sanitizedFilename = filename.replace(/\s+/g, '_');
+    // Robust sanitization for Android file system
+    const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    
     if (Platform.OS === 'web') {
       XLSX.writeFile(wb, sanitizedFilename);
     } else {
       const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
       const fileUri = `${FileSystem.documentDirectory}${sanitizedFilename}`;
+      
       await FileSystem.writeAsStringAsync(fileUri, wbout, {
         encoding: FileSystem.EncodingType.Base64
       });
-      await Sharing.shareAsync(fileUri, {
-        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        dialogTitle: 'Simpan Laporan Excel Rika',
-        UTI: 'com.microsoft.excel.xlsx'
-      });
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          dialogTitle: 'Simpan Laporan Excel Rika',
+          UTI: 'com.microsoft.excel.xlsx'
+        });
+      } else {
+        Alert.alert('Gagal', 'Fitur berbagi tidak tersedia di perangkat ini.');
+      }
     }
   } catch (e) {
-    console.error('XLS Error:', e);
-    Alert.alert('Gagal', 'Sistem gagal membuat file Excel. Pastikan data valid.');
+    console.error('XLS Export Error:', e);
+    // More detailed error message for debugging
+    const errorMsg = e.message || 'Terjadi kesalahan teknis.';
+    Alert.alert('Gagal Ekspor', `Sistem gagal membuat file Excel. \n\nDetail: ${errorMsg}`);
   }
 };
 

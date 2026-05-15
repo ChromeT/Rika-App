@@ -274,7 +274,7 @@ const CoupleScreen = ({ navigation }) => {
               <Text style={[styles.miniValue, { color: theme.onSurface }]}>Rp {formatMoney(myBalance)}</Text>
             </View>
             <View style={[styles.miniStat, { backgroundColor: theme.surfaceContainerLow }]}>
-              <Text style={[styles.miniLabel, { color: theme.onSurfaceVariant }]}>MILIK PASANGAN</Text>
+              <Text style={[styles.miniLabel, { color: theme.onSurfaceVariant }]}>MILIK {(partnerName || 'Pasangan').toUpperCase()}</Text>
               <Text style={[styles.miniValue, { color: theme.onSurface }]}>Rp {formatMoney(partnerBalance)}</Text>
             </View>
           </View>

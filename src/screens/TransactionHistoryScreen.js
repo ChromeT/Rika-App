@@ -247,13 +247,13 @@ const TransactionHistoryScreen = ({ route }) => {
         <View style={styles.headerLeft}>
           <Text style={[styles.headerTitle, { color: theme.onSurface }]}>Riwayat Keuangan</Text>
         </View>
-        <View style={styles.avatarWrapper}>
+        <TouchableOpacity onPress={() => navigation.navigate('Couple')} style={styles.avatarWrapper}>
           {avatar?.startsWith('file://') || avatar?.startsWith('data:image') ? (
             <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />
           ) : (
             <MaterialIcons name={avatar || 'person'} size={20} color={theme.primary} />
           )}
-        </View>
+        </TouchableOpacity>
       </Animated.View>
 
       <ScrollView 
