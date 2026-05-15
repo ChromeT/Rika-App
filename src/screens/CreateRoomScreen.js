@@ -110,7 +110,7 @@ const CreateRoomScreen = ({ navigation }) => {
               <TextInput 
                 style={styles.input} 
                 placeholder="Masukkan nama Anda" 
-                placeholderTextColor={theme.onSurfaceVariant + '80'}
+                placeholderTextColor={theme.onSurfaceVariant}
                 value={name}
                 onChangeText={setName}
               />

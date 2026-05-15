@@ -5,6 +5,7 @@ import Text from '../components/ThemeText';
 import { ScrollView, FlatList } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { formatMoney as formatMoneyUtil } from '../utils/formatUtils';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -13,6 +14,8 @@ import { ThemeContext } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
 import { AuthContext } from '../context/AuthContext';
 import { uploadMultipleToCloudinary } from '../utils/cloudinaryUpload';
+import DateTimePicker from '@react-native-community/datetimepicker';
+
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
@@ -49,6 +52,11 @@ const ActiveGoalItem = React.memo(({ item, index, navigation, safeTheme, formatM
     }).start();
   }, []);
 
+  /**
+   * progress (Logika Persentase)
+   * Kenapa ada Math.min(..., 100)? Biar kalo tabungan lu lebih dari target, 
+   * barnya nggak "jebol" keluar layar.
+   */
   const progress = item.targetAmount > 0 ? Math.min((item.currentAmount / item.targetAmount) * 100, 100) : 0;
 
   return (
@@ -135,6 +143,58 @@ const ActiveGoalItem = React.memo(({ item, index, navigation, safeTheme, formatM
     </Animated.View>
   );
 });
+
+// --- [SUB-KOMPONEN: Goals Header] ---
+const GoalsHeader = ({ safeTheme, navigation, fadeAnim, slideAnim }) => (
+  <Animated.View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, paddingBottom: 12, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+    <View>
+      <Text style={{ fontSize: 13, fontWeight: 'bold', color: safeTheme.primary, letterSpacing: 2, marginBottom: 4 }}>DREAM & JOURNEY</Text>
+      <Text style={{ fontSize: 28, fontWeight: '900', color: safeTheme.onSurface, letterSpacing: -1 }}>Mimpi Kita</Text>
+    </View>
+    <TouchableOpacity onPress={() => navigation.navigate('Couple')} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: safeTheme.surfaceContainerLow, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: safeTheme.outlineVariant + '22' }}>
+      <MaterialIcons name="favorite" size={24} color={safeTheme.primary} />
+    </TouchableOpacity>
+  </Animated.View>
+);
+
+// --- [SUB-KOMPONEN: Goal Tabs] ---
+const GoalTabs = ({ safeTheme, activeTab, setActiveTab, activeCount, achievedCount, fadeAnim, slideAnim }) => (
+  <Animated.View style={{ flexDirection: 'row', paddingHorizontal: 20, marginBottom: 24, gap: 12, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+    <TouchableOpacity 
+      onPress={() => setActiveTab('active')} 
+      style={{ flex: 1, backgroundColor: activeTab === 'active' ? safeTheme.primary : safeTheme.surfaceContainerLow, paddingVertical: 14, borderRadius: 20, alignItems: 'center', borderWidth: 1, borderColor: activeTab === 'active' ? safeTheme.primary : safeTheme.outlineVariant + '22' }}
+    >
+      <Text style={{ color: activeTab === 'active' ? safeTheme.onPrimary : safeTheme.onSurfaceVariant, fontWeight: 'bold', fontSize: 13 }}>Sedang Berjalan ({activeCount})</Text>
+    </TouchableOpacity>
+    <TouchableOpacity 
+      onPress={() => setActiveTab('achieved')} 
+      style={{ flex: 1, backgroundColor: activeTab === 'achieved' ? safeTheme.primary : safeTheme.surfaceContainerLow, paddingVertical: 14, borderRadius: 20, alignItems: 'center', borderWidth: 1, borderColor: activeTab === 'achieved' ? safeTheme.primary : safeTheme.outlineVariant + '22' }}
+    >
+      <Text style={{ color: activeTab === 'achieved' ? safeTheme.onPrimary : safeTheme.onSurfaceVariant, fontWeight: 'bold', fontSize: 13 }}>Tercapai ({achievedCount})</Text>
+    </TouchableOpacity>
+  </Animated.View>
+);
+
+// --- [SUB-KOMPONEN: Empty State] ---
+const EmptyGoalsState = ({ safeTheme, activeTab, navigation }) => (
+  <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 80 }}>
+    <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: safeTheme.surfaceContainerLow, justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
+      <MaterialIcons name={activeTab === 'active' ? 'auto-awesome' : 'emoji-events'} size={48} color={safeTheme.outlineVariant + '44'} />
+    </View>
+    <Text style={{ fontSize: 18, fontWeight: 'bold', color: safeTheme.onSurface, marginBottom: 8 }}>Belum Ada Mimpi</Text>
+    <Text style={{ fontSize: 14, color: safeTheme.onSurfaceVariant, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20, marginBottom: 32 }}>
+      {activeTab === 'active' ? 'Yuk, mulai catat rencana masa depan lu berdua sekarang!' : 'Kenangan manis lu bakal kumpul di sini.'}
+    </Text>
+    {activeTab === 'active' && (
+      <TouchableOpacity 
+        onPress={() => navigation.navigate('AddGoal')}
+        style={{ backgroundColor: safeTheme.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 16 }}
+      >
+        <Text style={{ color: safeTheme.onPrimary, fontWeight: 'bold' }}>Buat Mimpi Baru</Text>
+      </TouchableOpacity>
+    )}
+  </View>
+);
 
 const AchievedGoalItem = React.memo(({ item, index, navigation, safeTheme, formatMoney }) => {
   const itemAnim = useRef(new Animated.Value(0)).current;
@@ -279,6 +339,16 @@ export const AddGoalScreen = () => {
   const [customIcon, setCustomIcon] = useState('favorite');
   const [description, setDescription] = useState('');
   const [targetDate, setTargetDate] = useState(''); // YYYY-MM-DD
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const dateInputRef = useRef(null);
+
+  const onDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setTargetDate(dayjs(selectedDate).format('YYYY-MM-DD'));
+    }
+  };
+
 
   const formatInput = (val) => {
     if (!val) return '';
@@ -466,7 +536,7 @@ export const AddGoalScreen = () => {
               <TextInput
                 style={{ padding: 10, color: safeTheme.onSurface, fontSize: 13 }}
                 placeholder={m.type === 'video' ? "Keterangan video ini... (opsional)" : "Keterangan gambar ini... (opsional)"}
-                placeholderTextColor={safeTheme.onSurfaceVariant + '80'}
+                placeholderTextColor={safeTheme.onSurfaceVariant}
                 value={m.caption}
                 onChangeText={(t) => updateCaption(i, t)}
               />
@@ -546,20 +616,46 @@ export const AddGoalScreen = () => {
 
           <View style={{ marginTop: 16 }}>
             <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>TARGET TANGGAL DICAPAI (ROADMAP)</Text>
-            <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <TouchableOpacity 
+              activeOpacity={0.7}
+              onPress={() => {
+                if (Platform.OS === 'web') {
+                  dateInputRef.current?.showPicker?.() || dateInputRef.current?.click();
+                } else {
+                  setShowDatePicker(true);
+                }
+              }}
+              style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}
+            >
               <MaterialIcons name="explore" size={20} color={safeTheme.primary} />
-              <TextInput 
-                value={targetDate}
-                onChangeText={setTargetDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={safeTheme.onSurfaceVariant}
-                style={{ 
-                  color: safeTheme.onSurface, 
-                  fontSize: 16, 
-                  flex: 1
-                }}
+              <Text style={{ 
+                color: targetDate ? safeTheme.onSurface : safeTheme.onSurfaceVariant, 
+                fontSize: 16, 
+                flex: 1
+              }}>
+                {targetDate ? dayjs(targetDate).format('DD MMMM YYYY') : 'Pilih Tanggal Target'}
+              </Text>
+              {Platform.OS === 'web' && (
+                <input 
+                  ref={dateInputRef}
+                  type="date" 
+                  value={targetDate}
+                  onChange={(e) => setTargetDate(e.target.value)}
+                  style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+                />
+              )}
+            </TouchableOpacity>
+
+            {showDatePicker && Platform.OS !== 'web' && (
+              <DateTimePicker
+                value={targetDate ? dayjs(targetDate).toDate() : new Date()}
+                mode="date"
+                display="default"
+                minimumDate={new Date()}
+                onChange={onDateChange}
               />
-            </View>
+            )}
+
           </View>
         </Animated.View>
       </ScrollView>
@@ -649,6 +745,17 @@ const GoalsScreen = ({ navigation, route }) => {
   const [selectionEditTarget, setSelectionEditTarget] = useState({ start: 0, end: 0 });
   const selectionEditTargetRef = useRef({ start: 0, end: 0 });
   const editTargetRef = useRef('');
+  const [editTargetDate, setEditTargetDate] = useState('');
+  const [showEditDatePicker, setShowEditDatePicker] = useState(false);
+  const editDateInputRef = useRef(null);
+
+  const onEditDateChange = (event, selectedDate) => {
+    setShowEditDatePicker(false);
+    if (selectedDate) {
+      setEditTargetDate(dayjs(selectedDate).format('YYYY-MM-DD'));
+    }
+  };
+
 
   const formatInput = (val) => {
     if (!val) return '';
@@ -687,7 +794,7 @@ const GoalsScreen = ({ navigation, route }) => {
     selectionEditTargetRef.current = { start: newPos, end: newPos };
   };
 
-  const formatMoney = (v) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v || 0);
+  const formatMoney = (v) => formatMoneyUtil(v || 0);
 
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
@@ -722,7 +829,9 @@ const GoalsScreen = ({ navigation, route }) => {
     setEditMediaList(goal.media ? [...goal.media] : []);
     setEditMemoryCaption(goal.memoryCaption || '');
     setEditRelatedTxIds(goal.relatedTransactionIds || []);
+    setEditTargetDate(goal.targetDate || '');
     setEditModalVisible(true);
+
   };
 
   const handlePickEditMedia = async () => {
@@ -794,7 +903,9 @@ const GoalsScreen = ({ navigation, route }) => {
         name: editName.trim(),
         description: isAchieved ? editMemoryCaption : editDescription.trim(),
         targetAmount: Number(editTarget.replace(/\./g, '')) || 0,
+        targetDate: editTargetDate || null,
       };
+
 
       if (isAchieved) {
         updateData.memoryCaption = editMemoryCaption;
@@ -880,12 +991,12 @@ const GoalsScreen = ({ navigation, route }) => {
 
           {editUploading && (
             <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", alignItems: "center", zIndex: 100 }}>
-              <ActivityIndicator size="large" color="#fff" />
-              <Text style={{ color: "#fff", marginTop: 12, fontSize: 14 }}>Mengupload media...</Text>
+              <ActivityIndicator size="large" color={safeTheme.primary} />
+              <Text style={{ color: safeTheme.primary, marginTop: 12, fontSize: 14 }}>Mengupload media...</Text>
             </View>
           )}
 
-        <ScrollView style={{ flex: 1, marginTop: 100 }} contentContainerStyle={{ paddingBottom: 40 }}>
+        <ScrollView style={{ flex: 1, marginTop: 100 }} contentContainerStyle={{ paddingBottom: 150 }}>
           <View style={{ backgroundColor: safeTheme.surface, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, marginHorizontal: 16 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <Text style={{ fontSize: 20, fontWeight: 'bold', color: safeTheme.onSurface }}>
@@ -939,7 +1050,48 @@ const GoalsScreen = ({ navigation, route }) => {
                     style={{ color: safeTheme.onSurface, fontSize: 16, fontWeight: 'bold' }}
                   />
                 </View>
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>TARGET TANGGAL DICAPAI (ROADMAP)</Text>
+                <TouchableOpacity 
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    if (Platform.OS === 'web') {
+                      editDateInputRef.current?.showPicker?.() || editDateInputRef.current?.click();
+                    } else {
+                      setShowEditDatePicker(true);
+                    }
+                  }}
+                  style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}
+                >
+                  <MaterialIcons name="explore" size={20} color={safeTheme.primary} />
+                  <Text style={{ 
+                    color: editTargetDate ? safeTheme.onSurface : safeTheme.onSurfaceVariant, 
+                    fontSize: 16, 
+                    flex: 1
+                  }}>
+                    {editTargetDate ? dayjs(editTargetDate).format('DD MMMM YYYY') : 'Pilih Tanggal Target'}
+                  </Text>
+                  {Platform.OS === 'web' && (
+                    <input 
+                      ref={editDateInputRef}
+                      type="date" 
+                      value={editTargetDate}
+                      onChange={(e) => setEditTargetDate(e.target.value)}
+                      style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+                    />
+                  )}
+                </TouchableOpacity>
+
+                {showEditDatePicker && Platform.OS !== 'web' && (
+                  <DateTimePicker
+                    value={editTargetDate ? dayjs(editTargetDate).toDate() : new Date()}
+                    mode="date"
+                    display="default"
+                    minimumDate={new Date()}
+                    onChange={onEditDateChange}
+                  />
+                )}
               </>
+
             )}
 
             {/* Media List - Both active and achieved can edit */}
@@ -1009,71 +1161,45 @@ const GoalsScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: safeTheme.background }} edges={['top']}>
-      {/* Header */}
-      <Animated.View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 20, backgroundColor: safeTheme.surface, opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', color: safeTheme.primary }}>Goals</Text>
-        <TouchableOpacity onPress={handleAddGoal} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: safeTheme.primary, justifyContent: 'center', alignItems: 'center' }}>
-          <MaterialIcons name="add" size={24} color={safeTheme.onPrimary} />
-        </TouchableOpacity>
-      </Animated.View>
-
-      {/* Tabs */}
-      <Animated.View style={{ flexDirection: 'row', backgroundColor: safeTheme.surface, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: safeTheme.outlineVariant + '22', opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
-        <TouchableOpacity 
-          onPress={() => setActiveTab('active')}
-          style={{ paddingVertical: 12, marginRight: 24, borderBottomWidth: activeTab === 'active' ? 2 : 0, borderBottomColor: safeTheme.primary }}
-        >
-          <Text style={{ fontSize: 14, fontWeight: activeTab === 'active' ? 'bold' : '500', color: activeTab === 'active' ? safeTheme.primary : safeTheme.onSurfaceVariant }}>Ingin dicapai</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          onPress={() => setActiveTab('achieved')}
-          style={{ paddingVertical: 12, borderBottomWidth: activeTab === 'achieved' ? 2 : 0, borderBottomColor: safeTheme.primary }}
-        >
-          <Text style={{ fontSize: 14, fontWeight: activeTab === 'achieved' ? 'bold' : '500', color: activeTab === 'achieved' ? safeTheme.primary : safeTheme.onSurfaceVariant }}>Telah tercapai</Text>
-        </TouchableOpacity>
-      </Animated.View>
-
-      {/* Content Section */}
-      <Animated.View style={{ flex: 1, opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
-        {/* Content - Active Tab */}
-        {activeTab === 'active' && (
+      <GoalsHeader 
+        safeTheme={safeTheme} 
+        navigation={navigation} 
+        fadeAnim={fadeAnims[0]} 
+        slideAnim={slideAnims[0]} 
+      /><GoalTabs 
+        safeTheme={safeTheme} 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        activeCount={activeGoals.length} 
+        achievedCount={achievedGoals.length} 
+        fadeAnim={fadeAnims[1]} 
+        slideAnim={slideAnims[1]} 
+      /><Animated.View style={{ flex: 1, opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
+        {activeTab === 'active' ? (
           <FlatList
-            data={activeGoals || []}
-            renderItem={renderActiveGoalCard}
-            keyExtractor={(item, index) => item?.id || `active-${index}`}
-            contentContainerStyle={{ padding: 16 }}
+            data={activeGoals}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item, index }) => (
+              <ActiveGoalItem item={item} index={index} navigation={navigation} safeTheme={safeTheme} formatMoney={formatMoney} />
+            )}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
             showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <View style={{ alignItems: 'center', paddingTop: 60 }}>
-                <MaterialIcons name="flag" size={60} color={safeTheme.onSurfaceVariant + '44'} />
-                <Text style={{ color: safeTheme.onSurfaceVariant, marginTop: 16, fontSize: 16 }}>Belum ada goal aktif</Text>
-                <Text style={{ color: safeTheme.onSurfaceVariant + '88', marginTop: 4, fontSize: 12 }}>Tekan + untuk membuat goal baru</Text>
-              </View>
-            }
+            ListEmptyComponent={<EmptyGoalsState safeTheme={safeTheme} activeTab={activeTab} navigation={navigation} />}
           />
-        )}
-
-        {/* Content - Achieved Tab */}
-        {activeTab === 'achieved' && (
+        ) : (
           <FlatList
-            data={achievedGoals || []}
-            renderItem={renderAchievedGoalItem}
-            keyExtractor={(item, index) => item?.id || `achieved-${index}`}
+            data={achievedGoals}
+            keyExtractor={(item) => item.id}
             numColumns={2}
-            contentContainerStyle={{ padding: 12 }}
+            renderItem={({ item, index }) => (
+              <AchievedGoalItem item={item} index={index} navigation={navigation} safeTheme={safeTheme} formatMoney={formatMoney} />
+            )}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 120 }}
             showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <View style={{ alignItems: 'center', paddingTop: 60 }}>
-                <MaterialIcons name="emoji-events" size={60} color={safeTheme.onSurfaceVariant + '44'} />
-                <Text style={{ color: safeTheme.onSurfaceVariant, marginTop: 16, fontSize: 16 }}>Belum ada goal tercapai</Text>
-              </View>
-            }
+            ListEmptyComponent={<EmptyGoalsState safeTheme={safeTheme} activeTab={activeTab} navigation={navigation} />}
           />
         )}
-      </Animated.View>
-      <EditModal />
-
-      {/* Delete Confirmation Modal */}
+      </Animated.View><EditModal />{/* Delete Confirmation Modal */}
       <Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => setDeleteModalVisible(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
           <View style={{ backgroundColor: safeTheme.surface, borderRadius: 32, padding: 32, width: '100%', maxWidth: 400, alignItems: 'center' }}>

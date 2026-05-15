@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, TextInput
 import Text from '../components/ThemeText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { formatMoney as formatMoneyUtil } from '../utils/formatUtils';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -12,7 +13,7 @@ import { DataContext } from '../context/DataContext';
 import { AuthContext } from '../context/AuthContext';
 import { uploadMultipleToCloudinary } from '../utils/cloudinaryUpload';
 
-const formatMoney = (v) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v || 0);
+const formatMoney = (v) => formatMoneyUtil(v || 0);
 
 const VideoPreview = ({ uri, theme }) => {
   const player = useVideoPlayer(uri, (p) => {
@@ -275,7 +276,7 @@ export const AchieveGoalScreen = () => {
               <TextInput
                 style={{ padding: 10, color: theme.onSurface, fontSize: 13 }}
                 placeholder={m.type === 'video' ? "Keterangan video ini... (opsional)" : "Keterangan gambar ini... (opsional)"}
-                placeholderTextColor={theme.onSurfaceVariant + '80'}
+                placeholderTextColor={theme.onSurfaceVariant}
                 value={m.caption}
                 onChangeText={(t) => updateCaption(i, t)}
               />

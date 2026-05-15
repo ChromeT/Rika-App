@@ -3,10 +3,12 @@ import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Moda
 import Text from '../components/ThemeText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { formatMoney as formatMoneyUtil } from '../utils/formatUtils';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image as ExpoImage } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { ThemeContext } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import { DataContext } from '../context/DataContext';
@@ -21,7 +23,7 @@ dayjs.extend(isSameOrAfter);
 const { width, height } = Dimensions.get('window');
 
 // Helper to format money
-const formatMoney = (v) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v || 0);
+const formatMoney = (v) => formatMoneyUtil(v || 0);
 
 const VideoPlayer = ({ uri, width, height, onClose }) => {
   const player = useVideoPlayer(uri, (p) => {
@@ -92,6 +94,7 @@ const CapsuleBottomSheet = ({ visible, onClose, onSave, theme }) => {
   const [message, setMessage] = useState('');
   const [unlockDate, setUnlockDate] = useState(dayjs().add(1, 'month'));
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const dateInputRef = useRef(null);
 
   const handleSave = () => {
     if (!message.trim()) return Alert.alert('Error', 'Pesan tidak boleh kosong');
@@ -121,16 +124,42 @@ const CapsuleBottomSheet = ({ visible, onClose, onSave, theme }) => {
           />
 
           <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>TANGGAL BUKA</Text>
-          <TouchableOpacity onPress={() => setShowDatePicker(true)} style={{ backgroundColor: theme.surfaceContainerLow, padding: 16, borderRadius: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <TouchableOpacity 
+            onPress={() => {
+              if (Platform.OS === 'web') {
+                dateInputRef.current?.showPicker?.() || dateInputRef.current?.click();
+              } else {
+                setShowDatePicker(true);
+              }
+            }} 
+            style={{ backgroundColor: theme.surfaceContainerLow, padding: 16, borderRadius: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, position: 'relative', overflow: 'hidden' }}
+          >
             <Text style={{ color: theme.onSurface, fontWeight: 'bold' }}>{unlockDate.format('DD MMMM YYYY')}</Text>
             <MaterialIcons name="calendar-today" size={20} color={theme.primary} />
+            {Platform.OS === 'web' && (
+              <input 
+                ref={dateInputRef}
+                type="date" 
+                value={unlockDate.format('YYYY-MM-DD')}
+                onChange={(e) => {
+                  if (e.target.value) setUnlockDate(dayjs(e.target.value));
+                }}
+                style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+              />
+            )}
           </TouchableOpacity>
 
-          {showDatePicker && (
-            <View style={{ marginBottom: 16 }}>
-               <Text style={{fontSize: 10, color: theme.onSurfaceVariant}}>Pilih tanggal (demo: menggunakan minimum +1 bulan)</Text>
-               {/* Note: Actual DateTimePicker would go here, simplified for stability */}
-            </View>
+          {showDatePicker && Platform.OS !== 'web' && (
+            <DateTimePicker
+              value={unlockDate.toDate()}
+              mode="date"
+              display="default"
+              minimumDate={dayjs().add(1, 'day').toDate()}
+              onChange={(event, selectedDate) => {
+                setShowDatePicker(false);
+                if (selectedDate) setUnlockDate(dayjs(selectedDate));
+              }}
+            />
           )}
 
           <TouchableOpacity onPress={handleSave} style={{ backgroundColor: theme.primary, padding: 16, borderRadius: 16, alignItems: 'center' }}>
@@ -343,7 +372,7 @@ const MemoryDetailScreen = ({ route }) => {
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <ScrollView 
         showsVerticalScrollIndicator={false} 
-        contentContainerStyle={{ paddingBottom: 60 }}
+        contentContainerStyle={{ paddingBottom: 150 }}
       >
         
         {/* --- HERO SECTION --- */}
@@ -699,7 +728,8 @@ const MemoryDetailScreen = ({ route }) => {
                 <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 16 }}>Batal</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleDeleteConfirm} style={{ flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: theme.error, alignItems: 'center' }}>
-                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Hapus</Text>
+                <Text style={{ color: theme.onError, fontWeight: 'bold', fontSize: 16 }}>Hapus</Text>
+
               </TouchableOpacity>
             </View>
           </View>

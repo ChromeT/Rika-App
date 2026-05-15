@@ -3,10 +3,13 @@ import { View, StyleSheet, ScrollView, TextInput, TouchableOpacity, Switch, Imag
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { formatMoney } from '../utils/formatUtils';
 import { ThemeContext } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
 import { AuthContext } from '../context/AuthContext';
 import Text from '../components/ThemeText';
+import dayjs from 'dayjs';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const availableCustomIcons = [
   'star', 'pets', 'child-friendly', 'cake', 'favorite', 'emoji-events',
@@ -33,8 +36,10 @@ const TransactionScreen = ({ navigation, route }) => {
   const amountRef = useRef('');
   const myContribRef = useRef('');
 
-  const formatMoney = (amount) =>
-    new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(amount);
+  const formatDisplay = (val) => {
+    if (!val) return '0';
+    return formatMoney(val);
+  };
 
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,6 +51,9 @@ const TransactionScreen = ({ navigation, route }) => {
   const [customIcon, setCustomIcon] = useState('star');
   const [isPatungan, setIsPatungan] = useState(false);
   const [myContrib, setMyContrib] = useState('');
+  const [date, setDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const dateInputRef = useRef(null);
 
   // Animations
   const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
@@ -201,6 +209,9 @@ const TransactionScreen = ({ navigation, route }) => {
         setCustomCategory(tx.category);
         setCustomIcon(tx.icon);
       }
+      if (tx.date) {
+        setDate(new Date(tx.date));
+      }
     }
   }, [route?.params?.type, route?.params?.predefinedName, route?.params?.predefinedAmount, route?.params?.editingTransaction, categories]);
 
@@ -287,6 +298,7 @@ const TransactionScreen = ({ navigation, route }) => {
           isPatungan: type === 'expense' ? (!isKonta && isPatungan) : false,
           myContrib: fMy,
           partnerContrib: fPar,
+          date: date.toISOString(),
         };
 
         if (type === 'transfer') {
@@ -311,6 +323,7 @@ const TransactionScreen = ({ navigation, route }) => {
           myContrib: fMy,
           partnerContrib: fPar,
           accountId: selectedAccountId,
+          date: date.toISOString(),
         });
       }
 
@@ -355,7 +368,7 @@ const TransactionScreen = ({ navigation, route }) => {
     avatarWrapper: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', backgroundColor: t.surfaceContainer, borderWidth: 1, borderColor: t.outlineVariant + '33' },
     avatar: { width: '100%', height: '100%' },
     headerTitle: { fontSize: 20, fontWeight: 'bold', color: t.primary, letterSpacing: -0.5 },
-    main: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 120 },
+    main: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 150 },
     pageTitle: { fontSize: 24, fontWeight: 'bold', color: t.onSurface, letterSpacing: -0.5 },
     pageSubtitle: { fontSize: 14, color: t.onSurfaceVariant, marginTop: 4, marginBottom: 24 },
     formCard: { backgroundColor: t.surfaceContainerLow, borderRadius: 32, padding: 24, borderWidth: 1, borderColor: t.outlineVariant + '1A', overflow: 'hidden' },
@@ -485,7 +498,7 @@ const TransactionScreen = ({ navigation, route }) => {
             <TextInput
               style={styles.nameInput}
               placeholder={type === 'expense' ? "Cth: Beli Kopi (Boleh kosong)" : "Cth: Gaji (Boleh kosong)"}
-              placeholderTextColor={theme.surfaceContainerHighest}
+              placeholderTextColor={theme.onSurfaceVariant}
               value={name}
               onChangeText={setName}
             />
@@ -533,7 +546,7 @@ const TransactionScreen = ({ navigation, route }) => {
               <TextInput
                 style={styles.customCatInput}
                 placeholder="Misal: Servis Motor"
-                placeholderTextColor={theme.surfaceContainerHighest}
+                placeholderTextColor={theme.onSurfaceVariant}
                 value={customCategory}
                 onChangeText={setCustomCategory}
               />
@@ -545,6 +558,45 @@ const TransactionScreen = ({ navigation, route }) => {
                 ))}
               </ScrollView>
             </View>
+          )}<Text style={styles.label}>Tanggal Transaksi</Text><TouchableOpacity 
+            activeOpacity={0.7}
+            onPress={() => {
+              if (Platform.OS === 'web') {
+                dateInputRef.current?.showPicker?.() || dateInputRef.current?.click();
+              } else {
+                setShowDatePicker(true);
+              }
+            }}
+            style={[styles.nameInput, { marginBottom: 24, flexDirection: 'row', alignItems: 'center', gap: 12 }]}
+          >
+            <MaterialIcons name="calendar-today" size={20} color={theme.primary} />
+            <Text style={{ color: theme.onSurface, fontSize: 16, flex: 1 }}>
+              {dayjs(date).format('DD MMMM YYYY')}
+            </Text>
+            {Platform.OS === 'web' && (
+              <input 
+                ref={dateInputRef}
+                type="date" 
+                value={dayjs(date).format('YYYY-MM-DD')}
+                onChange={(e) => {
+                  if (e.target.value) setDate(new Date(e.target.value));
+                }}
+                style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+              />
+            )}
+          </TouchableOpacity>
+
+          {showDatePicker && Platform.OS !== 'web' && (
+            <DateTimePicker
+              value={date}
+              mode="date"
+              display="default"
+              maximumDate={new Date()}
+              onChange={(event, selectedDate) => {
+                setShowDatePicker(false);
+                if (selectedDate) setDate(selectedDate);
+              }}
+            />
           )}
 
           <Text style={styles.label}>Nominal Total</Text>
@@ -553,7 +605,7 @@ const TransactionScreen = ({ navigation, route }) => {
             <TextInput
               style={styles.inputAmount}
               placeholder="0"
-              placeholderTextColor={theme.surfaceContainerHighest}
+              placeholderTextColor={theme.onSurfaceVariant}
               keyboardType="numeric"
               value={amount}
               onChangeText={handleAmountChange}

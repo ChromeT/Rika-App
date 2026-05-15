@@ -34,6 +34,8 @@ export const themes = {
     onError: '#4c0519',
     errorContainer: '#881337',
     onErrorContainer: '#ffe4e6',
+    success: '#10b981',
+    onSuccess: '#ffffff',
     fontFamily: 'System',
   },
   light: {
@@ -64,8 +66,11 @@ export const themes = {
     onError: '#ffffff',
     errorContainer: '#fff1f2',
     onErrorContainer: '#e11d48',
+    success: '#10b981',
+    onSuccess: '#ffffff',
     fontFamily: 'System',
   }
+
 };
 
 export const ThemeContext = createContext();

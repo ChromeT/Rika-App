@@ -4,9 +4,12 @@ import Text from '../components/ThemeText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { formatMoney } from '../utils/formatUtils';
 import { ThemeContext } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
 import { AuthContext } from '../context/AuthContext';
+import dayjs from 'dayjs';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const TransferScreen = ({ navigation, route }) => {
   const { theme } = useContext(ThemeContext);
@@ -22,6 +25,9 @@ const TransferScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [date, setDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const dateInputRef = useRef(null);
 
   // Animations
   const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
@@ -72,14 +78,18 @@ const TransferScreen = ({ navigation, route }) => {
       const formatted = formatInput(tx.amount.toString());
       setAmount(formatted);
       amountRef.current = formatted;
+      if (tx.date) {
+        setDate(new Date(tx.date));
+      }
     }
   }, [route.params?.editingTransaction]);
   
   // Get only my accounts
   const myAccounts = (accounts || []).filter(acc => acc.owner === user?.name);
 
-  const formatMoney = (val) => {
-    return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(val);
+  const formatDisplay = (val) => {
+    if (!val) return '0';
+    return formatMoney(val);
   };
 
   const formatInput = (val) => {
@@ -151,10 +161,11 @@ const TransferScreen = ({ navigation, route }) => {
           type: 'transfer',
           name: `Transfer: ${fromAcc?.name || '...'} ➔ ${toAcc?.name || '...'}`,
           category: 'Transfer',
+          date: date.toISOString(),
         });
         Alert.alert('Berhasil', 'Transfer berhasil diperbarui!');
       } else {
-        finalId = await addTransfer(fromId, toId, rawAmount);
+        finalId = await addTransfer(fromId, toId, rawAmount, date.toISOString());
         Alert.alert('Mantap', 'Dana berhasil dipindahkan!');
       }
 
@@ -176,7 +187,7 @@ const TransferScreen = ({ navigation, route }) => {
     headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     avatarWrapper: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', backgroundColor: theme.surfaceContainer, borderWidth: 1, borderColor: theme.outlineVariant + '33' },
     headerTitle: { fontSize: 20, fontWeight: 'bold', color: theme.primary },
-    main: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 100 },
+    main: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 150 },
     card: { backgroundColor: theme.surfaceContainerLow, borderRadius: 32, padding: 24, borderWidth: 1, borderColor: theme.outlineVariant + '1A' },
     label: { fontSize: 10, fontWeight: 'bold', color: theme.onSurfaceVariant, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12, marginLeft: 4 },
     
@@ -193,6 +204,9 @@ const TransferScreen = ({ navigation, route }) => {
     inputWrapper: { position: 'relative', justifyContent: 'center', marginBottom: 32 },
     currency: { position: 'absolute', left: 20, zIndex: 10, color: theme.primary, fontWeight: 'bold', fontSize: 20 },
     input: { backgroundColor: theme.surfaceContainerLowest, borderRadius: 24, paddingVertical: 20, paddingLeft: 64, paddingRight: 24, fontSize: 30, fontWeight: 'bold', color: theme.onSurface },
+    
+    dateInput: { backgroundColor: theme.surfaceContainerLowest, borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 },
+    dateText: { fontSize: 16, fontWeight: 'bold', color: theme.onSurface, flex: 1 },
 
     submitBtn: { borderRadius: 32, overflow: 'hidden' },
     submitGradient: { paddingVertical: 20, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 12 },
@@ -266,7 +280,7 @@ const TransferScreen = ({ navigation, route }) => {
               <TextInput 
                 style={styles.input}
                 placeholder="0"
-                placeholderTextColor={theme.surfaceContainerHighest}
+                placeholderTextColor={theme.onSurfaceVariant}
                 keyboardType="numeric"
                 value={amount}
                 onChangeText={handleAmountChange}
@@ -278,6 +292,48 @@ const TransferScreen = ({ navigation, route }) => {
                 }}
               />
             </View>
+
+            <Text style={styles.label}>Tanggal Transfer</Text>
+            <TouchableOpacity 
+              activeOpacity={0.7}
+              onPress={() => {
+                if (Platform.OS === 'web') {
+                  dateInputRef.current?.showPicker?.() || dateInputRef.current?.click();
+                } else {
+                  setShowDatePicker(true);
+                }
+              }}
+              style={styles.dateInput}
+            >
+              <MaterialIcons name="calendar-today" size={20} color={theme.primary} />
+              <Text style={styles.dateText}>
+                {dayjs(date).format('DD MMMM YYYY')}
+              </Text>
+              {Platform.OS === 'web' && (
+                <input 
+                  ref={dateInputRef}
+                  type="date" 
+                  value={dayjs(date).format('YYYY-MM-DD')}
+                  onChange={(e) => {
+                    if (e.target.value) setDate(new Date(e.target.value));
+                  }}
+                  style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+                />
+              )}
+            </TouchableOpacity>
+
+            {showDatePicker && Platform.OS !== 'web' && (
+              <DateTimePicker
+                value={date}
+                mode="date"
+                display="default"
+                maximumDate={new Date()}
+                onChange={(event, selectedDate) => {
+                  setShowDatePicker(false);
+                  if (selectedDate) setDate(selectedDate);
+                }}
+              />
+            )}
 
             <TouchableOpacity 
               style={[styles.submitBtn, { opacity: loading ? 0.6 : 1 }]} 

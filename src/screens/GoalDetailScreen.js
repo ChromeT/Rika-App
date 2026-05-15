@@ -14,12 +14,11 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { db } from '../config/firebase';
 import { doc, updateDoc, getDoc, deleteDoc } from 'firebase/firestore';
 
+import { formatMoney } from '../utils/formatUtils';
+
 dayjs.extend(relativeTime);
 
-const { width } = Dimensions.get('window');
-const HEADER_HEIGHT = 280;
-
-const formatMoney = (v) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v || 0);
+const HEADER_HEIGHT = 300;
 
 // --- Add Funding Modal ---
 const AddFundingModal = ({ visible, onClose, onSave, theme: providedTheme }) => {
@@ -29,6 +28,8 @@ const AddFundingModal = ({ visible, onClose, onSave, theme: providedTheme }) => 
     onSurfaceVariant: '#a3adb1',
     primary: '#b2cad3',
     surfaceContainerLow: '#141b1d',
+    outlineVariant: '#40494d',
+    onPrimary: '#1a1a1a',
   };
   const [amount, setAmount] = useState('');
   const selectionRef = useRef({ start: 0, end: 0 });
@@ -99,7 +100,7 @@ const AddFundingModal = ({ visible, onClose, onSave, theme: providedTheme }) => 
               <TextInput
                 style={{ flex: 1, color: theme.onSurface, fontSize: 36, fontWeight: '900', letterSpacing: -1 }}
                 placeholder="0"
-                placeholderTextColor={theme.onSurfaceVariant + '44'}
+                placeholderTextColor={theme.onSurfaceVariant}
                 keyboardType="numeric"
                 autoFocus
                 value={amount}
@@ -141,7 +142,7 @@ const GoalDetailScreen = ({ route }) => {
     outlineVariant: '#40494d',
     error: '#f2b8b5'
   };
-  const { goals, updateGoal, deleteGoal, addNotification } = useContext(DataContext);
+  const { goals, updateGoal, addNotification } = useContext(DataContext);
   const { user, householdUsers } = useContext(AuthContext);
   const insets = useSafeAreaInsets();
   
@@ -153,7 +154,6 @@ const GoalDetailScreen = ({ route }) => {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Animations
   const scrollY = useRef(new Animated.Value(0)).current;
   const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
   const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
@@ -192,7 +192,6 @@ const GoalDetailScreen = ({ route }) => {
     ]).start(() => navigation.goBack());
   };
 
-  // Progress calculations
   const progress = goal?.targetAmount > 0 ? Math.min((goal.currentAmount / goal.targetAmount) * 100, 100) : 0;
   const remaining = Math.max((goal?.targetAmount || 0) - (goal?.currentAmount || 0), 0);
 
@@ -233,7 +232,7 @@ const GoalDetailScreen = ({ route }) => {
         lastContributionAt: now
       });
 
-      addNotification({
+      await addNotification({
         title: 'Dana Ditambahkan!',
         body: `${user?.name || 'Saya'} baru saja menambah Rp ${formatMoney(amount)} untuk goal "${goal.name}".`,
         icon: 'favorite',
@@ -260,7 +259,7 @@ const GoalDetailScreen = ({ route }) => {
       setDeleteModalVisible(false);
       await deleteDoc(doc(db, 'households', user.householdId, 'goals', goal.id));
       if (hasPartner) {
-        addNotification({
+        await addNotification({
           title: 'Goal dihapus',
           body: `${user?.name || 'Pasanganmu'} telah menghapus goal "${goal.name}".`,
           icon: 'delete',
@@ -298,7 +297,7 @@ const GoalDetailScreen = ({ route }) => {
         zIndex: 100, 
         opacity: headerOpacity,
         justifyContent: 'flex-end',
-        paddingBottom: 12,
+        paddingBottom: 150,
         paddingHorizontal: 20
       }}>
         <Text style={{ fontSize: 18, fontWeight: '900', color: safeTheme.onSurface }} numberOfLines={1}>{goal.name}</Text>

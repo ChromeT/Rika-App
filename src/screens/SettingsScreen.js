@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { ThemeContext, availableFonts } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
 import { AuthContext } from '../context/AuthContext';
+import { formatMoney as formatMoneyUtil } from '../utils/formatUtils';
 import { exportToXLS, exportToPDF } from '../utils/exportUtils';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -70,9 +71,7 @@ const SettingsScreen = ({ navigation }) => {
   const partnerName = householdUsers.find(u => u !== myName);
   const hasPartner = !!partnerName;
 
-  const formatMoney = (val) => {
-    return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(val);
-  };
+  const formatMoney = (val) => formatMoneyUtil(val);
 
   const palettes = ['#F28B82', '#8AB4F8', '#81C995', '#FDD663', '#C58AF9', '#F88379'];
   const avatarOptions = ['person', 'face', 'pets', 'emoji-emotions', 'cruelty-free', 'mood', 'stars', 'rocket'];
@@ -397,15 +396,16 @@ const SettingsScreen = ({ navigation }) => {
              )}
 
              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                   <View style={[styles.statIcon, { backgroundColor: '#10B98115' }]}>
-                      <MaterialIcons name="trending-up" size={18} color="#10B981" />
-                   </View>
-                   <View>
-                      <Text style={[styles.statLabel, { color: theme.onSurfaceVariant }]}>Masuk</Text>
-                      <Text style={[styles.statValue, { color: '#10B981' }]}>Rp {formatMoney(stats.income)}</Text>
-                   </View>
-                </View>
+                 <View style={styles.statItem}>
+                    <View style={[styles.statIcon, { backgroundColor: theme.success + '15' }]}>
+                       <MaterialIcons name="trending-up" size={18} color={theme.success} />
+                    </View>
+                    <View>
+                       <Text style={[styles.statLabel, { color: theme.onSurfaceVariant }]}>Masuk</Text>
+                       <Text style={[styles.statValue, { color: theme.success }]}>Rp {formatMoney(stats.income)}</Text>
+                    </View>
+                 </View>
+
                 <View style={styles.statItem}>
                    <View style={[styles.statIcon, { backgroundColor: theme.error + '15' }]}>
                       <MaterialIcons name="trending-down" size={18} color={theme.error} />
@@ -554,16 +554,17 @@ const SettingsScreen = ({ navigation }) => {
                   ))}
                </View>
             </View>
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-               <TouchableOpacity style={[styles.formatBtn, { borderColor: '#F44336' }]} onPress={() => confirmExport('PDF')}>
-                  <MaterialIcons name="picture-as-pdf" size={24} color="#F44336" />
-                  <Text style={{ color: '#F44336', fontWeight: 'bold' }}>PDF</Text>
-               </TouchableOpacity>
-               <TouchableOpacity style={[styles.formatBtn, { borderColor: '#4CAF50' }]} onPress={() => confirmExport('XLS')}>
-                  <MaterialIcons name="table-view" size={24} color="#4CAF50" />
-                  <Text style={{ color: '#4CAF50', fontWeight: 'bold' }}>Excel</Text>
-               </TouchableOpacity>
-            </View>
+             <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity style={[styles.formatBtn, { borderColor: theme.error }]} onPress={() => confirmExport('PDF')}>
+                   <MaterialIcons name="picture-as-pdf" size={24} color={theme.error} />
+                   <Text style={{ color: theme.error, fontWeight: 'bold' }}>PDF</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.formatBtn, { borderColor: theme.success }]} onPress={() => confirmExport('XLS')}>
+                   <MaterialIcons name="table-view" size={24} color={theme.success} />
+                   <Text style={{ color: theme.success, fontWeight: 'bold' }}>Excel</Text>
+                </TouchableOpacity>
+             </View>
+
             <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setExportModalVisible(false)}>
               <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Batal</Text>
             </TouchableOpacity>
@@ -664,7 +665,7 @@ const SettingsScreen = ({ navigation }) => {
              {customColors && customColors.length > 0 && (
                <View style={{ width: '100%', marginTop: 8 }}>
                  <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 14, marginBottom: 16 }}>Warna Tersimpan</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 8, alignItems: 'center' }}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingBottom: 150, alignItems: 'center' }}>
                     {customColors.map((hex, i) => {
                       const isActive = accentColor === hex;
                       return (

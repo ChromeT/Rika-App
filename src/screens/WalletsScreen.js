@@ -9,6 +9,7 @@ import { ThemeContext } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AuthContext } from '../context/AuthContext';
+import { formatMoney } from '../utils/formatUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -97,7 +98,7 @@ const WalletsScreen = ({ route }) => {
     ]).start(() => navigation.goBack());
   };
 
-  const formatMoney = (v) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v || 0);
+  // Using global formatMoney from utils
 
   const myAccounts = (accounts || []).filter(a => a.owner === user?.name);
   const partnerAccounts = (accounts || []).filter(a => a.owner && a.owner !== user?.name);
@@ -154,7 +155,7 @@ const WalletsScreen = ({ route }) => {
 
       <ScrollView 
         ref={scrollRef}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: 150 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Summary Card */}
@@ -232,7 +233,8 @@ const WalletsScreen = ({ route }) => {
           <Animated.View style={[styles.modalContent, { backgroundColor: theme.surface, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20 }]}>
             {!showConfirmDelete ? (
               <>
-                <View style={[styles.modalHeader, { borderBottomColor: theme.outlineVariant + '22' }]}>
+                <View style={[styles.modalHeader, { borderBottomColor: theme.outlineVariant + '22', paddingBottom: 16 }]}>
+
                    <View style={[styles.modalIcon, { backgroundColor: (selectedAccount?.color || theme.primary) + '22' }]}>
                       <MaterialIcons name={selectedAccount?.icon || 'payments'} size={24} color={selectedAccount?.color || theme.primary} />
                    </View>
@@ -310,7 +312,8 @@ const WalletsScreen = ({ route }) => {
                   style={[styles.submitBtn, { backgroundColor: theme.error }]}
                   onPress={confirmDelete}
                 >
-                  <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Ya, Hapus Permanen</Text>
+                  <Text style={{ color: theme.onError, fontWeight: 'bold', fontSize: 16 }}>Ya, Hapus Permanen</Text>
+
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -333,7 +336,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 20 },
   headerBtn: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
-  content: { padding: 24, paddingBottom: 100 },
+  content: { padding: 24, paddingBottom: 150 },
   summaryCard: { padding: 28, borderRadius: 36, marginBottom: 40, elevation: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.25, shadowRadius: 24 },
   summaryLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 'bold', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 },
   summaryValue: { color: '#fff', fontSize: 36, fontWeight: '900', letterSpacing: -1 },

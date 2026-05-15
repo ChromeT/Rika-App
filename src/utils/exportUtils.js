@@ -1,12 +1,11 @@
 import * as XLSX from 'xlsx';
 import * as Print from 'expo-print';
 import * as FileSystem from 'expo-file-system';
+import { formatMoney as formatMoneyUtil } from './formatUtils';
 import * as Sharing from 'expo-sharing';
 import { Alert, Platform } from 'react-native';
 
-const formatMoney = (val) => {
-  return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(val || 0);
-};
+const formatMoney = (val) => formatMoneyUtil(val || 0);
 
 const CHART_COLORS = [
   '#FF6B6B', '#4D96FF', '#6BCB77', '#FFD93D', '#9D84B7', '#FF9F43', '#00D2D3', '#54A0FF', '#5F27CD'
@@ -65,9 +64,9 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
     });
     
     rows.push([], ['RINGKASAN KEUANGAN TOTAL']);
-    if (filterType !== 'Pengeluaran') rows.push(['Total Pemasukan', totalIncome]);
-    if (filterType !== 'Pemasukan') rows.push(['Total Pengeluaran', totalExpense]);
-    if (filterType === 'Semua') rows.push(['Saldo Akhir (Net)', totalIncome - totalExpense]);
+    if (filterType !== 'Pengeluaran' && totalIncome > 0) rows.push(['Total Pemasukan', totalIncome]);
+    if (filterType !== 'Pemasukan' && totalExpense > 0) rows.push(['Total Pengeluaran', totalExpense]);
+    if (filterType === 'Semua' && (totalIncome > 0 || totalExpense > 0)) rows.push(['Saldo Akhir (Net)', totalIncome - totalExpense]);
 
     rows.push([], ['DETAIL RIWAYAT TRANSAKSI']);
     rows.push(['TANGGAL', 'KETERANGAN', 'KATEGORI', 'DOMPET/SUMBER', 'TIPE', 'METODE', 'OLEH', 'PORSI SAYA', 'PORSI PASANGAN', 'TOTAL NOMINAL']);
@@ -319,32 +318,46 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
         </div>
 
         <div class="summary-grid">
-          <div class="summary-card">
-            <div class="summary-label">Pemasukan</div>
-            <div class="summary-value income">Rp ${formatMoney(totalIncome)}</div>
-          </div>
+          ${(filterType !== 'Pemasukan' && totalExpense > 0) ? `
           <div class="summary-card">
             <div class="summary-label">Pengeluaran</div>
             <div class="summary-value expense">Rp ${formatMoney(totalExpense)}</div>
           </div>
+          ` : ''}
+          ${(filterType !== 'Pengeluaran' && totalIncome > 0) ? `
+          <div class="summary-card">
+            <div class="summary-label">Pemasukan</div>
+            <div class="summary-value income">Rp ${formatMoney(totalIncome)}</div>
+          </div>
+          ` : ''}
+          ${(filterType === 'Semua' && (totalIncome > 0 || totalExpense > 0)) ? `
           <div class="summary-card">
             <div class="summary-label">Saldo Netto</div>
             <div class="summary-value">Rp ${formatMoney(netBalance)}</div>
           </div>
+          ` : ''}
         </div>
 
         <div class="insight-box">
            <div class="insight-title">Analisa & Insight Strategis</div>
            <div class="insight-text">
-              Berdasarkan aktivitas keuangan pada periode <b>${period}</b>, kami mencatat bahwa pengeluaran terbesar dialokasikan untuk <b>${topTransaction.name}</b> dengan nominal <b>Rp ${formatMoney(topTransaction.amount)}</b>. 
-              Kategori yang paling dominan menyerap anggaran Anda adalah <b>${topCategoryByAmt[0]}</b> (Rp ${formatMoney(topCategoryByAmt[1])}). 
-              ${netBalance > 0 
+              ${filterType !== 'Pemasukan' ? `
+                Berdasarkan aktivitas keuangan pada periode <b>${period}</b>, kami mencatat bahwa pengeluaran terbesar dialokasikan untuk <b>${topTransaction.name}</b> dengan nominal <b>Rp ${formatMoney(topTransaction.amount)}</b>. 
+                Kategori yang paling dominan menyerap anggaran Anda adalah <b>${topCategoryByAmt[0]}</b> (Rp ${formatMoney(topCategoryByAmt[1])}).
+              ` : `
+                Berdasarkan data pemasukan pada periode <b>${period}</b>, Anda telah berhasil mengumpulkan total <b>Rp ${formatMoney(totalIncome)}</b>.
+              `}
+              
+              ${filterType === 'Semua' ? (
+                netBalance > 0 
                 ? `Kabar baik! Anda memiliki surplus sebesar <b>Rp ${formatMoney(netBalance)}</b>. Pertahankan ritme menabung ini untuk mempercepat tercapainya Goal Anda.` 
                 : `Perhatian: Pengeluaran Anda melebihi pemasukan pada periode ini. Pertimbangkan untuk mengevaluasi kategori <b>${topCategoryByAmt[0]}</b> guna menjaga kesehatan finansial bersama.`
-              }
-              Rata-rata pengeluaran per transaksi adalah <b>Rp ${formatMoney(expenses.length > 0 ? totalExpense / expenses.length : 0)}</b>.
+              ) : ''}
+              
+              ${filterType === 'Pengeluaran' ? `Rata-rata pengeluaran per transaksi adalah <b>Rp ${formatMoney(expenses.length > 0 ? totalExpense / expenses.length : 0)}</b>.` : ''}
            </div>
         </div>
+
 
         ${totalExpense > 0 ? `
         <div class="section-header">ANALISA PENGELUARAN</div>

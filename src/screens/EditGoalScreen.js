@@ -1,8 +1,12 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
+import dayjs from 'dayjs';
 import { View, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, Animated, Platform } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+
 import Text from '../components/ThemeText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { formatMoney as formatMoneyUtil } from '../utils/formatUtils';
 import * as ImagePicker from 'expo-image-picker';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -12,7 +16,7 @@ import { AuthContext } from '../context/AuthContext';
 
 import { uploadMultipleToCloudinary } from '../utils/cloudinaryUpload';
 
-const formatMoney = (v) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(v || 0);
+const formatMoney = (v) => formatMoneyUtil(v || 0);
 
 const VideoPreview = ({ uri, theme }) => {
   const player = useVideoPlayer(uri, (p) => {
@@ -57,8 +61,18 @@ export const EditGoalScreen = () => {
   const [actualAmount, setActualAmount] = useState(String(goal?.actualAmount || 0));
   const [relatedTxIds, setRelatedTxIds] = useState(goal?.relatedTransactionIds || []);
   const [targetDate, setTargetDate] = useState(goal?.targetDate || '');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const dateInputRef = useRef(null);
+
+  const onDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setTargetDate(dayjs(selectedDate).format('YYYY-MM-DD'));
+    }
+  };
   const [uploading, setUploading] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+
   
   // Animations
   const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
@@ -400,20 +414,46 @@ export const EditGoalScreen = () => {
                 />
               </View>
               <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>TARGET TANGGAL (ROADMAP)</Text>
-              <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
+              <TouchableOpacity 
+                activeOpacity={0.7}
+                onPress={() => {
+                  if (Platform.OS === 'web') {
+                    dateInputRef.current?.showPicker?.() || dateInputRef.current?.click();
+                  } else {
+                    setShowDatePicker(true);
+                  }
+                }}
+                style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}
+              >
                 <MaterialIcons name="calendar-today" size={18} color={theme.primary} style={{ marginRight: 10 }} />
-                <TextInput 
-                  value={targetDate}
-                  onChangeText={setTargetDate}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={theme.onSurfaceVariant}
-                  style={{ 
-                    color: theme.onSurface, 
-                    fontSize: 15, 
-                    flex: 1
-                  }}
+                <Text style={{ 
+                  color: targetDate ? theme.onSurface : theme.onSurfaceVariant, 
+                  fontSize: 15, 
+                  flex: 1
+                }}>
+                  {targetDate ? dayjs(targetDate).format('DD MMMM YYYY') : 'Pilih Tanggal Target'}
+                </Text>
+                {Platform.OS === 'web' && (
+                  <input 
+                    ref={dateInputRef}
+                    type="date" 
+                    value={targetDate}
+                    onChange={(e) => setTargetDate(e.target.value)}
+                    style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+                  />
+                )}
+              </TouchableOpacity>
+
+              {showDatePicker && Platform.OS !== 'web' && (
+                <DateTimePicker
+                  value={targetDate ? dayjs(targetDate).toDate() : new Date()}
+                  mode="date"
+                  display="default"
+                  minimumDate={new Date()}
+                  onChange={onDateChange}
                 />
-              </View>
+              )}
+
             </>
           )}
 

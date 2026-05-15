@@ -4,6 +4,7 @@ import { db } from '../config/firebase';
 import { collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, getDoc, deleteField, arrayUnion } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
+import { formatMoney } from '../utils/formatUtils';
 
 // Helper to safely parse dates
 const safeDate = (dateStr) => {
@@ -300,7 +301,7 @@ export const DataProvider = ({ children }) => {
 
               await addNotification({
                 title: 'Butuh Konfirmasi!',
-                message: `${user?.name} butuh konfirmasi untuk bayar ${tx.category} [${splitType} • Rp ${formattedPart}]`,
+                message: `${user?.name} butuh konfirmasi untuk bayar ${tx.category} [${splitType} • Rp ${formatMoney(tx.partnerContrib)}]`,
                 type: 'split_pending',
                 txId: docRef.id,
                 sender: user?.name
@@ -619,7 +620,7 @@ export const DataProvider = ({ children }) => {
       // 3. Notifikasi (Menggunakan format transaksi agar highlight 100% akurat)
       await addNotification({
         title: 'Tagihan Terbayar',
-        body: `${myName} telah membayar tagihan "${bill.name}" sebesar Rp ${new Intl.NumberFormat('id-ID').format(numAmount)}.`,
+        body: `${myName} telah membayar tagihan "${bill.name}" sebesar Rp ${formatMoney(numAmount)}.`,
         icon: 'check-circle',
         color: 'primary',
         sender: myName,

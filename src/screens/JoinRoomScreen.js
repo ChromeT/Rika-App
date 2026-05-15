@@ -92,7 +92,7 @@ const JoinRoomScreen = ({ navigation }) => {
           <TextInput 
             style={styles.input} 
             placeholder="Masukkan nama Anda" 
-            placeholderTextColor={theme.onSurfaceVariant + '80'}
+            placeholderTextColor={theme.onSurfaceVariant}
             value={name}
             onChangeText={setName}
           />
@@ -103,7 +103,7 @@ const JoinRoomScreen = ({ navigation }) => {
           <TextInput 
             style={[styles.input, styles.codeInput]} 
             placeholder="X8P2K9" 
-            placeholderTextColor={theme.onSurfaceVariant + '40'}
+            placeholderTextColor={theme.onSurfaceVariant}
             value={code}
             onChangeText={setCode}
             autoCapitalize="characters"
