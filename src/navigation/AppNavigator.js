@@ -79,8 +79,12 @@ const MainTabs = () => {
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.2,
           shadowRadius: 12,
-          paddingHorizontal: 10,
           overflow: 'hidden',
+        },
+        tabBarContentContainerStyle: {
+          height: '100%',
+          alignItems: 'center',
+          justifyContent: 'center',
         },
         tabBarBackground: () => <TabBarBackground />,
         tabBarActiveTintColor: theme.primary,
@@ -88,6 +92,7 @@ const MainTabs = () => {
         tabBarShowIcon: true,
         tabBarIconStyle: {
           alignSelf: 'center',
+          justifyContent: 'center',
         },
         tabBarLabelStyle: {
           fontWeight: '800',

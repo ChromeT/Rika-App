@@ -36,6 +36,11 @@ const DashboardScreen = ({ navigation, route }) => {
   
   const [filter, setFilter] = useState('Kita');
   const [timeFilter, setTimeFilter] = useState('Bulan ini');
+  const [customStartDate, setCustomStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [customEndDate, setCustomEndDate] = useState(new Date());
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+  
   const [notifyVisible, setNotifyVisible] = useState(false);
   const [isEditingBill, setIsEditingBill] = useState(false);
   const [billModalVisible, setBillModalVisible] = useState(false);
@@ -241,12 +246,27 @@ const DashboardScreen = ({ navigation, route }) => {
     if (!tx) return false;
     const txDate = new Date(tx.date);
     const today = new Date();
+    today.setHours(23,59,59,999);
+    
     let timeMatch = true;
-    if (timeFilter === 'Hari ini') timeMatch = txDate.toDateString() === today.toDateString();
-    else if (timeFilter === 'Minggu ini') {
-      const lastWeek = new Date(); lastWeek.setDate(today.getDate() - 7);
+    if (timeFilter === 'Hari ini') {
+      timeMatch = txDate.toDateString() === today.toDateString();
+    } else if (timeFilter === 'Minggu ini') {
+      const lastWeek = new Date();
+      lastWeek.setDate(today.getDate() - 7);
+      lastWeek.setHours(0,0,0,0);
       timeMatch = txDate >= lastWeek;
-    } else if (timeFilter === 'Bulan ini') timeMatch = txDate.getMonth() === today.getMonth() && txDate.getFullYear() === today.getFullYear();
+    } else if (timeFilter === 'Bulan ini') {
+      timeMatch = txDate.getMonth() === today.getMonth() && txDate.getFullYear() === today.getFullYear();
+    } else if (timeFilter === 'Tahun ini') {
+      timeMatch = txDate.getFullYear() === today.getFullYear();
+    } else if (timeFilter === 'Kustom') {
+      const start = new Date(customStartDate); start.setHours(0,0,0,0);
+      const end = new Date(customEndDate); end.setHours(23,59,59,999);
+      timeMatch = txDate >= start && txDate <= end;
+    } else if (timeFilter === 'Semua Waktu') {
+      timeMatch = true;
+    }
     
     let userMatch = true;
     if (filter === 'Saya') userMatch = tx.owner === myName;
@@ -689,22 +709,75 @@ const DashboardScreen = ({ navigation, route }) => {
               <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Dompet Kita</Text>
               <TouchableOpacity onPress={() => navigation.navigate('Wallets')}><Text style={{ color: theme.primary, fontWeight: 'bold' }}>Semua</Text></TouchableOpacity>
            </View>
-           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.walletScroll}>
-              {accounts.map(acc => (
-                <TouchableOpacity key={acc.id} style={[styles.walletCard, { backgroundColor: theme.surfaceContainerLow }]} onPress={() => navigation.navigate('Wallets', { walletId: acc.id })}>
-                  <View style={[styles.walletIcon, { backgroundColor: (acc.color || theme.primary) + '15' }]}>
-                    <MaterialIcons name={acc.icon || 'payments'} size={20} color={acc.color || theme.primary} />
-                  </View>
-                  <View>
-                    <Text style={[styles.walletName, { color: theme.onSurface }]} numberOfLines={1}>{acc.name}</Text>
-                    <Text style={[styles.walletBalance, { color: theme.primary }]}>Rp {formatMoney(acc.balance)}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity style={[styles.walletCard, { borderStyle: 'dashed', borderWidth: 1, borderColor: theme.outlineVariant + '44' }]} onPress={() => navigation.navigate('AddAccount')}>
-                <MaterialIcons name="add" size={24} color={theme.onSurfaceVariant} />
-                <Text style={{ color: theme.onSurfaceVariant, fontSize: 12, fontWeight: 'bold' }}>Tambah</Text>
-              </TouchableOpacity>
+           <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              style={styles.walletScroll}
+              contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 10 }}
+            >
+              {accounts.length === 0 ? (
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <TouchableOpacity 
+                    style={[
+                      styles.walletCard, 
+                      { 
+                        width: width - 48, 
+                        height: 90,
+                        backgroundColor: theme.surface, 
+                        borderWidth: 2, 
+                        borderStyle: 'dashed', 
+                        borderColor: theme.outline,
+                        justifyContent: 'center',
+                        gap: 16
+                      }
+                    ]} 
+                    onPress={() => navigation.navigate('AddAccount')}
+                  >
+                    <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: theme.primary + '15', justifyContent: 'center', alignItems: 'center' }}>
+                      <MaterialIcons name="account-balance-wallet" size={24} color={theme.primary} />
+                    </View>
+                    <View>
+                      <Text style={{ fontSize: 15, fontWeight: 'bold', color: theme.onSurface }}>Belum ada dompet</Text>
+                      <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>Tap di sini untuk tambah dompet pertama kamu</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <>
+                  {accounts.map(acc => (
+                    <TouchableOpacity 
+                      key={acc.id} 
+                      style={[styles.walletCard, { backgroundColor: theme.surface, shadowColor: theme.onSurface, shadowOpacity: 0.04 }]} 
+                      onPress={() => navigation.navigate('Wallets', { walletId: acc.id })}
+                    >
+                      <View style={[styles.walletIcon, { backgroundColor: (acc.color || theme.primary) + '15' }]}>
+                        <MaterialIcons name={acc.icon || 'payments'} size={20} color={acc.color || theme.primary} />
+                      </View>
+                      <View>
+                        <Text style={[styles.walletName, { color: theme.onSurface }]} numberOfLines={1}>{acc.name}</Text>
+                        <Text style={[styles.walletBalance, { color: theme.primary }]}>Rp {formatMoney(acc.balance)}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                  <TouchableOpacity 
+                    style={[
+                      styles.walletCard, 
+                      { 
+                        borderStyle: 'dashed', 
+                        borderWidth: 1.5, 
+                        borderColor: theme.outline,
+                        backgroundColor: 'transparent',
+                        elevation: 0,
+                        shadowOpacity: 0
+                      }
+                    ]} 
+                    onPress={() => navigation.navigate('AddAccount')}
+                  >
+                    <MaterialIcons name="add-circle-outline" size={24} color={theme.onSurfaceVariant} />
+                    <Text style={{ color: theme.onSurfaceVariant, fontSize: 12, fontWeight: 'bold' }}>Tambah</Text>
+                  </TouchableOpacity>
+                </>
+              )}
            </ScrollView>
         </Animated.View>
         {/* Expense Analysis Section */}
@@ -750,20 +823,106 @@ const DashboardScreen = ({ navigation, route }) => {
               </View>
             </View>
 
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 24, marginHorizontal: -4 }}>
-              {['Hari ini', 'Minggu ini', 'Bulan ini', 'Tahun ini', 'Semua Waktu'].map(tf => (
-                <TouchableOpacity 
-                  key={tf} 
-                  onPress={() => setTimeFilter(tf)} 
-                  style={[
-                    { marginHorizontal: 4, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 16, backgroundColor: theme.surfaceContainerHighest },
-                    timeFilter === tf && { backgroundColor: theme.primary }
-                  ]}
-                >
-                  <Text style={{ color: timeFilter === tf ? theme.onPrimary : theme.onSurfaceVariant, fontSize: 12, fontWeight: 'bold' }}>{tf}</Text>
-                </TouchableOpacity>
-              ))}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16, marginHorizontal: -24 }}>
+              <View style={{ flexDirection: 'row', paddingHorizontal: 24, gap: 8 }}>
+                {['Hari ini', 'Minggu ini', 'Bulan ini', 'Tahun ini', 'Semua Waktu', 'Kustom'].map(tf => (
+                  <TouchableOpacity 
+                    key={tf} 
+                    onPress={() => setTimeFilter(tf)} 
+                    style={[
+                      { 
+                        paddingHorizontal: 16, 
+                        paddingVertical: 8, 
+                        borderRadius: 14, 
+                        backgroundColor: theme.surfaceContainerHighest + '44',
+                        borderWidth: 1,
+                        borderColor: theme.outlineVariant + '11'
+                      },
+                      timeFilter === tf && { backgroundColor: theme.primary, borderColor: theme.primary }
+                    ]}
+                  >
+                    <Text style={{ 
+                      color: timeFilter === tf ? theme.onPrimary : theme.onSurfaceVariant, 
+                      fontSize: 12, 
+                      fontWeight: 'bold' 
+                    }}>
+                      {tf}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </ScrollView>
+
+            {timeFilter === 'Kustom' && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24, backgroundColor: theme.surfaceContainerHighest + '33', padding: 12, borderRadius: 20, borderWidth: 1, borderColor: theme.outlineVariant + '11' }}>
+                <TouchableOpacity 
+                  onPress={() => {
+                    if (Platform.OS === 'web') document.getElementById('custom-start-date')?.showPicker?.() || document.getElementById('custom-start-date')?.click();
+                    else setShowStartPicker(true);
+                  }}
+                  style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: theme.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.outlineVariant + '22' }}
+                >
+                  <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, fontWeight: 'bold', marginBottom: 2 }}>MULAI</Text>
+                  <Text style={{ fontSize: 12, color: theme.onSurface, fontWeight: '900' }}>{customStartDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</Text>
+                </TouchableOpacity>
+                
+                <MaterialIcons name="arrow-forward" size={16} color={theme.outlineVariant} />
+
+                <TouchableOpacity 
+                  onPress={() => {
+                    if (Platform.OS === 'web') document.getElementById('custom-end-date')?.showPicker?.() || document.getElementById('custom-end-date')?.click();
+                    else setShowEndPicker(true);
+                  }}
+                  style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: theme.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.outlineVariant + '22' }}
+                >
+                  <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, fontWeight: 'bold', marginBottom: 2 }}>SELESAI</Text>
+                  <Text style={{ fontSize: 12, color: theme.onSurface, fontWeight: '900' }}>{customEndDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</Text>
+                </TouchableOpacity>
+
+                {(showStartPicker || showEndPicker) && Platform.OS !== 'web' && (
+                  <DateTimePicker
+                    value={showStartPicker ? customStartDate : customEndDate}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      setShowStartPicker(false);
+                      setShowEndPicker(false);
+                      if (selectedDate) {
+                        if (showStartPicker) setCustomStartDate(selectedDate);
+                        else setCustomEndDate(selectedDate);
+                      }
+                    }}
+                  />
+                )}
+                
+                {Platform.OS === 'web' && (
+                  <View style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}>
+                    <input 
+                      type="date" 
+                      id="custom-start-date"
+                      value={customStartDate.toISOString().split('T')[0]}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setCustomStartDate(new Date(e.target.value));
+                          setShowStartPicker(false);
+                        }
+                      }}
+                    />
+                    <input 
+                      type="date" 
+                      id="custom-end-date"
+                      value={customEndDate.toISOString().split('T')[0]}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setCustomEndDate(new Date(e.target.value));
+                          setShowEndPicker(false);
+                        }
+                      }}
+                    />
+                  </View>
+                )}
+              </View>
+            )}
 
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
               {/* Left Side: Professional Donut Chart */}
@@ -1107,9 +1266,9 @@ const DashboardScreen = ({ navigation, route }) => {
               </TouchableOpacity>
             </Animated.View>
           ))}
-         <TouchableOpacity onPress={toggleFab} style={[styles.fabMain, { backgroundColor: 'transparent' }]} activeOpacity={0.8}>
+         <TouchableOpacity onPress={toggleFab} style={[styles.fabMain, { backgroundColor: theme.surface }]} activeOpacity={0.8}>
             <LinearGradient 
-              colors={[theme.primary + 'E6', theme.primary + '99']} 
+              colors={[theme.primary, theme.primary + 'CC']} 
               style={styles.fabGradient}
             >
                <Animated.View style={{ transform: [{ rotate: fabAnim.interpolate({ inputRange:[0,1], outputRange:['0deg', '45deg'] }) }] }}>
@@ -1206,21 +1365,21 @@ const DashboardScreen = ({ navigation, route }) => {
                       style={{ 
                         flexDirection: 'row', 
                         padding: 18, 
-                        backgroundColor: isUnread ? '#23292b' : '#1a1f21', 
+                        backgroundColor: isUnread ? theme.surfaceContainerHigh : theme.surfaceContainerLow, 
                         borderRadius: 24, 
                         marginBottom: 12, 
                         alignItems: 'center',
                         borderWidth: isUnread ? 1 : 0,
-                        borderColor: isUnread ? 'rgba(99, 102, 241, 0.2)' : 'transparent'
+                        borderColor: isUnread ? theme.primary + '33' : 'transparent'
                       }}
                     >
                       <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: icon.color + '20', justifyContent: 'center', alignItems: 'center' }}><MaterialIcons name={icon.name} size={22} color={icon.color} /></View>
                       <View style={{ flex: 1, marginLeft: 16 }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Text style={{ fontSize: 15, fontWeight: 'bold', color: isUnread ? '#fff' : 'rgba(255,255,255,0.7)' }}>{title}</Text>
-                          {isUnread && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#6366F1' }} />}
+                          <Text style={{ fontSize: 15, fontWeight: 'bold', color: theme.onSurface }}>{title}</Text>
+                          {isUnread && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.primary }} />}
                         </View>
-                        <Text style={{ fontSize: 13, color: isUnread ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.4)', marginTop: 4 }} numberOfLines={2}>{message}</Text>
+                        <Text style={{ fontSize: 13, color: theme.onSurfaceVariant, marginTop: 4 }} numberOfLines={2}>{message}</Text>
                       </View>
                     </TouchableOpacity>
                   );
@@ -1272,24 +1431,15 @@ const DashboardScreen = ({ navigation, route }) => {
                 {billType === 'installment' && (
                   <>
                     <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8, marginLeft: 4 }}>TOTAL TENOR (BULAN)</Text>
-                    <TextInput style={styles.input} placeholder="Misal: 12" keyboardType="numeric" placeholderTextColor="#666" value={billTotalTenor} onChangeText={setBillTotalTenor} />
+                    <TextInput style={[styles.input, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface }]} placeholder="Misal: 12" keyboardType="numeric" placeholderTextColor={theme.onSurfaceVariant + '88'} value={billTotalTenor} onChangeText={setBillTotalTenor} />
                   </>
                 )}
 
                 <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8, marginLeft: 4 }}>NAMA TAGIHAN</Text>
-                <TextInput style={styles.input} placeholder="Misal: Listrik" placeholderTextColor="#666" value={billName} onChangeText={setBillName} />
+                <TextInput style={[styles.input, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface }]} placeholder="Misal: Listrik" placeholderTextColor={theme.onSurfaceVariant + '88'} value={billName} onChangeText={setBillName} />
                 
                 <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8, marginLeft: 4 }}>NOMINAL (RP)</Text>
-                <TextInput 
-                  style={styles.input} 
-                  placeholder="0" 
-                  keyboardType="numeric" 
-                  placeholderTextColor="#666" 
-                  value={billAmount} 
-                  onChangeText={handleBillAmountChange}
-                  selection={selectionBill}
-                  onSelectionChange={(e) => setSelectionBill(e.nativeEvent.selection)}
-                />
+                    <TextInput style={[styles.input, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface }]} placeholder="0" keyboardType="numeric" placeholderTextColor={theme.onSurfaceVariant + '88'} value={billAmount} onChangeText={handleBillAmountChange} selection={selectionBill} onSelectionChange={(e) => setSelectionBill(e.nativeEvent.selection)} />
                 
                 <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8, marginLeft: 4 }}>JATUH TEMPO</Text>
                 <TouchableOpacity 
@@ -1392,7 +1542,7 @@ const DashboardScreen = ({ navigation, route }) => {
       {/* Bill Action Modal */}
       <Modal visible={billActionModalVisible} transparent animationType="fade" onRequestClose={() => setBillActionModalVisible(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setBillActionModalVisible(false)}>
-          <View style={[styles.modalContent, { padding: 0, overflow: 'hidden' }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface, padding: 0, overflow: 'hidden' }]}>
             <View style={{ padding: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '33' }}>
               <Text style={{ fontSize: 20, fontWeight: '900', color: theme.onSurface, marginBottom: 4 }}>Kelola Tagihan</Text>
               <Text style={{ fontSize: 13, color: theme.onSurfaceVariant }}>{selectedBill?.name} - Rp {formatMoney(selectedBill?.amount)}</Text>
@@ -1484,10 +1634,10 @@ const DashboardScreen = ({ navigation, route }) => {
            <TouchableOpacity activeOpacity={1} style={{ backgroundColor: theme.surface, marginHorizontal: 24, borderRadius: 32, padding: 24, width: '90%' }}>
               <Text style={{ fontSize: 20, fontWeight: '900', color: theme.onSurface, marginBottom: 24 }}>Edit Aktivitas</Text>
               <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8, marginLeft: 4 }}>NAMA AKTIVITAS</Text>
-              <TextInput style={styles.input} value={quickEditName} onChangeText={setQuickEditName} />
+              <TextInput style={[styles.input, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface }]} value={quickEditName} onChangeText={setQuickEditName} />
               <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8, marginLeft: 4 }}>NOMINAL (RP)</Text>
               <TextInput 
-                style={styles.input} 
+                style={[styles.input, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface }]} 
                 value={quickEditAmount} 
                 onChangeText={handleQuickAmountChange} 
                 keyboardType="numeric"
@@ -1536,7 +1686,7 @@ const DashboardScreen = ({ navigation, route }) => {
       {/* Split Confirmation Modal */}
       <Modal visible={splitModalVisible} transparent animationType="slide" onRequestClose={() => setSplitModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { padding: 24, paddingBottom: 32 }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface, borderColor: theme.outlineVariant + '15' }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <View>
                 <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.onSurface }}>{selectedSplitTx?.isJoint ? 'Uang Bersama (50:50)' : 'Konfirmasi Patungan'}</Text>
@@ -1579,9 +1729,9 @@ const DashboardScreen = ({ navigation, route }) => {
             }) 
           }] 
         }]}>
-          <View style={styles.toastContent}>
+          <View style={[styles.toastContent, { backgroundColor: theme.surface, borderColor: theme.outlineVariant + '22' }]}>
             <MaterialIcons name="favorite" size={20} color={theme.primary} />
-            <Text style={styles.toastText}>{toastMsg}</Text>
+            <Text style={[styles.toastText, { color: theme.onSurface }]}>{toastMsg}</Text>
           </View>
         </Animated.View>
       )}
@@ -1628,14 +1778,14 @@ const styles = StyleSheet.create({
   filterChipText: { color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: 'bold' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   sectionTitle: { fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
-  walletScroll: { marginHorizontal: -24, paddingHorizontal: 24 },
+  walletScroll: { marginHorizontal: -24, marginTop: 4 },
   surfaceCard: {
     borderRadius: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.05,
     shadowRadius: 12,
-    elevation: 4,
+    elevation: 3,
   },
   walletCard: { 
     width: 160, 
@@ -1647,9 +1797,9 @@ const styles = StyleSheet.create({
     gap: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.05,
     shadowRadius: 10,
-    elevation: 4,
+    elevation: 3,
   },
   walletIcon: { width: 40, height: 40, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   walletName: { fontSize: 13, fontWeight: 'bold' },
@@ -1660,11 +1810,11 @@ const styles = StyleSheet.create({
   txAmount: { fontSize: 14, fontWeight: '900' },
   fabContainer: { position: 'absolute', bottom: 115, right: 24, alignItems: 'flex-end' },
   fabMain: { 
-    width: 64, height: 64, borderRadius: 24, overflow: 'hidden', elevation: 8,
+    width: 64, height: 64, borderRadius: 24, overflow: 'hidden', elevation: 6,
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 },
       android: { shadowColor: '#000' },
-      web: { boxShadow: '0 4px 8px rgba(0,0,0,0.3)' }
+      web: { boxShadow: '0 4px 8px rgba(0,0,0,0.2)' }
     })
   },
   fabGradient: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -1672,17 +1822,17 @@ const styles = StyleSheet.create({
   fabMini: { width: 48, height: 48, borderRadius: 18, justifyContent: 'center', alignItems: 'center', elevation: 4 },
   iconButton: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   donutCenterLarge: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
-  input: { backgroundColor: 'rgba(255,255,255,0.05)', padding: 16, borderRadius: 16, color: '#fff', marginBottom: 12 },
+  input: { padding: 16, borderRadius: 16, marginBottom: 12 },
   toastContainer: { position: 'absolute', top: 100, left: 24, right: 24, alignItems: 'center', zIndex: 999 },
-  toastContent: { backgroundColor: '#1a1f21', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  toastText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
+  toastContent: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1 },
+  toastText: { fontSize: 13, fontWeight: 'bold' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { 
-    backgroundColor: '#14181a', borderRadius: 32, padding: 24, width: '90%', elevation: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 32, padding: 24, width: '90%', elevation: 10, borderWidth: 1,
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20 },
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20 },
       android: { shadowColor: '#000' },
-      web: { boxShadow: '0 10px 20px rgba(0,0,0,0.3)' }
+      web: { boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }
     })
   },
 });

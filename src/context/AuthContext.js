@@ -108,10 +108,13 @@ export const AuthProvider = ({ children }) => {
       try {
         const storedUser = await AsyncStorage.getItem('@rika_user');
         if (storedUser) {
-          setUser(JSON.parse(storedUser));
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          
+          // Load avatar specifically for this user
+          const storedAvatar = await AsyncStorage.getItem(`@rika_avatar_${parsedUser.name}`);
+          if (storedAvatar) setAvatar(storedAvatar);
         }
-        const storedAvatar = await AsyncStorage.getItem('@rika_avatar');
-        if (storedAvatar) setAvatar(storedAvatar);
       } catch (e) {
         console.error('Failed to load user', e);
       } finally {
@@ -139,6 +142,11 @@ export const AuthProvider = ({ children }) => {
           }
           if (data.lastReadNotif && data.lastReadNotif[user.name] !== undefined) {
             setLastReadNotif(data.lastReadNotif[user.name]);
+          }
+          // Auto-sync current user's avatar from database
+          if (data.avatars && data.avatars[user.name] && data.avatars[user.name] !== avatar) {
+            setAvatar(data.avatars[user.name]);
+            AsyncStorage.setItem(`@rika_avatar_${user.name}`, data.avatars[user.name]);
           }
         }
       }, (error) => {
@@ -171,9 +179,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const loginWithData = async (userData) => {
-    const trimmedUser = { ...userData, name: userData.name?.trim() };
+    const trimmedName = userData.name?.trim();
+    const trimmedUser = { ...userData, name: trimmedName };
     setUser(trimmedUser);
     await AsyncStorage.setItem('@rika_user', JSON.stringify(trimmedUser));
+    
+    // Switch avatar state to the new user's local storage or default
+    const storedAvatar = await AsyncStorage.getItem(`@rika_avatar_${trimmedName}`);
+    setAvatar(storedAvatar || 'person');
   };
 
   const joinHousehold = async (userName, code) => {
@@ -197,7 +210,9 @@ export const AuthProvider = ({ children }) => {
           const data = docSnap.data();
           if (data.avatars && data.avatars[userData.name]) {
             setAvatar(data.avatars[userData.name]);
-            await AsyncStorage.setItem('@rika_avatar', data.avatars[userData.name]);
+            await AsyncStorage.setItem(`@rika_avatar_${userData.name}`, data.avatars[userData.name]);
+          } else {
+            setAvatar('person');
           }
           
           return { success: true };
@@ -228,12 +243,15 @@ export const AuthProvider = ({ children }) => {
     setHouseholdAvatars({});
     setHouseholdData(null);
     await AsyncStorage.removeItem('@rika_user');
-    await AsyncStorage.removeItem('@rika_avatar');
+    // We don't necessarily need to remove the user-specific avatar from local storage 
+    // so it's there when they log back in, but we reset the active state.
   };
 
   const updateAvatar = async (iconName) => {
     setAvatar(iconName);
-    await AsyncStorage.setItem('@rika_avatar', iconName);
+    if (user?.name) {
+      await AsyncStorage.setItem(`@rika_avatar_${user.name}`, iconName);
+    }
     if (user && user.householdId) {
       try {
         await updateDoc(doc(db, 'households', user.householdId), {
