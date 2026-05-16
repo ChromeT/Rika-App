@@ -180,7 +180,7 @@ const CapsuleBottomSheet = ({ visible, onClose, onSave, theme }) => {
   );
 };
 
-const MasonryItem = ({ item, index, onPress, theme }) => {
+const MasonryItem = ({ item, index, onPress, theme, user, goalOwner, partnerName }) => {
   const [aspectRatio, setAspectRatio] = useState(1); // Default square
   const uri = item.url || item.uri;
 
@@ -208,13 +208,25 @@ const MasonryItem = ({ item, index, onPress, theme }) => {
         <ExpoImage source={{ uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
         
         {/* Added By Badge */}
-        {item.addedBy && (() => {
-          const owner = (item.addedBy || '').toLowerCase().trim();
+        {(() => {
+          if (index === 0) console.log('DEBUG Media Item 0:', item);
+          const rawName = item.addedBy || goalOwner || '';
+          const owner = (rawName || '').toLowerCase().trim();
           const curName = (user?.name || '').toLowerCase().trim();
-          const isMe = owner === curName || owner.includes(curName) || curName.includes(owner);
+          const pName = (partnerName || '').toLowerCase().trim();
+          
+          // Perbandingan ketat tapi toleran
+          const isMe = owner !== '' && (owner === curName || (owner.length > 2 && curName.includes(owner)) || (curName.length > 2 && owner.includes(curName)));
+          const isPartner = owner !== '' && pName !== '' && (owner === pName || (owner.length > 2 && pName.includes(owner)) || (pName.length > 2 && owner.includes(pName)));
+          
+          let displayName = rawName;
+          if (isMe) displayName = user?.name;
+          else if (isPartner) displayName = partnerName;
+          else if (!rawName) displayName = partnerName || 'Kesayangan';
+
           return (
-            <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
-              <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>{isMe ? 'Kamu' : item.addedBy}</Text>
+            <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+              <Text style={{ color: isMe ? theme.primary : '#fff', fontSize: 10, fontWeight: 'bold' }}>{displayName}</Text>
             </View>
           );
         })()}
@@ -245,7 +257,14 @@ const MemoryDetailScreen = ({ route }) => {
   const insets = useSafeAreaInsets();
   const householdId = user?.householdId;
   
-  const partnerName = householdUsers?.find(u => u !== (user?.name || ''));
+  const normalize = (s) => (s || '').toLowerCase().trim();
+  const myNameNorm = normalize(user?.name);
+  
+  const partnerUser = (householdUsers || []).find(u => {
+    const uName = normalize(typeof u === 'string' ? u : u.name);
+    return uName !== myNameNorm && !uName.includes(myNameNorm) && !myNameNorm.includes(uName);
+  });
+  const partnerName = typeof partnerUser === 'string' ? partnerUser : partnerUser?.name;
   const hasPartner = !!partnerName;
   
   console.log('MemoryDetail: goalId:', goalId, 'householdId:', householdId, 'user:', user);
@@ -666,7 +685,12 @@ const MemoryDetailScreen = ({ route }) => {
                       {tx.type === 'income' ? '+' : '-'}Rp {formatMoney((tx.myContrib || 0) + (tx.partnerContrib || 0))}
                     </Text>
                     <Text style={{ fontSize: 8, fontWeight: 'bold', color: theme.onSurfaceVariant, marginTop: 4 }}>
-                       {tx.isJoint ? 'BERSAMA' : (tx.isPatungan ? 'PATUNGAN' : (tx.owner === user?.name ? 'PRIBADI' : tx.owner?.toUpperCase()))}
+                      {(() => {
+                        const owner = (tx.owner || '').toLowerCase().trim();
+                        const curName = (user?.name || '').toLowerCase().trim();
+                        const isMe = owner === curName || owner.includes(curName) || curName.includes(owner);
+                        return tx.isJoint ? 'BERSAMA' : (tx.isPatungan ? 'PATUNGAN' : (isMe ? 'PRIBADI' : tx.owner?.toUpperCase()));
+                      })()}
                     </Text>
                   </View>
                 </View>
@@ -777,6 +801,9 @@ const MemoryDetailScreen = ({ route }) => {
                       index={i * 2} 
                       onPress={() => { setSelectedMediaIndex(i * 2); setMediaModalVisible(true); }}
                       theme={theme}
+                      user={user}
+                      goalOwner={goal?.owner}
+                      partnerName={partnerName}
                     />
                   ))}
                 </View>
@@ -790,6 +817,9 @@ const MemoryDetailScreen = ({ route }) => {
                       index={i * 2 + 1} 
                       onPress={() => { setSelectedMediaIndex(i * 2 + 1); setMediaModalVisible(true); }}
                       theme={theme}
+                      user={user}
+                      goalOwner={goal?.owner}
+                      partnerName={partnerName}
                     />
                   ))}
                 </View>

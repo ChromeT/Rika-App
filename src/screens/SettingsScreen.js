@@ -70,9 +70,16 @@ const SettingsScreen = ({ navigation }) => {
     ]).start(() => logout());
   };
 
+  const normalize = (s) => (s || '').toLowerCase().trim();
   const myName = user?.name || 'Saya';
-  const partnerName = householdUsers.find(u => u !== myName);
-  const hasPartner = !!partnerName;
+  const myNameNorm = normalize(myName);
+  
+  const partnerUser = (householdUsers || []).find(u => {
+    const uName = normalize(typeof u === 'string' ? u : u.name);
+    return uName !== myNameNorm && !uName.includes(myNameNorm) && !myNameNorm.includes(uName);
+  });
+  const partnerName = (typeof partnerUser === 'string' ? partnerUser : partnerUser?.name) || 'Pasangan';
+  const hasPartner = !!partnerUser;
 
   const formatMoney = (val) => formatMoneyUtil(val);
 

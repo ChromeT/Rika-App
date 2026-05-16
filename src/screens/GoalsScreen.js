@@ -304,9 +304,14 @@ const AchievedGoalItem = React.memo(({ item, index, navigation, safeTheme, forma
 
 // --- Add Goal Screen (Modal Style) ---
 export const AddGoalScreen = () => {
-  const { user, householdUsers } = useContext(AuthContext);
-  const partnerName = householdUsers?.find(u => u !== (user?.name || ''));
-  const hasPartner = !!partnerName;
+  const normalize = (s) => (s || '').toLowerCase().trim();
+  const myNameNorm = normalize(user?.name);
+  const partnerUser = (householdUsers || []).find(u => {
+    const uName = normalize(typeof u === 'string' ? u : u.name);
+    return uName !== myNameNorm && !uName.includes(myNameNorm) && !myNameNorm.includes(uName);
+  });
+  const partnerName = (typeof partnerUser === 'string' ? partnerUser : partnerUser?.name) || 'Pasangan';
+  const hasPartner = !!partnerUser;
   const sendGoalNotification = async ({ title, body, goalId }) => {
     if (!hasPartner) return;
     await addNotification({

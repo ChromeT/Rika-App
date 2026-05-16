@@ -146,8 +146,14 @@ const GoalDetailScreen = ({ route }) => {
   const { user, householdUsers } = useContext(AuthContext);
   const insets = useSafeAreaInsets();
   
-  const partnerName = householdUsers?.find(u => u !== (user?.name || ''));
-  const hasPartner = !!partnerName;
+  const normalize = (s) => (s || '').toLowerCase().trim();
+  const myNameNorm = normalize(user?.name);
+  const partnerUser = (householdUsers || []).find(u => {
+    const uName = normalize(typeof u === 'string' ? u : u.name);
+    return uName !== myNameNorm && !uName.includes(myNameNorm) && !myNameNorm.includes(uName);
+  });
+  const partnerName = (typeof partnerUser === 'string' ? partnerUser : partnerUser?.name) || 'Pasangan';
+  const hasPartner = !!partnerUser;
 
   const goal = goals.find(g => g.id === goalId);
   const [fundingModalVisible, setFundingModalVisible] = useState(false);
