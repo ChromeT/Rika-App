@@ -1,5 +1,6 @@
 import React, { useContext, useState, useRef } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Switch, Animated } from 'react-native';
+import TextInput from '../components/ThemeTextInput';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Switch, Animated } from 'react-native';
 import Text from '../components/ThemeText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';

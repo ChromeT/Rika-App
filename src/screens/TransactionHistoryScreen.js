@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useContext, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Animated, Platform, Modal, TextInput, Alert, ActivityIndicator, Dimensions } from 'react-native';
+import TextInput from '../components/ThemeTextInput';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Animated, Platform, Modal, Alert, ActivityIndicator, Dimensions } from 'react-native';
 import Text from '../components/ThemeText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -61,7 +62,7 @@ const FilterSection = ({ theme, search, setSearch, setDateModalVisible, filterMo
            <Text style={[styles.pillText, { color: theme.onSurface }]}>{months[filterMonth]} {filterYear}</Text>
         </TouchableOpacity>
         
-        {['Semua', 'Saya', 'Pasangan'].map(opt => (
+        {['Semua', 'Ayip', 'Rika'].map(opt => (
           <TouchableOpacity key={opt} onPress={() => setFilterOwner(opt)} style={[styles.pill, { marginRight: 10, backgroundColor: filterOwner === opt ? theme.primary : theme.surfaceContainerLow, borderColor: filterOwner === opt ? theme.primary : theme.outlineVariant + '22' }]}>
             <Text style={[styles.pillText, { color: filterOwner === opt ? theme.onPrimary : theme.onSurfaceVariant }]}>{opt}</Text>
           </TouchableOpacity>
@@ -109,21 +110,24 @@ const TransactionHistoryScreen = ({ navigation, route }) => {
       let attempts = 0;
       const findAndScroll = setInterval(() => {
         let targetLayout = itemLayouts.current[String(highlightId)];
+        let resolvedId = highlightId;
+        
         if (!targetLayout) {
           const matchingTx = transactions.find(t => 
             (highlightId && (String(t.id) === String(highlightId) || String(t.billId) === String(highlightId) || String(t.goalId) === String(highlightId))) ||
             (highlightName && t.name && (String(t.name).toLowerCase() === String(highlightName).toLowerCase() || String(t.name).toLowerCase() === `bayar tagihan: ${highlightName}`.toLowerCase()))
           );
           if (matchingTx) {
-            targetLayout = itemLayouts.current[String(matchingTx.id)];
-            if (targetLayout) setHighlightedId(matchingTx.id);
+            resolvedId = matchingTx.id;
+            targetLayout = itemLayouts.current[String(resolvedId)];
           }
         }
+        
         if (targetLayout && scrollRef.current) {
+          setHighlightedId(resolvedId);
           const sectionY = dateLayouts.current[targetLayout.date] || 0;
           const absoluteY = targetLayout.localY + sectionY;
           // Offset set to -100 to place the item at the top for maximum readability.
-          // Large paddingBottom ensures items at the end can reach this position.
           scrollRef.current.scrollTo({ y: Math.max(0, absoluteY - 100), animated: true });
           clearInterval(findAndScroll);
           setTimeout(() => { setHighlightedId(null); }, 5000);
@@ -135,8 +139,8 @@ const TransactionHistoryScreen = ({ navigation, route }) => {
     }
   }, [highlightId, highlightName, transactions]);
 
-  const myName = user?.name || 'Saya';
-  const partnerName = householdUsers?.find(u => u !== myName) || 'Pasangan';
+  const myName = user?.name || 'Ayip';
+  const partnerName = householdUsers?.find(u => u !== myName) || 'Rika';
 
   const [filterOwner, setFilterOwner] = useState('Semua'); 
   const [filterType, setFilterType] = useState('Semua');   
@@ -147,6 +151,7 @@ const TransactionHistoryScreen = ({ navigation, route }) => {
 
   const [selectedTx, setSelectedTx] = useState(null);
   const [actionModalVisible, setActionModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [aestheticAlertVisible, setAestheticAlertVisible] = useState(false);
@@ -195,16 +200,12 @@ const TransactionHistoryScreen = ({ navigation, route }) => {
       const monthMatch = txDate.getMonth() === filterMonth;
       const yearMatch = txDate.getFullYear() === filterYear;
       const isShared = tx.isPatungan || tx.isJoint;
-      const owner = (tx.owner || '').toLowerCase().trim();
-      const normMe = (myName || '').toLowerCase().trim();
-      const normPartner = (partnerName || '').toLowerCase().trim();
-      
-      const isMe = owner === normMe || owner.includes(normMe) || normMe.includes(owner);
-      const isPartner = normPartner !== '' && (owner === normPartner || owner.includes(normPartner) || normPartner.includes(owner));
+      const isMe = tx.owner === myName;
+      const isPartner = tx.owner === partnerName;
 
       const ownerMatch = filterOwner === 'Semua' || 
-                         (filterOwner === 'Saya' && (isMe || (isShared && (tx.myContrib || 0) > 0))) || 
-                         (filterOwner === 'Pasangan' && (isPartner || (isShared && (tx.partnerContrib || 0) > 0)));
+                         (filterOwner === 'Ayip' && (isMe || (isShared && (tx.myContrib || 0) > 0))) || 
+                         (filterOwner === 'Rika' && (isPartner || (isShared && (tx.partnerContrib || 0) > 0)));
       const typeMatch = filterType === 'Semua' || tx.type === filterType;
       const searchMatch = !search || tx.name?.toLowerCase().includes(search.toLowerCase()) || tx.category?.toLowerCase().includes(search.toLowerCase());
       return monthMatch && yearMatch && ownerMatch && typeMatch && searchMatch;
@@ -266,13 +267,13 @@ const TransactionHistoryScreen = ({ navigation, route }) => {
                 key={item.id} tx={item} index={index} theme={theme} myName={myName} partnerName={partnerName} accounts={accounts} formatMoney={formatMoney} filterOwner={filterOwner}
                 onEdit={() => { 
                   if (item.owner !== myName && item.owner !== 'Bersama') {
-                    showAestheticAlert('Akses Terbatas', `Transaksi ini dicatat oleh ${item.owner}. Kamu hanya bisa mengedit transaksi milikmu sendiri untuk menjaga integritas data pribadi pasangan.`, 'lock', theme.primary);
+                    showAestheticAlert('Akses Terbatas', `Transaksi ini dicatat oleh ${item.owner}. Kamu hanya bisa mengedit transaksi milikmu sendiri untuk menjaga integritas data pribadi Rika.`, 'lock', theme.primary);
                     return;
                   }
                   setSelectedTx(item); 
                   setActionModalVisible(true); 
                 }}
-                isHighlighted={highlightedId === item.id}
+                isHighlighted={String(highlightedId) === String(item.id)}
                 onLayout={(e) => { itemLayouts.current[String(item.id)] = { localY: e.nativeEvent.layout.y, date }; }}
               />
             ))}
@@ -369,10 +370,7 @@ const TransactionHistoryScreen = ({ navigation, route }) => {
                    style={styles.modalAction} 
                    onPress={() => {
                      setActionModalVisible(false);
-                     Alert.alert('Hapus Transaksi', 'Yakin ingin menghapus transaksi ini?', [
-                       { text: 'Batal', style: 'cancel' },
-                       { text: 'Hapus', style: 'destructive', onPress: () => deleteTransaction(selectedTx.id) }
-                     ]);
+                     setDeleteModalVisible(true);
                    }}
                  >
                     <View style={[styles.modalActionIcon, { backgroundColor: theme.error + '15' }]}>
@@ -418,6 +416,41 @@ const TransactionHistoryScreen = ({ navigation, route }) => {
            </View>
         </View>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => setDeleteModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface, alignItems: 'center', padding: 24, borderRadius: 32 }]}>
+            <View style={{ backgroundColor: theme.error + '1A', padding: 24, borderRadius: 40, marginBottom: 16 }}>
+              <MaterialIcons name="delete-sweep" size={40} color={theme.error} />
+            </View>
+            <Text style={[styles.modalTitle, { color: theme.onSurface, marginBottom: 12 }]}>Konfirmasi Hapus</Text>
+            <Text style={{ color: theme.onSurfaceVariant, textAlign: 'center', fontSize: 14, lineHeight: 20, marginBottom: 24 }}>
+              Yakin ingin menghapus transaksi ini? Saldo terkait akan dikembalikan secara otomatis.
+            </Text>
+
+            <TouchableOpacity
+              style={{ backgroundColor: theme.error, width: '100%', padding: 18, borderRadius: 20, alignItems: 'center', marginBottom: 12 }}
+              onPress={async () => {
+                setLoading(true);
+                await deleteTransaction(selectedTx.id);
+                setDeleteModalVisible(false);
+                setLoading(false);
+              }}
+            >
+              <Text style={{ color: theme.onError, fontWeight: 'bold', fontSize: 16 }}>Ya, Hapus Permanen</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ width: '100%', padding: 18, borderRadius: 20, alignItems: 'center', backgroundColor: theme.surfaceContainerLow }}
+              onPress={() => setDeleteModalVisible(false)}
+            >
+              <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold', fontSize: 16 }}>Batal</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 };
@@ -427,6 +460,9 @@ const TransactionCard = ({ tx, index, theme, myName, partnerName, accounts, form
   const typeColor = tx.type === 'income' ? theme.primary : tx.type === 'transfer' ? theme.onSurface : theme.error;
   const totalAmt = (tx.myContrib || 0) + (tx.partnerContrib || 0);
   const opacity = useRef(new Animated.Value(0)).current;
+
+  const isMe = tx.owner === myName;
+  const isShared = tx.isJoint || tx.isPatungan;
 
   useEffect(() => {
     Animated.timing(opacity, { toValue: 1, duration: 400, delay: index * 50, useNativeDriver: Platform.OS !== 'web' }).start();
@@ -466,11 +502,14 @@ const TransactionCard = ({ tx, index, theme, myName, partnerName, accounts, form
                {tx.type === 'income' ? '+' : tx.type === 'transfer' ? '' : '-'}Rp {formatMoney(
                  filterOwner === 'Semua' 
                  ? totalAmt 
-                 : (filterOwner === 'Saya' ? (tx.myContrib || 0) : (tx.partnerContrib || 0))
+                 : (filterOwner === myName 
+                    ? (tx.owner === myName ? (tx.myContrib || 0) : (tx.partnerContrib || 0))
+                    : (tx.owner === myName ? (tx.partnerContrib || 0) : (tx.myContrib || 0))
+                   )
                )}
              </Text>
              <Text style={{ fontSize: 9, fontWeight: 'bold', color: theme.onSurfaceVariant, marginTop: 4 }}>
-                {tx.isJoint ? 'UANG BERSAMA' : (tx.isPatungan ? 'PATUNGAN' : (tx.owner === myName ? 'PRIBADI SAYA' : `PRIBADI ${tx.owner?.toUpperCase()}`))}
+                {tx.type === 'transfer' ? 'TRANSFER' : isShared ? 'BERSAMA' : String(tx.owner || myName).toUpperCase()}
              </Text>
              {(tx.isJoint || tx.isPatungan) && (
                <Text style={{ fontSize: 8, color: theme.onSurfaceVariant, marginTop: 2, textAlign: 'right' }}>

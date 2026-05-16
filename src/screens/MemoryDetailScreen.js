@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useContext, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Modal, FlatList, TextInput, Platform, Linking, Alert, ActivityIndicator, Animated, SafeAreaView } from 'react-native';
+import TextInput from '../components/ThemeTextInput';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Modal, FlatList, Platform, Linking, Alert, ActivityIndicator, Animated, SafeAreaView } from 'react-native';
 import Text from '../components/ThemeText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -19,6 +20,7 @@ import { uploadMultipleToCloudinary } from '../utils/cloudinaryUpload';
 import dayjs from 'dayjs';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useStaggeredEntry } from '../hooks/useStaggeredEntry';
 
 dayjs.extend(isSameOrAfter);
 
@@ -209,20 +211,11 @@ const MasonryItem = ({ item, index, onPress, theme, user, goalOwner, partnerName
         
         {/* Added By Badge */}
         {(() => {
-          if (index === 0) console.log('DEBUG Media Item 0:', item);
-          const rawName = item.addedBy || goalOwner || '';
-          const owner = (rawName || '').toLowerCase().trim();
-          const curName = (user?.name || '').toLowerCase().trim();
-          const pName = (partnerName || '').toLowerCase().trim();
+          const rawName = (index === 0 && goalOwner) ? goalOwner : (item.addedBy || goalOwner || '');
+          if (!rawName) return null; // Hide badge if we don't know who uploaded it
           
-          // Perbandingan ketat tapi toleran
-          const isMe = owner !== '' && (owner === curName || (owner.length > 2 && curName.includes(owner)) || (curName.length > 2 && owner.includes(curName)));
-          const isPartner = owner !== '' && pName !== '' && (owner === pName || (owner.length > 2 && pName.includes(owner)) || (pName.length > 2 && owner.includes(pName)));
-          
-          let displayName = rawName;
-          if (isMe) displayName = user?.name;
-          else if (isPartner) displayName = partnerName;
-          else if (!rawName) displayName = partnerName || 'Kesayangan';
+          const isMe = rawName.trim().toLowerCase() === (user?.name || '').trim().toLowerCase();
+          const displayName = rawName;
 
           return (
             <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
@@ -284,43 +277,16 @@ const MemoryDetailScreen = ({ route }) => {
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
 
   // Animations
-  const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
-  const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
+  const { fadeAnims, slideAnims, animateIn, animateOut } = useStaggeredEntry(4, 100, 600, 20, false);
 
   useEffect(() => {
     if (!loading && goal) {
-      Animated.stagger(100, [
-        Animated.parallel([
-          Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
-          Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
-        ]),
-        Animated.parallel([
-          Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
-          Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
-        ]),
-        Animated.parallel([
-          Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
-          Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
-        ]),
-        Animated.parallel([
-          Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
-          Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
-        ])
-      ]).start();
+      animateIn();
     }
   }, [loading, goal]);
 
   const handleBack = () => {
-    Animated.parallel([
-      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(fadeAnims[3], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(slideAnims[3], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' })
-    ]).start(() => navigation.goBack());
+    animateOut(() => navigation.goBack());
   };
 
   // Data fetching
@@ -473,7 +439,7 @@ const MemoryDetailScreen = ({ route }) => {
         if (hasPartner) {
           addNotification({
             title: 'Foto Kenangan Baru',
-            body: `${user?.name || 'Pasanganmu'} menambahkan ${uploaded.length} foto baru di album "${goal.name}".`,
+          body: `${user?.name || 'Rika'} menambahkan ${uploaded.length} foto baru di album "${goal.name}".`,
             icon: 'add-a-photo',
             targetType: 'goal',
             targetId: goal.id,
@@ -498,7 +464,7 @@ const MemoryDetailScreen = ({ route }) => {
       if (hasPartner) {
         addNotification({
           title: 'Goal dihapus',
-          body: `${user?.name || 'Pasanganmu'} telah menghapus goal kenangan "${goal.name}".`,
+          body: `${user?.name || 'Rika'} telah menghapus goal kenangan "${goal.name}".`,
           icon: 'delete',
           targetType: 'goal',
           targetId: goal.id,
@@ -689,7 +655,7 @@ const MemoryDetailScreen = ({ route }) => {
                         const owner = (tx.owner || '').toLowerCase().trim();
                         const curName = (user?.name || '').toLowerCase().trim();
                         const isMe = owner === curName || owner.includes(curName) || curName.includes(owner);
-                        return tx.isJoint ? 'BERSAMA' : (tx.isPatungan ? 'PATUNGAN' : (isMe ? 'PRIBADI' : tx.owner?.toUpperCase()));
+                        return tx.isJoint ? 'BERSAMA' : (tx.isPatungan ? 'PATUNGAN' : tx.owner?.toUpperCase());
                       })()}
                     </Text>
                   </View>
@@ -910,7 +876,7 @@ const MemoryDetailScreen = ({ route }) => {
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
           <View style={{ backgroundColor: theme.surface, borderRadius: 24, padding: 24, width: '100%', maxWidth: 400, alignItems: 'center' }}>
             <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: theme.error + '1A', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
-              <MaterialIcons name="delete-outline" size={32} color={theme.error} />
+              <MaterialIcons name="delete-sweep" size={40} color={theme.error} />
             </View>
             <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 8, textAlign: 'center' }}>Hapus Goal</Text>
             <Text style={{ fontSize: 14, color: theme.onSurfaceVariant, textAlign: 'center', marginBottom: 24 }}>

@@ -1,5 +1,7 @@
-import React, { useContext, useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, Image, TextInput, Alert, Animated, Platform, ActivityIndicator } from 'react-native';
+import React, { useContext, useState, useRef, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import TextInput from '../components/ThemeTextInput';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, Image, Alert, Animated, Platform, ActivityIndicator } from 'react-native';
 import Text from '../components/ThemeText';
 import dayjs from 'dayjs';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +18,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 const SettingsScreen = ({ navigation }) => {
   const { getBalance, transactions, accounts } = useContext(DataContext);
   const { user, householdUsers, householdAvatars, householdData, customColors, addCustomColor, logout, avatar, updateAvatar, updateProfile } = useContext(AuthContext);
+  const { migrateUserData, forceCleanHistoricalData } = useContext(DataContext);
   const { theme, isDarkMode, toggleTheme, changeAccent, accentColor, fontFamily, changeFont, customFonts, uploadFont, deleteFont } = useContext(ThemeContext);
   
   const [profileModalVisible, setProfileModalVisible] = useState(false);
@@ -31,22 +34,28 @@ const SettingsScreen = ({ navigation }) => {
   const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
   const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
 
-  useEffect(() => {
-    Animated.stagger(100, [
-      Animated.parallel([
-        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
-        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
-      ]),
-      Animated.parallel([
-        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
-        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
-      ]),
-      Animated.parallel([
-        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
-        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
-      ])
-    ]).start();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      // Reset values to initial state for subsequent visits
+      fadeAnims.forEach(anim => anim.setValue(0));
+      slideAnims.forEach(anim => anim.setValue(20));
+
+      Animated.stagger(100, [
+        Animated.parallel([
+          Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+        ]),
+        Animated.parallel([
+          Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+        ]),
+        Animated.parallel([
+          Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
+        ])
+      ]).start();
+    }, [fadeAnims, slideAnims])
+  );
 
   const handleBack = () => {
     Animated.parallel([
@@ -70,15 +79,12 @@ const SettingsScreen = ({ navigation }) => {
     ]).start(() => logout());
   };
 
-  const normalize = (s) => (s || '').toLowerCase().trim();
-  const myName = user?.name || 'Saya';
-  const myNameNorm = normalize(myName);
-  
+  const myName = user?.name || 'Ayip';
   const partnerUser = (householdUsers || []).find(u => {
-    const uName = normalize(typeof u === 'string' ? u : u.name);
-    return uName !== myNameNorm && !uName.includes(myNameNorm) && !myNameNorm.includes(uName);
+    const uName = typeof u === 'string' ? u : u.name;
+    return uName !== myName;
   });
-  const partnerName = (typeof partnerUser === 'string' ? partnerUser : partnerUser?.name) || 'Pasangan';
+  const partnerName = (typeof partnerUser === 'string' ? partnerUser : partnerUser?.name) || 'Rika';
   const hasPartner = !!partnerUser;
 
   const formatMoney = (val) => formatMoneyUtil(val);
@@ -297,7 +303,7 @@ const SettingsScreen = ({ navigation }) => {
                   </>
                 ) : (
                   <View style={styles.inviteBox}>
-                     <Text style={[styles.inviteText, { color: theme.onSurfaceVariant }]}>Ajak pasangan bergabung!</Text>
+                     <Text style={[styles.inviteText, { color: theme.onSurfaceVariant }]}>Ajak Rika bergabung!</Text>
                      <View style={[styles.codeBadge, { backgroundColor: theme.primary + '15' }]}>
                         <Text style={[styles.codeText, { color: theme.primary }]}>{user?.householdId}</Text>
                      </View>
@@ -313,7 +319,7 @@ const SettingsScreen = ({ navigation }) => {
                  setProfileModalVisible(true);
                }}
              >
-                <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Ubah Profil & Panggilan</Text>
+                <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Ubah Nama</Text>
              </TouchableOpacity>
           </LinearGradient>
         </Animated.View>
@@ -445,18 +451,10 @@ const SettingsScreen = ({ navigation }) => {
 
           <SectionHeader title="Kustomisasi" />
           <View style={styles.settingGroup}>
-            <SettingRow 
-              icon="person-outline" 
-              title="Profil Kamu" 
-              desc={`Halo ${user?.nickname || user?.name || 'kamu'}, atur panggilan dan identitasmu di sini`} 
-              onPress={() => {
-                setEditName(user?.name || '');
-                setEditNickname(user?.nickname || '');
-                setProfileModalVisible(true);
-              }} 
-            />
-            <SettingRow icon="favorite-border" title="Ruang Kita" desc={`Ruang spesial ${user?.name || 'kamu'} & ${partnerName || 'pasangan'}`} onPress={() => navigation.navigate("Couple")} />
+
+            <SettingRow icon="favorite-border" title="Ruang Kita" desc={`Ruang spesial ${user?.name || 'Ayip'} & ${partnerName || 'Rika'}`} onPress={() => navigation.navigate("Couple")} />
             <SettingRow icon="category" title="Kelola Kategori" desc="Susun kategori agar sesuai dengan gaya hidup kita" onPress={() => navigation.navigate("Categories")} />
+
             <SettingRow icon="dark-mode" title="Mode Gelap" desc="Agar mata tetap nyaman saat kita bercerita di malam hari">
               <Switch 
                 value={isDarkMode} 
@@ -575,28 +573,33 @@ const SettingsScreen = ({ navigation }) => {
                 />
               </View>
 
-              <View>
-                <Text style={{ color: theme.onSurfaceVariant, fontSize: 11, fontWeight: 'bold', marginBottom: 8, marginLeft: 4 }}>PANGGILAN SAYANG (OPSIONAL)</Text>
-                <TextInput 
-                  style={[styles.hexInput, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface, borderColor: theme.outlineVariant + '44', borderWidth: 1, letterSpacing: 0, textAlign: 'left', fontSize: 16 }]} 
-                  placeholder="Misal: Princess, Sayang, atau Ayah" 
-                  placeholderTextColor={theme.onSurfaceVariant}
-                  value={editNickname}
-                  onChangeText={setEditNickname}
-                />
-              </View>
+
             </View>
 
             <TouchableOpacity 
               style={[styles.modalActionBtn, { backgroundColor: theme.primary, marginTop: 24 }]} 
               onPress={async () => {
-                if (!editName.trim()) {
-                  Alert.alert("Error", "Nama tidak boleh kosong!");
+                if (editName.trim() === '') {
+                  Alert.alert('Error', 'Nama tidak boleh kosong');
                   return;
                 }
-                await updateProfile(editName.trim(), editNickname.trim());
-                setProfileModalVisible(false);
-                Alert.alert("Berhasil", "Profil diperbarui!");
+                setLoading(true);
+                const oldName = user?.name;
+                const newName = editName.trim();
+                
+                try {
+                  await updateProfile(newName, editNickname.trim());
+                  if (oldName && oldName !== newName) {
+                    console.log('Name changed, starting migration...');
+                    await migrateUserData(oldName, newName);
+                  }
+                  setProfileModalVisible(false);
+                  Alert.alert("Berhasil", "Profil diperbarui!");
+                } catch (err) {
+                  Alert.alert('Error', 'Gagal memperbarui profil');
+                } finally {
+                  setLoading(false);
+                }
               }}
             >
                <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Simpan Profil</Text>
@@ -639,7 +642,7 @@ const SettingsScreen = ({ navigation }) => {
             <View style={{ marginBottom: 24 }}>
                <Text style={{ color: theme.onSurfaceVariant, fontSize: 13, marginBottom: 12 }}>Filter Data:</Text>
                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {['Saya', 'Pasangan', 'Kita'].map(f => (
+                  {['Ayip', 'Rika', 'Kita'].map(f => (
                     <TouchableOpacity key={f} onPress={() => setExportFilters({...exportFilters, user: f})} style={{ flex: 1, padding: 12, borderRadius: 12, backgroundColor: exportFilters.user === f ? theme.primary : theme.surfaceContainerLow, alignItems: 'center' }}>
                        <Text style={{ color: exportFilters.user === f ? theme.onPrimary : theme.onSurface, fontWeight: 'bold', fontSize: 12 }}>{f}</Text>
                     </TouchableOpacity>

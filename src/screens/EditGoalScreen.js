@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
-import { View, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, Alert, Modal, ActivityIndicator, Animated, Platform } from 'react-native';
+import TextInput from '../components/ThemeTextInput';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Alert, Modal, ActivityIndicator, Animated, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import Text from '../components/ThemeText';
@@ -297,7 +298,7 @@ export const EditGoalScreen = () => {
         if (hasPartner) {
           addNotification({
             title: 'Goal diubah',
-            body: `${user?.name || 'Pasanganmu'} telah mengubah detail goal "${goal.name}".`,
+            body: `${user?.name || 'Rika'} telah mengubah detail goal "${goal.name}".`,
             icon: 'edit',
             targetType: 'goal',
             targetId: goalId,
@@ -323,7 +324,7 @@ export const EditGoalScreen = () => {
         if (hasPartner) {
           addNotification({
             title: 'Goal dihapus',
-            body: `${user?.name || 'Pasanganmu'} telah menghapus goal "${goal.name}".`,
+            body: `${user?.name || 'Rika'} telah menghapus goal "${goal.name}".`,
             icon: 'delete',
             targetType: 'goal',
             targetId: goalId,
@@ -550,7 +551,7 @@ export const EditGoalScreen = () => {
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
           <View style={{ backgroundColor: theme.surface, borderRadius: 24, padding: 24, width: '100%', maxWidth: 400, alignItems: 'center' }}>
             <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: theme.error + '1A', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
-              <MaterialIcons name="delete-outline" size={32} color={theme.error} />
+              <MaterialIcons name="delete-sweep" size={40} color={theme.error} />
             </View>
             <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 8, textAlign: 'center' }}>Hapus Goal</Text>
             <Text style={{ fontSize: 14, color: theme.onSurfaceVariant, textAlign: 'center', marginBottom: 24 }}>

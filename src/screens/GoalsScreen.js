@@ -1,6 +1,7 @@
 import React, { useContext, useState, useMemo, useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
-import { View, StyleSheet, Image, TouchableOpacity, Dimensions, ActivityIndicator, TextInput, Alert, Modal, Animated, Platform } from 'react-native';
+import TextInput from '../components/ThemeTextInput';
+import { View, StyleSheet, Image, TouchableOpacity, Dimensions, ActivityIndicator, Alert, Modal, Animated, Platform } from 'react-native';
 import Text from '../components/ThemeText';
 import { ScrollView, FlatList } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -206,7 +207,7 @@ const EmptyGoalsState = ({ safeTheme, activeTab, navigation }) => (
     </View>
 
     <Text style={{ fontSize: 22, fontWeight: '900', color: safeTheme.onSurface, marginBottom: 12, letterSpacing: -0.5 }}>
-      {activeTab === 'active' ? 'Mulai Impian Kita' : 'Belum Ada Kenangan'}
+      {activeTab === 'active' ? 'Mulai Impian Ayip & Rika' : 'Belum Ada Kenangan'}
     </Text>
     
     <Text style={{ 
@@ -304,13 +305,11 @@ const AchievedGoalItem = React.memo(({ item, index, navigation, safeTheme, forma
 
 // --- Add Goal Screen (Modal Style) ---
 export const AddGoalScreen = () => {
-  const normalize = (s) => (s || '').toLowerCase().trim();
-  const myNameNorm = normalize(user?.name);
   const partnerUser = (householdUsers || []).find(u => {
-    const uName = normalize(typeof u === 'string' ? u : u.name);
-    return uName !== myNameNorm && !uName.includes(myNameNorm) && !myNameNorm.includes(uName);
+    const uName = typeof u === 'string' ? u : u.name;
+    return uName !== user?.name;
   });
-  const partnerName = (typeof partnerUser === 'string' ? partnerUser : partnerUser?.name) || 'Pasangan';
+  const partnerName = (typeof partnerUser === 'string' ? partnerUser : partnerUser?.name) || 'Rika';
   const hasPartner = !!partnerUser;
   const sendGoalNotification = async ({ title, body, goalId }) => {
     if (!hasPartner) return;
@@ -320,7 +319,7 @@ export const AddGoalScreen = () => {
       icon: 'stars',
       targetType: 'goal',
       targetId: goalId,
-      sender: user?.name || 'Saya',
+      sender: user?.name || 'Ayip',
       createdAt: new Date().toISOString(),
     });
   };
@@ -523,8 +522,16 @@ export const AddGoalScreen = () => {
       setLoadingMsg('Menyimpan goal...');
       console.log('Menyimpan ke Firestore...');
       
+      const ownerName = user?.name || 'Ayip';
       const firstMedia = finalMediaList.length > 0 ? finalMediaList[0] : null;
       const previewImage = firstMedia?.type === 'image' ? (firstMedia.url || firstMedia.uri) : null;
+      
+      const mediaWithMetadata = finalMediaList.map((m, i) => ({
+        ...m,
+        caption: mediaList[i]?.caption || '',
+        addedBy: ownerName,
+        addedAt: new Date().toISOString()
+      }));
       
       const newGoalId = await addGoal({
         name: name.trim(),
@@ -532,10 +539,11 @@ export const AddGoalScreen = () => {
         targetAmount: Number(target.replace(/\./g, '')) || 0,
         targetDate: targetDate || null,
         previewImage,
-        media: finalMediaList,
+        media: mediaWithMetadata,
         icon: customIcon || 'favorite',
         status: 'active',
         currentAmount: 0,
+        owner: ownerName,
         achieved: false
       });
       
@@ -545,7 +553,7 @@ export const AddGoalScreen = () => {
         setLoadingMsg('Mengirim notifikasi...');
         await sendGoalNotification({
           title: 'Goal baru',
-          body: `${user?.name || 'Saya'} menambahkan goal “${name.trim()}”.`,
+          body: `${user?.name || 'Ayip'} menambahkan goal “${name.trim()}”.`,
           goalId: newGoalId,
         });
       }
@@ -1312,7 +1320,7 @@ const GoalsScreen = ({ navigation, route }) => {
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
           <View style={{ backgroundColor: safeTheme.surface, borderRadius: 32, padding: 32, width: '100%', maxWidth: 400, alignItems: 'center' }}>
             <View style={{ width: 72, height: 72, borderRadius: 24, backgroundColor: safeTheme.error + '15', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
-              <MaterialIcons name="delete-outline" size={40} color={safeTheme.error} />
+              <MaterialIcons name="delete-sweep" size={40} color={safeTheme.error} />
             </View>
             <Text style={{ fontSize: 24, fontWeight: 'bold', color: safeTheme.onSurface, marginBottom: 8, textAlign: 'center' }}>Hapus Goal?</Text>
             <Text style={{ fontSize: 14, color: safeTheme.onSurfaceVariant, textAlign: 'center', marginBottom: 32, lineHeight: 20 }}>

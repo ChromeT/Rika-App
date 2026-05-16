@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Modal, Alert, TextInput, Animated, Platform, ActivityIndicator } from 'react-native';
+import TextInput from '../components/ThemeTextInput';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Modal, Alert, Animated, Platform, ActivityIndicator } from 'react-native';
 import Text from '../components/ThemeText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -152,7 +153,7 @@ const GoalDetailScreen = ({ route }) => {
     const uName = normalize(typeof u === 'string' ? u : u.name);
     return uName !== myNameNorm && !uName.includes(myNameNorm) && !myNameNorm.includes(uName);
   });
-  const partnerName = (typeof partnerUser === 'string' ? partnerUser : partnerUser?.name) || 'Pasangan';
+  const partnerName = (typeof partnerUser === 'string' ? partnerUser : partnerUser?.name) || 'Rika';
   const hasPartner = !!partnerUser;
 
   const goal = goals.find(g => g.id === goalId);
@@ -226,7 +227,7 @@ const GoalDetailScreen = ({ route }) => {
       const now = new Date().toISOString();
       const newEntry = {
         amount,
-        user: user?.name || 'Saya',
+        user: user?.name || 'Ayip',
         date: now,
       };
       
@@ -240,10 +241,10 @@ const GoalDetailScreen = ({ route }) => {
 
       await addNotification({
         title: 'Dana Ditambahkan!',
-        body: `${user?.name || 'Saya'} baru saja menambah Rp ${formatMoney(amount)} untuk goal "${goal.name}".`,
+        body: `${user?.name || 'Ayip'} baru saja menambah Rp ${formatMoney(amount)} untuk goal "${goal.name}".`,
         icon: 'favorite',
         color: 'primary',
-        sender: user?.name || 'Sistem',
+        sender: user?.name || 'Ayip',
         targetType: 'goal',
         targetId: goal.id,
       });
@@ -267,11 +268,11 @@ const GoalDetailScreen = ({ route }) => {
       if (hasPartner) {
         await addNotification({
           title: 'Goal dihapus',
-          body: `${user?.name || 'Pasanganmu'} telah menghapus goal "${goal.name}".`,
+          body: `${user?.name || 'Ayip'} telah menghapus goal "${goal.name}".`,
           icon: 'delete',
           targetType: 'goal',
           targetId: goal.id,
-          sender: user?.name || 'Sistem',
+          sender: user?.name || 'Ayip',
           createdAt: new Date().toISOString(),
         });
       }
@@ -509,6 +510,7 @@ const GoalDetailScreen = ({ route }) => {
             })()}
           </Animated.View>
         </View>
+        <View style={{ height: 150 }} />
       </Animated.ScrollView>
 
       <AddFundingModal

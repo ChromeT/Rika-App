@@ -11,6 +11,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { ThemeContext } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import { DataContext } from '../context/DataContext';
+import { useStaggeredEntry } from '../hooks/useStaggeredEntry';
 
 import { formatMoney } from '../utils/formatUtils';
 
@@ -29,64 +30,14 @@ const CoupleScreen = ({ navigation }) => {
   const dateInputRef = useRef(null);
 
   // Animations
-  const fadeAnims = React.useRef([
-    new Animated.Value(0), // Header
-    new Animated.Value(0), // Couple Card
-    new Animated.Value(0), // Stats Section
-    new Animated.Value(0), // Info Section
-    new Animated.Value(0), // Timeline Section
-  ]).current;
-
-  const slideAnims = React.useRef([
-    new Animated.Value(20),
-    new Animated.Value(20),
-    new Animated.Value(20),
-    new Animated.Value(20),
-    new Animated.Value(20),
-  ]).current;
-
-  React.useEffect(() => {
-    Animated.stagger(100, [
-      Animated.parallel([
-        Animated.timing(fadeAnims[0], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
-        Animated.spring(slideAnims[0], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
-      ]),
-      Animated.parallel([
-        Animated.timing(fadeAnims[1], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
-        Animated.spring(slideAnims[1], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
-      ]),
-      Animated.parallel([
-        Animated.timing(fadeAnims[2], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
-        Animated.spring(slideAnims[2], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
-      ]),
-      Animated.parallel([
-        Animated.timing(fadeAnims[3], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
-        Animated.spring(slideAnims[3], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
-      ]),
-      Animated.parallel([
-        Animated.timing(fadeAnims[4], { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
-        Animated.spring(slideAnims[4], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' })
-      ])
-    ]).start();
-  }, []);
+  const { fadeAnims, slideAnims, animateOut } = useStaggeredEntry(5, 100, 600, 20);
 
   const handleBack = () => {
-    Animated.parallel([
-      Animated.timing(fadeAnims[0], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(fadeAnims[1], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(fadeAnims[2], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(fadeAnims[3], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(fadeAnims[4], { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(slideAnims[0], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(slideAnims[1], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(slideAnims[2], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(slideAnims[3], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(slideAnims[4], { toValue: -20, duration: 300, useNativeDriver: Platform.OS !== 'web' })
-    ]).start(() => navigation.goBack());
+    animateOut(() => navigation.goBack());
   };
 
-  const myName = user?.name || 'Saya';
-  const partnerName = (householdUsers || []).find(u => u !== myName);
+  const myName = user?.name || 'Ayip';
+  const partnerName = (householdUsers || []).find(u => u !== myName) || 'Rika';
   const hasPartner = !!partnerName;
 
   const getDurationText = (startDate) => {
@@ -237,7 +188,7 @@ const CoupleScreen = ({ navigation }) => {
                 {partnerName || 'Belum Ada'}
               </Text>
               <View style={[styles.roleBadge, { backgroundColor: hasPartner ? theme.primaryContainer + '15' : theme.surfaceContainerHighest }]}>
-                <Text style={[styles.roleText, { color: hasPartner ? theme.primaryContainer : theme.onSurfaceVariant }]}>PASANGAN</Text>
+                <Text style={[styles.roleText, { color: hasPartner ? theme.primaryContainer : theme.onSurfaceVariant }]}>RIKA</Text>
               </View>
             </View>
           </View>
@@ -246,7 +197,7 @@ const CoupleScreen = ({ navigation }) => {
             <TouchableOpacity style={[styles.inviteBanner, { backgroundColor: theme.primary + '0D', marginTop: 16 }]} onPress={copyToClipboard}>
               <MaterialIcons name="auto-fix-high" size={16} color={theme.primary} />
               <Text style={[styles.inviteText, { color: theme.onSurfaceVariant, fontSize: 11 }]}>
-                Berikan kode rumah tangga ke pasanganmu untuk terhubung.
+                Berikan kode rumah tangga ke Rika untuk terhubung.
               </Text>
             </TouchableOpacity>
           )}
@@ -274,7 +225,7 @@ const CoupleScreen = ({ navigation }) => {
               <Text style={[styles.miniValue, { color: theme.onSurface }]}>Rp {formatMoney(myBalance)}</Text>
             </View>
             <View style={[styles.miniStat, { backgroundColor: theme.surfaceContainerLow }]}>
-              <Text style={[styles.miniLabel, { color: theme.onSurfaceVariant }]}>MILIK {(partnerName || 'Pasangan').toUpperCase()}</Text>
+              <Text style={[styles.miniLabel, { color: theme.onSurfaceVariant }]}>MILIK {partnerName.toUpperCase()}</Text>
               <Text style={[styles.miniValue, { color: theme.onSurface }]}>Rp {formatMoney(partnerBalance)}</Text>
             </View>
           </View>
@@ -319,7 +270,7 @@ const CoupleScreen = ({ navigation }) => {
                   <Text style={[styles.infoLabel, { color: theme.onSurfaceVariant, fontSize: 10, letterSpacing: 0.5 }]}>STATUS KONEKSI</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={[styles.infoValue, { color: hasPartner ? '#10B981' : theme.error, fontSize: 15, fontWeight: '700' }]}>
-                      {hasPartner ? 'Terhubung Aktif' : 'Menunggu Pasangan'}
+                      {hasPartner ? 'Terhubung Aktif' : 'Menunggu Rika'}
                     </Text>
                     {hasPartner && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' }} />}
                   </View>
@@ -399,11 +350,13 @@ const CoupleScreen = ({ navigation }) => {
               }
 
               const roadmapItems = safeGoals
-                .filter(g => g.status !== 'achieved' && g.achieved !== true && g.targetDate)
+                .filter(g => g.status !== 'achieved' && g.achieved !== true)
                 .sort((a,b) => {
-                  const dateA = dayjs(a.targetDate);
-                  const dateB = dayjs(b.targetDate);
-                  return (dateA.isValid() ? dateA.valueOf() : 0) - (dateB.isValid() ? dateB.valueOf() : 0);
+                  const dateA = a.targetDate ? dayjs(a.targetDate) : null;
+                  const dateB = b.targetDate ? dayjs(b.targetDate) : null;
+                  const valA = (dateA && dateA.isValid()) ? dateA.valueOf() : Infinity;
+                  const valB = (dateB && dateB.isValid()) ? dateB.valueOf() : Infinity;
+                  return valA - valB;
                 })
                 .map(g => {
                   const info = getGoalStatusInfo(g);

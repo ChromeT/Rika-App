@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { AuthContext } from './AuthContext';
 import { db } from '../config/firebase';
-import { collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, getDoc, deleteField, arrayUnion } from 'firebase/firestore';
+import { collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, getDoc, deleteField, arrayUnion, query, orderBy, limit } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import { formatMoney } from '../utils/formatUtils';
@@ -101,8 +101,14 @@ export const DataProvider = ({ children }) => {
         }
       };
 
-      const txSub = onSnapshot(
+      const txQuery = query(
         collection(houseRef, 'transactions'),
+        orderBy('date', 'desc'),
+        limit(150)
+      );
+
+      const txSub = onSnapshot(
+        txQuery,
         (snapshot) => {
           const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           data.sort((a, b) => safeDate(b.date) - safeDate(a.date));
@@ -151,8 +157,14 @@ export const DataProvider = ({ children }) => {
       );
       unsubs.push(billSub);
 
-      const notifSub = onSnapshot(
+      const notifQuery = query(
         collection(houseRef, 'notifications'),
+        orderBy('createdAt', 'desc'),
+        limit(50)
+      );
+
+      const notifSub = onSnapshot(
+        notifQuery,
         (snapshot) => {
           const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           data.sort((a, b) => safeDate(b.createdAt) - safeDate(a.createdAt));
@@ -509,7 +521,7 @@ export const DataProvider = ({ children }) => {
         createdAt: new Date().toISOString()
       });
       
-      // OTOMATIS KIRIM PUSH KE PASANGAN (kecuali jika notif ini untuk diri sendiri)
+      // OTOMATIS KIRIM PUSH KE RIKA (kecuali jika notif ini untuk diri sendiri)
       const partnerName = householdUsers.find(u => u !== user?.name);
       if (partnerName) {
         sendPushNotification(partnerName, notif.title || 'Rika App', notif.message || 'Ada kabar baru buat kamu!');
@@ -624,9 +636,9 @@ export const DataProvider = ({ children }) => {
         icon: 'check-circle',
         color: 'primary',
         sender: myName,
-        targetType: 'transaction', // Ubah ke transaction agar dapet highlight ID yang pasti
-        targetId: newTxId, // Gunakan ID transaksi baru
-        targetName: `Bayar Tagihan: ${bill.name}`, // Fallback nama yang akurat
+        targetType: 'transaction', 
+        targetId: newTxId, 
+        targetName: `Bayar Tagihan: ${bill.name}`, 
       });
 
     } catch (e) {
@@ -943,14 +955,103 @@ export const DataProvider = ({ children }) => {
     }
   };
 
+  const migrateUserData = async (oldName, newName) => {
+    if (!oldName || !newName || oldName === newName || !user?.householdId) return;
+    const houseId = user.householdId;
+    try {
+      for (const acc of accounts) {
+        if (acc.owner === oldName) await updateDoc(doc(db, 'households', houseId, 'accounts', acc.id), { owner: newName });
+      }
+      for (const tx of transactions) {
+        if (tx.owner === oldName) await updateDoc(doc(db, 'households', houseId, 'transactions', tx.id), { owner: newName });
+      }
+      for (const goal of goals) {
+        let nUpdate = false;
+        let uData = {};
+        if (goal.owner === oldName) { uData.owner = newName; nUpdate = true; }
+        if (Array.isArray(goal.memories)) {
+          const nm = goal.memories.map(m => m.addedBy === oldName ? { ...m, addedBy: newName } : m);
+          if (JSON.stringify(nm) !== JSON.stringify(goal.memories)) { uData.memories = nm; nUpdate = true; }
+        }
+        if (nUpdate) await updateDoc(doc(db, 'households', houseId, 'goals', goal.id), uData);
+      }
+      console.log('[Migration] Success!');
+    } catch (e) { console.error('[Migration] Failed:', e); }
+  };
+
+  const forceCleanHistoricalData = async (correctName) => {
+    if (!correctName || !user?.householdId) return;
+    const houseId = user.householdId;
+    const norm = correctName.toLowerCase().trim();
+    const isMatch = (v) => v && (v.toLowerCase().trim() === norm || v.toLowerCase().trim().includes(norm) || norm.includes(v.toLowerCase().trim()));
+    try {
+      setLoading(true);
+      console.log('[CleanUp] Starting Wallets...');
+      for (const acc of accounts) {
+        if (acc.owner !== 'Bersama' && isMatch(acc.owner) && acc.owner !== correctName) {
+          console.log(`[CleanUp] Updating Wallet: ${acc.name} (${acc.owner} -> ${correctName})`);
+          await updateDoc(doc(db, 'households', houseId, 'accounts', acc.id), { owner: correctName });
+        }
+      }
+      
+      console.log('[CleanUp] Starting Transactions...');
+      for (const tx of transactions) {
+        if (isMatch(tx.owner) && tx.owner !== correctName) {
+          console.log(`[CleanUp] Updating Transaction: ${tx.name} (${tx.owner} -> ${correctName})`);
+          await updateDoc(doc(db, 'households', houseId, 'transactions', tx.id), { owner: correctName });
+        }
+      }
+
+      console.log('[CleanUp] Starting Goals...');
+      for (const goal of goals) {
+        let nUpdate = false;
+        let uData = {};
+        if (isMatch(goal.owner) && goal.owner !== correctName) { 
+          console.log(`[CleanUp] Updating Goal Owner: ${goal.title} (${goal.owner} -> ${correctName})`);
+          uData.owner = correctName; 
+          nUpdate = true; 
+        }
+        if (Array.isArray(goal.memories)) {
+          const nm = goal.memories.map(m => isMatch(m.addedBy) ? { ...m, addedBy: correctName } : m);
+          if (JSON.stringify(nm) !== JSON.stringify(goal.memories)) { 
+            console.log(`[CleanUp] Updating Memories in: ${goal.title}`);
+            uData.memories = nm; 
+            nUpdate = true; 
+          }
+        }
+        if (nUpdate) await updateDoc(doc(db, 'households', houseId, 'goals', goal.id), uData);
+      }
+      console.log('[CleanUp] DONE!');
+      Alert.alert('Berhasil', 'Data kamu sudah dibersihkan!');
+    } catch (e) { 
+      console.error('[CleanUp] CRITICAL ERROR:', e); 
+      Alert.alert('Error', 'Gagal membersihkan data: ' + e.message);
+    } finally { 
+      setLoading(false); 
+    }
+  };
+
+  const markGoalAchieved = async (goalId) => {
+    if (!user || !user.householdId) return;
+    try {
+      const goalRef = doc(db, 'households', user.householdId, 'goals', goalId);
+      await updateDoc(goalRef, { 
+        status: 'achieved', 
+        achievedAt: new Date().toISOString() 
+      });
+    } catch (e) {
+      console.error('Failed to mark goal as achieved', e);
+    }
+  };
+
   return (
     <DataContext.Provider value={{
       transactions, addTransaction, updateTransaction, deleteTransaction, addTransfer, getBalance, confirmSplitTransaction,
-      goals, addGoal, updateGoal, deleteGoal,
+      goals, addGoal, updateGoal, deleteGoal, markGoalAchieved,
       bills, addBill, updateBill, deleteBill, payBill,
       accounts, addAccount, updateAccount, deleteAccount,
       notifications, addNotification, sendPushNotification, markSingleNotifAsRead, markAllNotificationsAsRead,
-      categories, addCategory, updateCategory, deleteCategory,
+      categories, addCategory, updateCategory, deleteCategory, migrateUserData, forceCleanHistoricalData,
       loading
     }}>
       {children}

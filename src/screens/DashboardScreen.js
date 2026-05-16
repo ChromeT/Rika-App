@@ -1,5 +1,6 @@
 import React, { useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Dimensions, Modal, Image, Alert, Animated, ActivityIndicator, RefreshControl, Platform, Text as RNText } from 'react-native';
+import TextInput from '../components/ThemeTextInput';
+import { View, StyleSheet, TouchableOpacity, Dimensions, Modal, Image, Alert, Animated, ActivityIndicator, RefreshControl, Platform, Text as RNText } from 'react-native';
 import Text from '../components/ThemeText';
 import { ScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +14,17 @@ import Svg, { Circle, G } from 'react-native-svg';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatMoney } from '../utils/formatUtils';
 import { getShadow } from '../utils/styleUtils';
+import { styles, fabActions } from './DashboardStyles';
+import { 
+  DashboardHeader, 
+  HeroSection, 
+  PendingSplitsSection, 
+  WalletsSection, 
+  ExpenseAnalysisSection, 
+  BillsSection, 
+  GoalsSection, 
+  RecentActivitiesSection 
+} from '../components/dashboard/DashboardSections';
 
 const { width } = Dimensions.get('window');
 
@@ -33,552 +45,7 @@ const { width } = Dimensions.get('window');
  * - Kita pake banyak Animated.View biar transisinya halus pas user scroll atau ganti filter.
  */
 
-// --- [SUB-KOMPONEN: Header] ---
-// Kenapa dipisah? Biar logika 'Halo, Nama' dan 'Notifikasi' nggak menuh-menuhin main render.
-const DashboardHeader = ({ avatar, myName, theme, setNotifyVisible, notifications, user, navigation }) => (
-
-  <View style={[styles.header, { backgroundColor: theme.background }]}>
-    <View style={styles.headerLeft}>
-      <TouchableOpacity onPress={() => navigation.navigate('Couple')} style={styles.avatarWrapper}>
-        {avatar?.startsWith('file://') || avatar?.startsWith('data:image') ? (
-          <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />
-        ) : (
-          <MaterialIcons name={avatar || 'person'} size={28} color={theme.primary} />
-        )}
-      </TouchableOpacity>
-      <View>
-        <Text style={{ fontSize: 12, color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Halo,</Text>
-        <Text style={[styles.headerTitle, { color: theme.onSurface }]}>{myName}</Text>
-      </View>
-    </View>
-    <TouchableOpacity onPress={() => setNotifyVisible(true)} style={styles.notifBtn}>
-      <MaterialIcons name="notifications-none" size={26} color={theme.onSurface} />
-      {notifications.filter(n => {
-        if (!user?.name || !n.sender) return true;
-        return n.sender.toLowerCase().trim() !== user.name.toLowerCase().trim();
-      }).filter(n => !n.readBy?.includes(user?.name)).length > 0 && (
-        <View style={styles.notifBadge}>
-          <Text style={{ color: theme.onPrimary, fontSize: 8, fontWeight: '900' }}>
-            {notifications.filter(n => {
-              if (!user?.name || !n.sender) return true;
-              return n.sender.toLowerCase().trim() !== user.name.toLowerCase().trim();
-            }).filter(n => !n.readBy?.includes(user?.name)).length}
-          </Text>
-        </View>
-      )}
-    </TouchableOpacity>
-  </View>
-);
-
-// --- [SUB-KOMPONEN: Hero Section] ---
-// Ini kartu saldo utama. Kita pake LinearGradient buat kesan premium.
-const HeroSection = ({ theme, filter, formatMoney, getBalance, myName, partnerName, setFilter, animStyle }) => (
-  <Animated.View style={animStyle}>
-    <LinearGradient colors={[theme.primary, theme.primary + 'AA']} style={styles.heroCard} start={{x:0,y:0}} end={{x:1,y:1}}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.heroLabel}>Total Saldo {filter}</Text>
-        <Text style={styles.heroValue} numberOfLines={1} adjustsFontSizeToFit>Rp {formatMoney(getBalance(filter))}</Text>
-      </View>
-      <View style={styles.filterRow}>
-        {['Kita', myName, partnerName].filter(Boolean).map(f => (
-          <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.filterChip, filter === f && styles.filterChipActive]}>
-            <Text style={[styles.filterChipText, filter === f && { color: theme.primary }]}>{f}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </LinearGradient>
-  </Animated.View>
-);
-
-
-// --- [SUB-KOMPONEN: Pending Splits] ---
-// Area ini cuma muncul kalo ada transaksi yang butuh konfirmasi patungan.
-const PendingSplitsSection = ({ pendingSplits, theme, formatMoney, setSelectedSplitTx, setSplitModalVisible, highlightedId, highlightAnim, animStyle, itemLayouts, sectionLayouts }) => (
-  <Animated.View 
-    onLayout={(e) => { sectionLayouts.current.pending = e.nativeEvent.layout.y; }}
-    style={animStyle.style || animStyle}
-  >
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-      <MaterialIcons name="notification-important" size={20} color={theme.primary} />
-      <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.onSurface }}>Butuh Konfirmasi Kamu</Text>
-      <View style={{ backgroundColor: theme.error, borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 }}>
-        <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>{pendingSplits.length}</Text>
-      </View>
-    </View>
-    {pendingSplits.map(tx => (
-      <Animated.View 
-        key={tx.id} 
-        onLayout={(e) => {
-          const layout = e.nativeEvent.layout;
-          itemLayouts.current[`pending_${tx.id}`] = { localY: layout.y, height: layout.height, section: 'pending' };
-        }}
-        style={{ 
-          backgroundColor: highlightedId === `pending_${tx.id}` ? 
-            highlightAnim.interpolate({ inputRange: [0, 1], outputRange: [theme.surfaceContainerLow, theme.primary + '33'] }) : 
-            theme.surfaceContainerLow, 
-          borderRadius: 24, 
-          borderWidth: 1.5, 
-          borderColor: highlightedId === `pending_${tx.id}` ? theme.primary : theme.primary + '33',
-          marginBottom: 12,
-          overflow: 'hidden'
-        }}
-      >
-        <TouchableOpacity 
-          onPress={() => {
-            setSelectedSplitTx(tx);
-            setSplitModalVisible(true);
-          }}
-          style={{ padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: theme.onSurface }}>{tx.name}</Text>
-            <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>
-              {tx.isJoint ? 'Bagi rata 50:50' : 'Patungan Custom'} • Rp {formatMoney(tx.partnerContrib)}
-            </Text>
-          </View>
-          <View style={{ backgroundColor: theme.primary, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 }}>
-            <Text style={{ color: theme.onPrimary, fontSize: 12, fontWeight: 'bold' }}>Konfirmasi</Text>
-          </View>
-        </TouchableOpacity>
-      </Animated.View>
-    ))}
-  </Animated.View>
-);
-
-// --- [SUB-KOMPONEN: Wallets Section] ---
-const WalletsSection = ({ accounts, theme, formatMoney, navigation, animStyle, width, sectionLayouts }) => (
-  <Animated.View 
-    onLayout={(e) => { sectionLayouts.current.wallets = e.nativeEvent.layout.y; }}
-    style={animStyle.style || animStyle}
-  >
-    <View style={styles.sectionHeader}>
-      <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Dompet Kita</Text>
-      <TouchableOpacity onPress={() => navigation.navigate('Wallets')}><Text style={{ color: theme.primary, fontWeight: 'bold' }}>Semua</Text></TouchableOpacity>
-    </View>
-    <ScrollView 
-      horizontal 
-      showsHorizontalScrollIndicator={false} 
-      style={styles.walletScroll}
-      contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 12 }}
-    >
-      {accounts.length === 0 ? (
-        <TouchableOpacity 
-          style={[styles.walletCard, { width: width - 48, height: 90, backgroundColor: theme.surface, borderWidth: 2, borderStyle: 'dashed', borderColor: theme.outline, justifyContent: 'center', gap: 16 }]} 
-          onPress={() => navigation.navigate('AddAccount')}
-        >
-          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: theme.primary + '15', justifyContent: 'center', alignItems: 'center' }}>
-            <MaterialIcons name="account-balance-wallet" size={24} color={theme.primary} />
-          </View>
-          <View>
-            <Text style={{ fontSize: 15, fontWeight: 'bold', color: theme.onSurface }}>Belum ada dompet</Text>
-            <Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>Tap di sini untuk tambah dompet pertama kamu</Text>
-          </View>
-        </TouchableOpacity>
-      ) : (
-        <>
-          {accounts.map(acc => (
-            <TouchableOpacity 
-              key={acc.id} 
-              style={[styles.walletCard, { backgroundColor: theme.surface, ...getShadow(theme.onSurface, 0.04, 8, { width: 0, height: 4 }, 2) }]} 
-              onPress={() => navigation.navigate('Wallets', { walletId: acc.id })}
-            >
-              <View style={[styles.walletIcon, { backgroundColor: (acc.color || theme.primary) + '15' }]}>
-                <MaterialIcons name={acc.icon || 'payments'} size={20} color={acc.color || theme.primary} />
-              </View>
-              <View>
-                <Text style={[styles.walletName, { color: theme.onSurface }]} numberOfLines={1}>{acc.name}</Text>
-                <Text style={[styles.walletBalance, { color: theme.primary }]}>Rp {formatMoney(acc.balance)}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity 
-            style={[styles.walletCard, { borderStyle: 'dashed', borderWidth: 1.5, borderColor: theme.outline, backgroundColor: 'transparent', elevation: 0, shadowOpacity: 0 }]} 
-            onPress={() => navigation.navigate('AddAccount')}
-          >
-            <MaterialIcons name="add-circle-outline" size={24} color={theme.onSurfaceVariant} />
-            <Text style={{ color: theme.onSurfaceVariant, fontSize: 12, fontWeight: 'bold' }}>Tambah</Text>
-          </TouchableOpacity>
-        </>
-      )}
-    </ScrollView>
-  </Animated.View>
-);
-
-// --- [SUB-KOMPONEN: Expense Analysis] ---
-// Ini bagian paling 'berat' karena ada SVG Donut Chart.
-const ExpenseAnalysisSection = ({ 
-  theme, filter, myName, partnerName, setFilter, timeFilter, setTimeFilter, 
-  customStartDate, customEndDate, setShowStartPicker, setShowEndPicker,
-  showStartPicker, showEndPicker, setCustomStartDate, setCustomEndDate,
-  segments, totalExpense, formatMoney, RADIUS, CIRCUMFERENCE, animStyle, sectionLayouts, isDarkMode
-}) => (
-  <Animated.View 
-    onLayout={(e) => { sectionLayouts.current.expense = e.nativeEvent.layout.y; }}
-    style={animStyle.style || animStyle}
-  >
-    <View style={[
-      styles.surfaceCard, 
-      { 
-        backgroundColor: theme.surface, 
-        padding: 24, 
-        borderRadius: 32, 
-        marginBottom: 24, 
-        borderWidth: 1, 
-        borderColor: theme.outlineVariant + '33', // Increased border opacity to 20%
-        // Hardening shadow for web/ios/android
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: isDarkMode ? 0.2 : 0.08,
-        shadowRadius: 16,
-        elevation: 4
-      }
-    ]}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Pengeluaran</Text>
-        <View style={{ flexDirection: 'row', backgroundColor: theme.surfaceContainerHighest + '66', padding: 3, borderRadius: 12, borderWidth: 1, borderColor: theme.outlineVariant + '11' }}>
-          {['Kita', myName, (partnerName || 'Pasangan')].map(f => (
-            <TouchableOpacity key={f} onPress={() => setFilter(f)} style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9, backgroundColor: filter === f ? theme.primary : 'transparent' }}>
-              <Text style={{ fontSize: 10, fontWeight: '900', color: filter === f ? theme.onPrimary : theme.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.5 }}>{f}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16, marginHorizontal: -24 }}>
-        <View style={{ flexDirection: 'row', paddingHorizontal: 24, gap: 8 }}>
-          {['Hari ini', 'Minggu ini', 'Bulan ini', 'Tahun ini', 'Semua Waktu', 'Kustom'].map(tf => (
-            <TouchableOpacity 
-              key={tf} onPress={() => setTimeFilter(tf)} 
-              style={[{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 14, backgroundColor: theme.surfaceContainerHighest + '44', borderWidth: 1, borderColor: theme.outlineVariant + '11' }, timeFilter === tf && { backgroundColor: theme.primary, borderColor: theme.primary }]}
-            >
-              <Text style={{ color: timeFilter === tf ? theme.onPrimary : theme.onSurfaceVariant, fontSize: 12, fontWeight: 'bold' }}>{tf}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
-
-      {timeFilter === 'Kustom' && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24, backgroundColor: theme.surfaceContainerHighest + '33', padding: 12, borderRadius: 20, borderWidth: 1, borderColor: theme.outlineVariant + '11' }}>
-          <TouchableOpacity 
-            onPress={() => {
-              if (Platform.OS === 'web') document.getElementById('custom-start-date')?.showPicker?.() || document.getElementById('custom-start-date')?.click();
-              else setShowStartPicker(true);
-            }}
-            style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: theme.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.outlineVariant + '22' }}
-          >
-            <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, fontWeight: 'bold', marginBottom: 2 }}>MULAI</Text>
-            <Text style={{ fontSize: 12, color: theme.onSurface, fontWeight: '900' }}>{customStartDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</Text>
-          </TouchableOpacity>
-          <MaterialIcons name="arrow-forward" size={16} color={theme.outlineVariant} />
-          <TouchableOpacity 
-            onPress={() => {
-              if (Platform.OS === 'web') document.getElementById('custom-end-date')?.showPicker?.() || document.getElementById('custom-end-date')?.click();
-              else setShowEndPicker(true);
-            }}
-            style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: theme.surface, borderRadius: 12, borderWidth: 1, borderColor: theme.outlineVariant + '22' }}
-          >
-            <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, fontWeight: 'bold', marginBottom: 2 }}>SELESAI</Text>
-            <Text style={{ fontSize: 12, color: theme.onSurface, fontWeight: '900' }}>{customEndDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</Text>
-          </TouchableOpacity>
-
-          {(showStartPicker || showEndPicker) && Platform.OS !== 'web' && (
-            <DateTimePicker
-              value={showStartPicker ? customStartDate : customEndDate}
-              mode="date" display="default"
-              onChange={(event, selectedDate) => {
-                setShowStartPicker(false); setShowEndPicker(false);
-                if (selectedDate) {
-                  if (showStartPicker) setCustomStartDate(selectedDate);
-                  else setCustomEndDate(selectedDate);
-                }
-              }}
-            />
-          )}
-          {Platform.OS === 'web' && (
-            <View style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}>
-              <input type="date" id="custom-start-date" value={customStartDate.toISOString().split('T')[0]} onChange={(e) => { if (e.target.value) { setCustomStartDate(new Date(e.target.value)); setShowStartPicker(false); } }} />
-              <input type="date" id="custom-end-date" value={customEndDate.toISOString().split('T')[0]} onChange={(e) => { if (e.target.value) { setCustomEndDate(new Date(e.target.value)); setShowEndPicker(false); } }} />
-            </View>
-          )}
-        </View>
-      )}
-
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
-        <View style={{ width: 140, height: 140, position: 'relative', justifyContent: 'center', alignItems: 'center' }}>
-          <Svg width="140" height="140" viewBox="0 0 120 120">
-            <G rotation={-90} originX={60} originY={60}>
-              <Circle cx="60" cy="60" r={RADIUS} stroke={theme.surfaceContainerHighest + '44'} strokeWidth="10" fill="none" />
-              {segments.map((seg, i) => {
-                let offset = segments.slice(0, i).reduce((s, x) => s + x.dash, 0);
-                return <Circle key={i} cx="60" cy="60" r={RADIUS} stroke={seg.color} strokeWidth="10" fill="none" strokeDasharray={`${seg.dash} ${CIRCUMFERENCE}`} strokeDashoffset={-offset} strokeLinecap="round" />;
-              })}
-            </G>
-          </Svg>
-          <View style={{ position: 'absolute', alignItems: 'center' }}>
-            <Text style={{ fontSize: 9, color: theme.onSurfaceVariant, fontWeight: '900', letterSpacing: 1.5, opacity: 0.9 }}>TOTAL</Text>
-            <Text style={{ fontSize: 13, fontWeight: '900', color: theme.onSurface, marginTop: 2 }}>Rp {formatMoney(totalExpense)}</Text>
-          </View>
-        </View>
-        <View style={{ flex: 1, gap: 12 }}>
-          {segments.length === 0 ? (
-            <Text style={{ color: theme.onSurfaceVariant, fontSize: 12, fontStyle: 'italic' }}>Belum ada data pengeluaran</Text>
-          ) : (
-            segments.map((seg, i) => {
-              const exactPercentage = (seg.amount / (totalExpense || 1)) * 100;
-              const displayPercentage = exactPercentage > 0 && exactPercentage < 1 ? '< 1' : Math.round(exactPercentage);
-              return (
-                <View key={i} style={{ width: '100%' }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: seg.color }} />
-                      <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurface }} numberOfLines={1}>{seg.cat}</Text>
-                    </View>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: theme.primary }}>{displayPercentage}%</Text>
-                  </View>
-                  <View style={{ height: 4, backgroundColor: theme.surfaceContainerHighest + '44', borderRadius: 2, width: '100%' }}>
-                    <View style={{ height: '100%', width: `${Math.max(exactPercentage, 1)}%`, backgroundColor: seg.color, borderRadius: 2 }} />
-                  </View>
-                </View>
-              );
-            })
-          )}
-        </View>
-      </View>
-    </View>
-  </Animated.View>
-);
-
-
-// --- [SUB-KOMPONEN: Bills Section] ---
-const BillsSection = ({ bills, theme, formatMoney, setSelectedBill, setBillActionModalVisible, highlightedId, highlightAnim, animStyle, itemLayouts, resetBillForm, setBillModalVisible, sectionLayouts }) => (
-  <Animated.View 
-    onLayout={(e) => { sectionLayouts.current.bills = e.nativeEvent.layout.y; }}
-    style={animStyle.style || animStyle}
-  >
-    <View style={[styles.sectionHeader, { marginBottom: 16 }]}>
-      <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Tagihan Mendatang</Text>
-      <TouchableOpacity onPress={() => { resetBillForm(); setBillModalVisible(true); }}>
-        <View style={{ backgroundColor: theme.primary + '15', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
-          <Text style={{ color: theme.primary, fontSize: 11, fontWeight: 'bold' }}>+ Baru</Text>
-        </View>
-      </TouchableOpacity>
-    </View>
-    {bills.length === 0 ? (
-      <TouchableOpacity 
-        onPress={() => setBillModalVisible(true)}
-        style={{ backgroundColor: theme.surface, borderRadius: 24, padding: 20, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: theme.outlineVariant + '44' }}
-      >
-        <MaterialIcons name="receipt-long" size={32} color={theme.onSurfaceVariant + '44'} />
-        <Text style={{ color: theme.onSurfaceVariant, fontSize: 13, marginTop: 8 }}>Belum ada tagihan terdaftar</Text>
-      </TouchableOpacity>
-    ) : (
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20, paddingHorizontal: 20 }}>
-        {bills.sort((a,b) => {
-          const today = new Date(); today.setHours(0,0,0,0);
-          const aDate = new Date(a.dueDate); aDate.setHours(0,0,0,0);
-          const bDate = new Date(b.dueDate); bDate.setHours(0,0,0,0);
-          return (aDate - today) - (bDate - today);
-        }).slice(0, 5).map(bill => (
-          <Animated.View 
-            key={bill.id}
-            onLayout={(e) => {
-              itemLayouts.current[bill.id] = { localY: e.nativeEvent.layout.y, section: 'bills' }; 
-            }}
-          >
-            <TouchableOpacity 
-              onPress={() => { setSelectedBill(bill); setBillActionModalVisible(true); }}
-              style={{ 
-                backgroundColor: highlightedId === bill.id ? 
-                  highlightAnim.interpolate({ inputRange: [0, 1], outputRange: [theme.surface, theme.primary + '33'] }) : 
-                  theme.surface, 
-                padding: 20, borderRadius: 28, width: 220, marginRight: 16, borderWidth: 1, 
-                borderColor: highlightedId === bill.id ? theme.primary : theme.outlineVariant + '11' 
-              }}
-            >
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: bill.color + '15', justifyContent: 'center', alignItems: 'center' }}>
-                  <MaterialIcons name={bill.icon || 'favorite'} size={20} color={bill.color} />
-                </View>
-                <View style={{ backgroundColor: (() => {
-                  const today = new Date(); today.setHours(0,0,0,0);
-                  const target = new Date(bill.dueDate); target.setHours(0,0,0,0);
-                  const diff = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
-                  return diff <= 3 ? '#F43F5E' : theme.primary;
-                })() + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-                  <Text style={{ color: (() => {
-                    const today = new Date(); today.setHours(0,0,0,0);
-                    const target = new Date(bill.dueDate); target.setHours(0,0,0,0);
-                    const diff = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
-                    return diff <= 3 ? '#F43F5E' : theme.primary;
-                  })(), fontSize: 10, fontWeight: 'bold' }}>
-                    {(() => {
-                      const today = new Date(); today.setHours(0,0,0,0);
-                      const target = new Date(bill.dueDate); target.setHours(0,0,0,0);
-                      const diff = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
-                      return diff < 0 ? `Terlewat ${Math.abs(diff)}` : `${diff}`;
-                    })()} Hari
-                  </Text>
-                </View>
-              </View>
-              <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 14 }} numberOfLines={1}>{bill.name}</Text>
-              <Text style={{ color: theme.primary, fontWeight: '900', fontSize: 12, marginTop: 4 }}>Rp {formatMoney(bill.amount)}</Text>
-              {bill.type === 'installment' && (
-                <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: theme.outlineVariant + '22' }}>
-                  <Text style={{ fontSize: 9, fontWeight: '900', color: theme.onSurfaceVariant }}>TENOR: {bill.currentTenor || 1}/{bill.totalTenor || 1}</Text>
-                  <View style={{ height: 3, backgroundColor: theme.surfaceContainer, borderRadius: 2, marginTop: 4 }}>
-                    <View style={{ height: '100%', width: `${((bill.currentTenor || 1) / (bill.totalTenor || 1)) * 100}%`, backgroundColor: bill.color, borderRadius: 2 }} />
-                  </View>
-                </View>
-              )}
-              {bill.type === 'recurring' && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                  <MaterialIcons name="autorenew" size={10} color={theme.onSurfaceVariant} />
-                  <Text style={{ fontSize: 9, color: theme.onSurfaceVariant, fontWeight: 'bold' }}>RUTIN</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </Animated.View>
-        ))}
-      </ScrollView>
-    )}
-  </Animated.View>
-);
-
-// --- [SUB-KOMPONEN: Goals Section] ---
-const GoalsSection = ({ goals, hasPartner, theme, formatMoney, navigation, animStyle, itemLayouts, sectionLayouts }) => (
-  <Animated.View 
-    onLayout={(e) => { sectionLayouts.current.goals = e.nativeEvent.layout.y; }}
-    style={animStyle.style || animStyle}
-  >
-    <View style={[styles.sectionHeader, { marginBottom: 20 }]}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Goal kita</Text>
-        <View style={{ flexDirection: 'row', gap: 6 }}>
-          <View style={{ backgroundColor: theme.surfaceContainerHighest, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
-            <Text style={{ fontSize: 10, color: theme.primary, fontWeight: '900' }}>{goals.filter(g => !g.achieved).length} AKTIF</Text>
-          </View>
-          {goals.filter(g => g.achieved).length > 0 && (
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('Goals', { initialTab: 'achieved' })}
-              style={{ backgroundColor: '#81C784' + '15', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: '#81C784' + '33' }}
-            >
-              <MaterialIcons name="stars" size={10} color="#81C784" />
-              <Text style={{ fontSize: 10, color: '#81C784', fontWeight: '900' }}>{goals.filter(g => g.achieved).length} TERCAPAI</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-      <TouchableOpacity onPress={() => navigation.navigate('Goals')}>
-        <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold', fontSize: 13 }}>Lihat Semua</Text>
-      </TouchableOpacity>
-    </View>
-
-    {!hasPartner ? (
-      <View style={{ backgroundColor: theme.surface, borderRadius: 32, padding: 24, borderWidth: 1, borderColor: theme.primary + '33' }}>
-        <Text style={{ color: theme.onSurfaceVariant, fontSize: 13, textAlign: 'center', lineHeight: 20 }}>Menunggu pasangan bergabung sebelum memulai goal bersama.</Text>
-      </View>
-    ) : goals.filter(g => !g.achieved).length === 0 ? (
-      <TouchableOpacity 
-        onPress={() => navigation.navigate('Goals')}
-        style={{ backgroundColor: theme.surface, borderRadius: 32, padding: 24, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: theme.outlineVariant + '44' }}
-      >
-        <MaterialIcons name="favorite" size={32} color={theme.onSurfaceVariant + '44'} />
-        <Text style={{ color: theme.onSurfaceVariant, fontSize: 13, marginTop: 8 }}>Belum ada goals aktif</Text>
-      </TouchableOpacity>
-    ) : (
-      goals.filter(g => !g.achieved).slice(0, 3).map((goal, idx) => {
-        const progress = goal.targetAmount > 0 ? Math.min((goal.currentAmount / goal.targetAmount) * 100, 100) : 0;
-        return (
-          <TouchableOpacity 
-            key={goal.id || idx} 
-            onLayout={(e) => { itemLayouts.current[goal.id || idx] = { localY: e.nativeEvent.layout.y, section: 'goals' }; }}
-            onPress={() => navigation.navigate('GoalDetail', { goalId: goal.id })}
-            activeOpacity={0.9}
-            style={{ backgroundColor: theme.surface, padding: 14, borderRadius: 30, flexDirection: 'row', alignItems: 'center', marginBottom: 14, borderWidth: 1, borderColor: theme.outlineVariant + '15', shadowColor: theme.onSurface, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 }}
-          >
-            <View style={{ width: 90, height: 90, borderRadius: 22, overflow: 'hidden', backgroundColor: theme.surfaceContainerHighest, borderWidth: 1, borderColor: theme.outlineVariant + '11' }}>
-              {goal.previewImage ? <Image source={{ uri: goal.previewImage }} style={{ width: '100%', height: '100%' }} /> : <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><MaterialIcons name="auto-awesome" size={32} color={theme.primary + '33'} /></View>}
-              <LinearGradient colors={['transparent', 'rgba(0,0,0,0.3)']} style={StyleSheet.absoluteFill} />
-            </View>
-            <View style={{ flex: 1, marginLeft: 16, justifyContent: 'center' }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                <Text style={{ fontSize: 15, fontWeight: '900', color: theme.onSurface, flex: 1 }} numberOfLines={1}>{goal.name}</Text>
-                <View style={{ backgroundColor: theme.primary + '15', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 8 }}>
-                   <Text style={{ fontSize: 9, fontWeight: '900', color: theme.primary }}>{Math.round(progress)}%</Text>
-                </View>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 12 }}>
-                 <MaterialIcons name="flag" size={10} color={theme.onSurfaceVariant} />
-                 <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, fontWeight: 'bold' }}>PROGRES GOAL</Text>
-              </View>
-              <View style={{ height: 6, backgroundColor: theme.surfaceContainerHighest, borderRadius: 3, overflow: 'hidden', marginBottom: 12 }}>
-                <LinearGradient colors={[theme.primary, theme.primary + '88']} start={{x:0, y:0}} end={{x:1, y:0}} style={{ height: '100%', width: `${progress}%`, borderRadius: 3 }} />
-              </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2 }}>
-                  <Text style={{ fontSize: 10, fontWeight: 'bold', color: theme.onSurfaceVariant }}>Rp</Text>
-                  <Text style={{ fontSize: 15, fontWeight: '900', color: theme.primary }}>{formatMoney(goal.currentAmount)}</Text>
-                </View>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: theme.onSurfaceVariant }}>/ {formatMoney(goal.targetAmount)}</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        );
-      })
-    )}
-  </Animated.View>
-);
-
-// --- [SUB-KOMPONEN: Recent Activities] ---
-const RecentActivitiesSection = ({ filteredTx, theme, filter, myName, partnerName, formatMoney, navigation, openQuickEdit, highlightedId, highlightAnim, animStyle, itemLayouts, sectionLayouts }) => (
-  <Animated.View 
-    onLayout={(e) => { sectionLayouts.current.recent = e.nativeEvent.layout.y; }}
-    style={animStyle.style || animStyle}
-  >
-    <View style={[styles.sectionHeader, { marginBottom: 16 }]}>
-      <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Aktivitas Terakhir</Text>
-      <TouchableOpacity onPress={() => navigation.navigate('Riwayat')}><Text style={{ color: theme.primary, fontWeight: 'bold' }}>Lihat</Text></TouchableOpacity>
-    </View>
-    {filteredTx.length === 0 ? (
-      <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 24, padding: 24, alignItems: 'center' }}>
-        <MaterialIcons name="history" size={32} color={theme.onSurfaceVariant + '44'} />
-        <Text style={{ color: theme.onSurfaceVariant, fontSize: 13, marginTop: 8 }}>Belum ada aktivitas dicatat</Text>
-      </View>
-    ) : (
-      filteredTx.slice(0, 5).map((tx, idx) => (
-        <Animated.View 
-          key={tx.id || idx} 
-          onLayout={(e) => { itemLayouts.current[`recent_${tx.id}`] = { localY: e.nativeEvent.layout.y, section: 'recent' }; }} 
-          style={[styles.surfaceCard, { backgroundColor: highlightedId === `recent_${tx.id}` ? highlightAnim.interpolate({ inputRange: [0, 1], outputRange: [theme.surfaceContainerLow, theme.primary + '33'] }) : theme.surfaceContainerLow, marginBottom: 12, borderWidth: 1, borderColor: highlightedId === `recent_${tx.id}` ? theme.primary : theme.outlineVariant + '15', overflow: 'hidden' }]}
-        >
-          <TouchableOpacity style={styles.txItem} onPress={() => openQuickEdit(tx)}>
-            <View style={[styles.txIcon, { backgroundColor: (tx.type === 'income' ? theme.primary : theme.error) + '15' }]}>
-              <MaterialIcons name={tx.icon || (tx.type === 'income' ? 'add' : 'remove')} size={20} color={tx.type === 'income' ? theme.primary : theme.error} />
-            </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={[styles.txName, { color: theme.onSurface }]} numberOfLines={1}>{tx.name}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={{ fontSize: 10, color: theme.onSurfaceVariant }}>{tx.category} • {tx.isJoint || tx.isPatungan ? 'Kita' : tx.owner}</Text>
-              </View>
-              {(tx.isJoint || tx.isPatungan) && (
-                <Text style={{ fontSize: 8, color: theme.onSurfaceVariant, marginTop: 2 }}>
-                  {myName}: {formatMoney(tx.myContrib || 0)} • {partnerName}: {formatMoney(tx.partnerContrib || 0)}
-                </Text>
-              )}
-            </View>
-            <Text style={[styles.txAmount, { color: tx.type === 'income' ? theme.primary : theme.error }]}>
-              {tx.type === 'income' ? '+' : '-'}Rp {formatMoney(
-                filter === 'Kita' 
-                ? (tx.myContrib || 0) + (tx.partnerContrib || 0)
-                : (filter === myName ? (tx.myContrib || 0) : (tx.partnerContrib || 0))
-              )}
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
-      ))
-    )}
-  </Animated.View>
-);
+// UI Components are now imported from src/components/dashboard/DashboardSections.js
 
 const DashboardScreen = ({ navigation, route }) => {
 
@@ -815,7 +282,7 @@ const DashboardScreen = ({ navigation, route }) => {
   }, []);
 
 
-  const myName = user?.name || 'Saya';
+  const myName = user?.name || 'Ayip';
   const partnerName = householdUsers?.find(u => u !== myName);
   const hasPartner = !!partnerName;
 
@@ -855,7 +322,7 @@ const DashboardScreen = ({ navigation, route }) => {
       // Muncul jika owner transaksi adalah filter (Saya/Pasangan)
       // ATAU jika itu transaksi patungan/uang bersama (isPatungan/isJoint)
       const isShared = tx.isPatungan || tx.isJoint;
-      if (filter === 'Saya' || filter === myName) {
+      if (filter === 'Ayip' || filter === myName) {
         const owner = (tx.owner || '').toLowerCase().trim();
         const normMe = (myName || '').toLowerCase().trim();
         const isMe = owner === normMe || owner.includes(normMe) || normMe.includes(owner);
@@ -914,13 +381,10 @@ const DashboardScreen = ({ navigation, route }) => {
 
   const openQuickEdit = (tx) => {
     // PROTEKSI: Cek kepemilikan transaksi
-    if (tx.owner !== myName && tx.owner !== 'Bersama') {
-      showAestheticAlert(
-        'Akses Terbatas',
-        `Transaksi ini dicatat oleh ${tx.owner}. Kamu hanya bisa mengedit transaksi milikmu sendiri untuk menjaga integritas data pribadi pasangan.`,
-        'lock',
-        theme.primary
-      );
+    if (tx.owner !== user.name) {
+      showAestheticAlert('Akses Terbatas', 
+        `Transaksi ini dicatat oleh ${tx.owner}. Kamu hanya bisa mengedit transaksi milikmu sendiri untuk menjaga integritas data pribadi Rika.` ,
+        'lock', theme.primary);
       return;
     }
     
@@ -1655,7 +1119,7 @@ const DashboardScreen = ({ navigation, route }) => {
                 <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: theme.error + '15', justifyContent: 'center', alignItems: 'center' }}>
                   <MaterialIcons name="bolt" size={22} color={theme.error} />
                 </View>
-                <View><Text style={{ fontSize: 15, fontWeight: 'bold', color: theme.onSurface }}>Ingatkan Pasangan</Text><Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>Kirim pengingat segera</Text></View>
+                <View><Text style={{ fontSize: 15, fontWeight: 'bold', color: theme.onSurface }}>Ingatkan {partnerName || 'Pasangan'}</Text><Text style={{ fontSize: 12, color: theme.onSurfaceVariant }}>Kirim pengingat segera</Text></View>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={handleDeleteBill} style={{ flexDirection: 'row', alignItems: 'center', gap: 16, padding: 16 }}>
@@ -1680,7 +1144,7 @@ const DashboardScreen = ({ navigation, route }) => {
             </View>
             <View style={{ padding: 16 }}>
               <ScrollView style={{ maxHeight: 300 }}>
-                {accounts.map(acc => (
+                {accounts.filter(a => a.owner === user?.name || a.owner === 'Bersama').map(acc => (
                   <TouchableOpacity 
                     key={acc.id} onPress={() => setSelectedPayAccountId(acc.id)}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 20, backgroundColor: selectedPayAccountId === acc.id ? theme.primary + '15' : 'transparent', marginBottom: 8, borderWidth: 1, borderColor: selectedPayAccountId === acc.id ? theme.primary : theme.outlineVariant + '22' }}
@@ -1756,11 +1220,7 @@ const DashboardScreen = ({ navigation, route }) => {
 
               <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 12, marginLeft: 4 }}>SUMBER DANA</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 24 }}>
-                {accounts.filter(acc => {
-                  const owner = (acc.owner || '').toLowerCase().trim();
-                  const normMe = (myName || '').toLowerCase().trim();
-                  return owner === normMe || owner.includes(normMe) || normMe.includes(owner) || owner === 'Bersama' || owner === '';
-                }).map(acc => {
+                {accounts.filter(acc => acc.owner === myName || acc.owner === 'Bersama').map(acc => {
                   const isActive = quickEditAccountId === acc.id;
                   return (
                     <TouchableOpacity 
@@ -1794,7 +1254,7 @@ const DashboardScreen = ({ navigation, route }) => {
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
           <View style={{ backgroundColor: theme.surface, borderRadius: 32, padding: 32, width: '100%', maxWidth: 400, alignItems: 'center' }}>
             <View style={{ width: 72, height: 72, borderRadius: 24, backgroundColor: theme.error + '15', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
-              <MaterialIcons name="delete-outline" size={40} color={theme.error} />
+              <MaterialIcons name="delete-sweep" size={40} color={theme.error} />
             </View>
             <Text style={{ fontSize: 24, fontWeight: 'bold', color: theme.onSurface, marginBottom: 8, textAlign: 'center' }}>Hapus Transaksi?</Text>
             <Text style={{ fontSize: 14, color: theme.onSurfaceVariant, textAlign: 'center', marginBottom: 32, lineHeight: 20 }}>
@@ -1841,12 +1301,7 @@ const DashboardScreen = ({ navigation, route }) => {
             </View>
             <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 12, marginLeft: 4 }}>PILIH DOMPET KAMU</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 24 }}>
-              {accounts.filter(acc => {
-                const owner = (acc.owner || '').toLowerCase().trim();
-                const curName = (user?.name || '').toLowerCase().trim();
-                // Match exact, match substring, or if no owner assume it's personal
-                return owner === curName || owner.includes(curName) || curName.includes(owner) || owner === '' || owner === 'saya';
-              }).map(acc => (
+              {accounts.filter(acc => acc.owner === myName).map(acc => (
                 <TouchableOpacity key={acc.id} onPress={() => setSelectedSplitAccountId(acc.id)} style={{ padding: 14, borderRadius: 16, backgroundColor: selectedSplitAccountId === acc.id ? theme.primary + '20' : theme.surfaceContainerLow, borderWidth: 2, borderColor: selectedSplitAccountId === acc.id ? theme.primary : 'transparent', marginRight: 10, flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 140 }}>
                   <MaterialIcons name={acc.icon || 'payments'} size={20} color={selectedSplitAccountId === acc.id ? theme.primary : theme.onSurfaceVariant} />
                   <View><Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.onSurface }}>{acc.name}</Text><Text style={{ fontSize: 10, color: theme.onSurfaceVariant }}>Rp {formatMoney(acc.balance)}</Text></View>
@@ -1882,96 +1337,6 @@ const DashboardScreen = ({ navigation, route }) => {
   );
 };
 
-const fabActions = [
-  { key: 'goals', icon: 'favorite', label: 'Goal baru', color: '#E879F9' },
-  { key: 'transfer', icon: 'swap-horiz', label: 'Pindah dana', color: '#6366F1' },
-  { key: 'tagihan', icon: 'receipt-long', label: 'Pengingat tagihan', color: '#F59E0B' },
-  { key: 'pemasukan', icon: 'add-chart', label: 'Pemasukan', color: '#10B981' },
-  { key: 'pengeluaran', icon: 'shopping-bag', label: 'Pengeluaran', color: '#F43F5E' },
-];
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 20 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatarWrapper: { width: 50, height: 50, borderRadius: 25, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
-  notifBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
-  notifBadge: { 
-    position: 'absolute', 
-    top: 8, 
-    right: 8, 
-    minWidth: 16, 
-    height: 16, 
-    borderRadius: 8, 
-    backgroundColor: '#F43F5E', 
-    borderWidth: 1.5, 
-    borderColor: '#ffffff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 2
-  },
-  main: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: Dimensions.get('window').height },
-
-  heroCard: { borderRadius: 36, padding: 28, marginBottom: 24 },
-  heroLabel: { color: 'rgba(255,255,255,0.9)', fontSize: 11, fontWeight: '900', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 1 },
-  heroValue: { color: '#ffffff', fontSize: 34, fontWeight: '900', letterSpacing: -1.5 },
-  filterRow: { flexDirection: 'row', gap: 8, marginTop: 24 },
-  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)' },
-  filterChipActive: { backgroundColor: '#ffffff' },
-  filterChipText: { color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: 'bold' },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
-  walletScroll: { marginHorizontal: -24, marginTop: 4 },
-  surfaceCard: {
-    borderRadius: 24,
-    ...getShadow('#000', 0.05, 12, { width: 0, height: 4 }, 4),
-    backgroundColor: 'transparent',
-    elevation: 3,
-  },
-  walletCard: { 
-    width: 160, 
-    padding: 16, 
-    borderRadius: 24, 
-    marginRight: 12, 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 12,
-  },
-  walletIcon: { width: 40, height: 40, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  walletName: { fontSize: 13, fontWeight: 'bold' },
-  walletBalance: { fontSize: 11, fontWeight: '900', marginTop: 2 },
-  txItem: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 24, marginBottom: 10 },
-  txIcon: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
-  txName: { fontSize: 14, fontWeight: 'bold' },
-  txAmount: { fontSize: 14, fontWeight: '900' },
-  fabContainer: { position: 'absolute', bottom: 115, right: 24, alignItems: 'flex-end' },
-  fabMain: { 
-    width: 64, height: 64, borderRadius: 24, overflow: 'hidden', elevation: 6,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 },
-      android: { shadowColor: '#000' },
-      web: { boxShadow: '0 4px 8px rgba(0,0,0,0.2)' }
-    })
-  },
-  fabGradient: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  fabAction: { position: 'absolute', bottom: 8, right: 0 },
-  fabMini: { width: 48, height: 48, borderRadius: 18, justifyContent: 'center', alignItems: 'center', elevation: 4 },
-  iconButton: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  donutCenterLarge: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
-  input: { padding: 16, borderRadius: 16, marginBottom: 12 },
-  toastContainer: { position: 'absolute', top: 100, left: 24, right: 24, alignItems: 'center', zIndex: 999 },
-  toastContent: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1 },
-  toastText: { fontSize: 13, fontWeight: 'bold' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { 
-    borderRadius: 32, padding: 24, width: '90%', elevation: 10, borderWidth: 1,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20 },
-      android: { shadowColor: '#000' },
-      web: { boxShadow: '0 10px 20px rgba(0,0,0,0.2)' }
-    })
-  },
-});
 
 export default DashboardScreen;

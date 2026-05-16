@@ -1,8 +1,8 @@
 import React, { useContext } from 'react';
-import { Text as RNText, StyleSheet, Platform } from 'react-native';
+import { TextInput as RNTextInput, StyleSheet, Platform } from 'react-native';
 import { ThemeContext } from '../context/ThemeContext';
 
-const ThemeText = (props) => {
+const ThemeTextInput = React.forwardRef((props, ref) => {
   const { theme } = useContext(ThemeContext);
   
   // Resolve Font Family for Android Weights
@@ -41,27 +41,23 @@ const ThemeText = (props) => {
 
   const { family, weightFix } = resolveFont();
 
-  // Merge the theme's fontFamily with existing styles
   const combinedStyle = [
     { 
       fontFamily: family, 
       color: props.style?.color || theme.onSurface 
     }, 
     props.style,
-    weightFix // Fix for Android bolding
+    weightFix 
   ];
 
-  const safeChildren = React.Children.toArray(props.children).map(child => {
-    if (typeof child === 'number' && isNaN(child)) return '';
-    if (child === undefined || child === null) return '';
-    return child;
-  });
-
   return (
-    <RNText {...props} style={combinedStyle}>
-      {safeChildren}
-    </RNText>
+    <RNTextInput
+      ref={ref}
+      {...props}
+      style={combinedStyle}
+      placeholderTextColor={props.placeholderTextColor || theme.onSurfaceVariant}
+    />
   );
-};
+});
 
-export default ThemeText;
+export default ThemeTextInput;

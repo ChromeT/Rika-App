@@ -100,39 +100,17 @@ const WalletsScreen = ({ route }) => {
 
   // Using global formatMoney from utils
 
-  const normalize = (s) => (s || '').toLowerCase().trim();
-  const myName = normalize(user?.name);
-  
-  // householdUsers bisa berupa array of strings atau array of objects
-  const partnerUser = (householdUsers || []).find(u => {
+  const normalize = (str) => str.toLowerCase().replace(/[^a-z]/g, '');
+  const myNameNorm = normalize(user?.name || '');
+
+  const partnerName = (householdUsers || []).find(u => {
     const uName = normalize(typeof u === 'string' ? u : u.name);
-    return uName !== myName && !uName.includes(myName) && !myName.includes(uName);
-  });
-  
-  const partnerNameString = typeof partnerUser === 'string' ? partnerUser : partnerUser?.name;
-  const normalizedPartnerName = normalize(partnerNameString);
-  
-  const myAccounts = (accounts || []).filter(a => {
-    const owner = normalize(a.owner);
-    if (owner === '' || owner === 'saya' || owner === 'me') return true;
-    
-    // Fuzzy matching: 'Ika' matches 'Ika Manis'
-    const isMe = owner === myName || owner.includes(myName) || myName.includes(owner);
-    const isPartner = normalizedPartnerName !== '' && (owner === normalizedPartnerName || owner.includes(normalizedPartnerName) || normalizedPartnerName.includes(owner));
-    
-    // Kalau dia lebih mirip ke User daripada ke Partner, berarti punya User
-    return isMe && !isPartner;
-  });
-  
-  const partnerAccounts = (accounts || []).filter(a => {
-    const owner = normalize(a.owner);
-    if (owner === '') return false;
-    
-    const isMe = owner === myName || owner.includes(myName) || myName.includes(owner);
-    const isPartner = normalizedPartnerName !== '' && (owner === normalizedPartnerName || owner.includes(normalizedPartnerName) || normalizedPartnerName.includes(owner));
-    
-    return isPartner && !isMe;
-  });
+    return uName !== myNameNorm && !uName.includes(myNameNorm) && !myNameNorm.includes(uName);
+  }) || 'Rika';
+
+  const myAccounts = (accounts || []).filter(a => a.owner === user?.name);
+  const partnerAccounts = (accounts || []).filter(a => a.owner !== user?.name && a.owner !== 'Bersama');
+  const jointAccounts = (accounts || []).filter(a => a.owner === 'Bersama');
 
   const totalBalance = (accounts || []).reduce((sum, acc) => sum + (acc.balance || 0), 0);
 
@@ -234,7 +212,7 @@ const WalletsScreen = ({ route }) => {
           {partnerAccounts.length > 0 && (
             <>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Dompet Pasangan</Text>
+                <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Dompet Rika</Text>
                 <Text style={{ color: theme.onSurfaceVariant, fontSize: 12 }}>Pantauan</Text>
               </View>
               <View style={styles.accountList}>
@@ -323,7 +301,7 @@ const WalletsScreen = ({ route }) => {
               <View style={{ padding: 10 }}>
                 <View style={{ alignItems: 'center', marginBottom: 24 }}>
                   <View style={{ backgroundColor: theme.error + '1A', padding: 24, borderRadius: 40, marginBottom: 16 }}>
-                    <MaterialIcons name="warning" size={48} color={theme.error} />
+                    <MaterialIcons name="delete-sweep" size={40} color={theme.error} />
                   </View>
                   <Text style={[styles.modalTitle, { color: theme.onSurface, marginBottom: 12 }]}>Konfirmasi Hapus</Text>
                   <Text style={{ color: theme.onSurfaceVariant, textAlign: 'center', fontSize: 14, lineHeight: 20 }}>

@@ -1,0 +1,87 @@
+  const migrateUserData = async (oldName, newName) => {
+    if (!oldName || !newName || oldName === newName || !user?.householdId) return;
+    
+    console.log(`[Migration] Starting: ${oldName} -> ${newName}`);
+    const houseId = user.householdId;
+
+    try {
+      // 1. Migrate Accounts (Wallets)
+      for (const acc of accounts) {
+        if (acc.owner === oldName) {
+          await updateDoc(doc(db, 'households', houseId, 'accounts', acc.id), { owner: newName });
+        }
+      }
+
+      // 2. Migrate Transactions
+      for (const tx of transactions) {
+        if (tx.owner === oldName) {
+          await updateDoc(doc(db, 'households', houseId, 'transactions', tx.id), { owner: newName });
+        }
+      }
+
+      // 3. Migrate Goals & Memories
+      for (const goal of goals) {
+        let needsUpdate = false;
+        let updateData = {};
+
+        if (goal.owner === oldName) {
+          updateData.owner = newName;
+          needsUpdate = true;
+        }
+
+        if (Array.isArray(goal.history)) {
+          const newHistory = goal.history.map(h => ({ ...h, user: h.user === oldName ? newName : h.user }));
+          if (JSON.stringify(newHistory) !== JSON.stringify(goal.history)) {
+            updateData.history = newHistory;
+            needsUpdate = true;
+          }
+        }
+
+        if (Array.isArray(goal.memories)) {
+          const newMemories = goal.memories.map(m => ({ ...m, addedBy: m.addedBy === oldName ? newName : m.addedBy }));
+          if (JSON.stringify(newMemories) !== JSON.stringify(goal.memories)) {
+            updateData.memories = newMemories;
+            needsUpdate = true;
+          }
+        }
+
+        if (needsUpdate) {
+          await updateDoc(doc(db, 'households', houseId, 'goals', goal.id), updateData);
+        }
+      }
+
+      // 4. Migrate Bills
+      for (const bill of bills) {
+        if (bill.owner === oldName) {
+          await updateDoc(doc(db, 'households', houseId, 'bills', bill.id), { owner: newName });
+        }
+      }
+
+      // 5. Migrate Notifications
+      for (const notif of notifications) {
+        if (Array.isArray(notif.readBy) && notif.readBy.includes(oldName)) {
+          const newReadBy = notif.readBy.map(n => n === oldName ? newName : n);
+          await updateDoc(doc(db, 'households', houseId, 'notifications', notif.id), { readBy: newReadBy });
+        }
+      }
+
+      console.log('[Migration] Success: All collections updated.');
+    } catch (error) {
+      console.error('[Migration] Failed:', error);
+    }
+  };
+
+  return (
+    <DataContext.Provider value={{
+      transactions, addTransaction, updateTransaction, deleteTransaction, addTransfer, getBalance, confirmSplitTransaction,
+      goals, addGoal, updateGoal, deleteGoal, markGoalAchieved,
+      bills, addBill, updateBill, deleteBill, payBill,
+      accounts, addAccount, updateAccount, deleteAccount,
+      notifications, addNotification, sendPushNotification, markSingleNotifAsRead, markAllNotificationsAsRead,
+      categories, addCategory, updateCategory, deleteCategory, migrateUserData,
+      loading
+    }}>
+      {children}
+    </DataContext.Provider>
+  );
+};

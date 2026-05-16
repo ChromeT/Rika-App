@@ -1,5 +1,6 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
-import { View, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Animated, Platform } from 'react-native';
+import TextInput from '../components/ThemeTextInput';
+import { View, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Animated, Platform } from 'react-native';
 import Text from '../components/ThemeText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemeContext } from '../context/ThemeContext';
@@ -99,7 +100,7 @@ const JoinRoomScreen = ({ navigation }) => {
         </Animated.View>
 
         <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
-          <Text style={styles.label}>Kode Pasangan</Text>
+          <Text style={styles.label}>Kode Rika</Text>
           <TextInput 
             style={[styles.input, styles.codeInput]} 
             placeholder="X8P2K9" 

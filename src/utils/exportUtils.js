@@ -16,8 +16,8 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
     const { user: filterUser, type: filterType } = filters;
     
     let filtered = transactions || [];
-    if (filterUser === 'Saya') filtered = filtered.filter(tx => tx?.owner === userName);
-    else if (filterUser === 'Pasangan') filtered = filtered.filter(tx => tx?.owner !== userName);
+    if (filterUser === 'Ayip') filtered = filtered.filter(tx => tx?.owner === userName);
+    else if (filterUser === 'Rika') filtered = filtered.filter(tx => tx?.owner !== userName);
     
     if (filterType === 'Pengeluaran') filtered = filtered.filter(tx => tx?.type === 'expense');
     else if (filterType === 'Pemasukan') filtered = filtered.filter(tx => tx?.type === 'income');
@@ -69,7 +69,7 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
     if (filterType === 'Semua' && (totalIncome > 0 || totalExpense > 0)) rows.push(['Saldo Akhir (Net)', totalIncome - totalExpense]);
 
     rows.push([], ['DETAIL RIWAYAT TRANSAKSI']);
-    rows.push(['TANGGAL', 'KETERANGAN', 'KATEGORI', 'DOMPET/SUMBER', 'TIPE', 'METODE', 'OLEH', 'PORSI SAYA', 'PORSI PASANGAN', 'TOTAL NOMINAL']);
+    rows.push(['TANGGAL', 'KETERANGAN', 'KATEGORI', 'DOMPET/SUMBER', 'TIPE', 'METODE', 'OLEH', 'PORSI AYIP', 'PORSI RIKA', 'TOTAL NOMINAL']);
 
     filtered.forEach(tx => {
       if (!tx) return;
@@ -113,7 +113,7 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
     } else {
       // Use type 'base64' but ensure we use global Buffer if available
       const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
-      const fileUri = `${FileSystem.documentDirectory}${sanitizedFilename}`;
+      const fileUri = `${FileSystem.cacheDirectory}${sanitizedFilename}`;
       
       await FileSystem.writeAsStringAsync(fileUri, wbout, {
         encoding: FileSystem.EncodingType.Base64
@@ -140,8 +140,8 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
     const { user: filterUser, type: filterType } = filters;
     
     let filtered = transactions || [];
-    if (filterUser === 'Saya') filtered = filtered.filter(tx => tx?.owner === userName);
-    else if (filterUser === 'Pasangan') filtered = filtered.filter(tx => tx?.owner !== userName);
+    if (filterUser === 'Ayip') filtered = filtered.filter(tx => tx?.owner === userName);
+    else if (filterUser === 'Rika') filtered = filtered.filter(tx => tx?.owner !== userName);
     
     if (filterType === 'Pengeluaran') filtered = filtered.filter(tx => tx?.type === 'expense');
     else if (filterType === 'Pemasukan') filtered = filtered.filter(tx => tx?.type === 'income');
@@ -156,7 +156,7 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
     const categoryMap = {};
 
     filtered.forEach(tx => {
-      if (!tx) return;
+      if (!tx || tx.type === 'transfer') return; // Skip transfer dari perhitungan
       const amount = (tx.myContrib || 0) + (tx.partnerContrib || 0);
       if (tx.type === 'income') {
         totalIncome += amount;
@@ -168,22 +168,9 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
     });
 
     const sortedCats = Object.entries(categoryMap).sort((a, b) => b[1] - a[1]);
-
-    // Insights Calculation
-    const expenses = filtered.filter(tx => tx.type === 'expense');
-    const categoryCounts = {};
-    let topTransaction = { name: '-', amount: 0 };
-    
-    expenses.forEach(tx => {
-      const amt = (tx.myContrib || 0) + (tx.partnerContrib || 0);
-      if (amt > topTransaction.amount) topTransaction = { name: tx.name, amount: amt };
-      const cat = tx.category || 'Lainnya';
-      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
-    });
-
-    const topCategoryByFreq = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0] || ['-', 0];
     const topCategoryByAmt = sortedCats[0] || ['-', 0];
     const netBalance = totalIncome - totalExpense;
+    const totalAsset = (accounts || []).reduce((sum, acc) => sum + (acc.balance || 0), 0);
 
     let svgContent = '';
     let legendRows = '';
@@ -233,7 +220,7 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
                 ${tx.category || '-'} • ${walletName} • Oleh: ${tx.isJoint || tx.isPatungan ? 'Kita' : (tx.owner || '-')}
                 ${(tx.isJoint || tx.isPatungan) ? `
                   <div style="margin-top: 4px; font-size: 10px; color: #64748B;">
-                    Porsi: ${userName} (Rp ${formatMoney(tx.myContrib)}) • ${tx.owner === userName ? (householdUsers.find(u => u !== userName) || 'Pasangan') : tx.owner} (Rp ${formatMoney(tx.partnerContrib)})
+                    Porsi: ${userName} (Rp ${formatMoney(tx.myContrib)}) • ${tx.owner === userName ? (householdUsers.find(u => u !== userName) || 'Rika') : tx.owner} (Rp ${formatMoney(tx.partnerContrib)})
                   </div>
                 ` : ''}
               </div>
@@ -332,28 +319,36 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
           ${(filterType === 'Semua' && (totalIncome > 0 || totalExpense > 0)) ? `
           <div class="summary-card">
             <div class="summary-label">Saldo Netto</div>
-            <div class="summary-value">Rp ${formatMoney(netBalance)}</div>
+            <div class="summary-value" style="color: ${netBalance >= 0 ? '#10B981' : '#EF4444'}">
+              Rp ${netBalance < 0 ? '-' : ''}${formatMoney(Math.abs(netBalance))}
+            </div>
           </div>
           ` : ''}
         </div>
+
+        ${filterType === 'Semua' ? `
+        <div style="background: #0F172A; padding: 20px 30px; border-radius: 24px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);">
+          <div style="font-size: 12px; color: #94A3B8; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;">Total Sisa Uang Kita (Aset)</div>
+          <div style="font-size: 22px; color: #F8FAFC; font-weight: 800;">Rp ${formatMoney(totalAsset)}</div>
+        </div>
+        ` : ''}
 
         <div class="insight-box">
            <div class="insight-title">Analisa & Insight Strategis</div>
             <div class="insight-text">
               ${filterType === 'Semua' ? `
-                Berdasarkan seluruh aktivitas keuangan kita, pengeluaran terbesar ada pada <b>${topTransaction.name}</b> (Rp ${formatMoney(topTransaction.amount)}). 
+                Berdasarkan seluruh aktivitas keuangan kita, kategori pengeluaran terbesar ada pada <b>${topCategoryByAmt[0]}</b> (Rp ${formatMoney(topCategoryByAmt[1])}). 
                 ${totalIncome > 0 ? `Kita juga berhasil mengumpulkan pemasukan sebesar <b>Rp ${formatMoney(totalIncome)}</b>.` : ''}
               ` : filterType === 'Pemasukan' ? `
                 Berdasarkan data pemasukan kita, total dana yang terkumpul adalah <b>Rp ${formatMoney(totalIncome)}</b>.
               ` : `
-                Pengeluaran terbesar kita kali ini adalah <b>${topTransaction.name}</b> dengan nominal <b>Rp ${formatMoney(topTransaction.amount)}</b>.
-                Kategori yang paling banyak menyerap anggaran adalah <b>${topCategoryByAmt[0]}</b>.
+                Kategori pengeluaran terbesar kita kali ini adalah <b>${topCategoryByAmt[0]}</b> dengan nominal <b>Rp ${formatMoney(topCategoryByAmt[1])}</b>.
               `}
               
               ${filterType === 'Semua' ? (
-                netBalance > 0 
+                netBalance >= 0 
                 ? `<br/><br/>Kabar baik! Kita memiliki surplus sebesar <b>Rp ${formatMoney(netBalance)}</b>. Yuk, tabung sisanya buat goal kita!` 
-                : `<br/><br/>Perhatian: Pengeluaran kita sedikit lebih besar dari pemasukan. Yuk, lebih bijak lagi di periode depan.`
+                : `<br/><br/>Perhatian: Pengeluaran kita sedikit lebih besar dari pemasukan (selisih Rp ${formatMoney(Math.abs(netBalance))}). Yuk, lebih bijak lagi di periode depan.`
               ) : ''}
             </div>
         </div>
