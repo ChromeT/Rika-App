@@ -380,7 +380,7 @@ const CoupleScreen = ({ navigation }) => {
                   date: gDate.isValid() ? gDate : now,
                   icon: info.icon,
                   color: info.color,
-                  desc: `Satu mimpi berhasil kita wujudkan. Kebanggaan yang tak terlupakan!`,
+                  desc: `Satu goal berhasil kita wujudkan. Kebanggaan yang tak terlupakan!`,
                   type: 'ACHIEVED',
                   badge: info.badge
                 });

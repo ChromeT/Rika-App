@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Dimensions, Modal, Image, Alert, Animated, ActivityIndicator, RefreshControl, Platform } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Dimensions, Modal, Image, Alert, Animated, ActivityIndicator, RefreshControl, Platform, Text as RNText } from 'react-native';
 import Text from '../components/ThemeText';
 import { ScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,7 @@ import { exportToXLS, exportToPDF } from '../utils/exportUtils';
 import Svg, { Circle, G } from 'react-native-svg';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatMoney } from '../utils/formatUtils';
+import { getShadow } from '../utils/styleUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -24,7 +25,7 @@ const { width } = Dimensions.get('window');
  * 1. Ringkasan Saldo (Kita, Saya, Pasangan)
  * 2. Analisis Pengeluaran (Donut Chart & Legend)
  * 3. Manajemen Tagihan (Bills)
- * 4. Progres Goals (Mimpi kita)
+ * 4. Progres Goals (Goal kita)
  * 5. Aktivitas Terakhir (Transactions)
  * 
  * Keputusan Arsitektur: 
@@ -57,7 +58,7 @@ const DashboardHeader = ({ avatar, myName, theme, setNotifyVisible, notification
         return n.sender.toLowerCase().trim() !== user.name.toLowerCase().trim();
       }).filter(n => !n.readBy?.includes(user?.name)).length > 0 && (
         <View style={styles.notifBadge}>
-          <Text style={{ color: '#fff', fontSize: 8, fontWeight: '900' }}>
+          <Text style={{ color: theme.onPrimary, fontSize: 8, fontWeight: '900' }}>
             {notifications.filter(n => {
               if (!user?.name || !n.sender) return true;
               return n.sender.toLowerCase().trim() !== user.name.toLowerCase().trim();
@@ -74,8 +75,10 @@ const DashboardHeader = ({ avatar, myName, theme, setNotifyVisible, notification
 const HeroSection = ({ theme, filter, formatMoney, getBalance, myName, partnerName, setFilter, animStyle }) => (
   <Animated.View style={animStyle}>
     <LinearGradient colors={[theme.primary, theme.primary + 'AA']} style={styles.heroCard} start={{x:0,y:0}} end={{x:1,y:1}}>
-      <Text style={styles.heroLabel}>Total Saldo {filter}</Text>
-      <Text style={styles.heroValue}>Rp {formatMoney(getBalance(filter === myName ? myName : filter))}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.heroLabel}>Total Saldo {filter}</Text>
+        <Text style={styles.heroValue} numberOfLines={1} adjustsFontSizeToFit>Rp {formatMoney(getBalance(filter === myName ? myName : filter))}</Text>
+      </View>
       <View style={styles.filterRow}>
         {['Kita', myName, partnerName].filter(Boolean).map(f => (
           <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.filterChip, filter === f && styles.filterChipActive]}>
@@ -90,10 +93,10 @@ const HeroSection = ({ theme, filter, formatMoney, getBalance, myName, partnerNa
 
 // --- [SUB-KOMPONEN: Pending Splits] ---
 // Area ini cuma muncul kalo ada transaksi yang butuh konfirmasi patungan.
-const PendingSplitsSection = ({ pendingSplits, theme, formatMoney, setSelectedSplitTx, setSplitModalVisible, highlightedId, highlightAnim, animStyle, itemLayouts }) => (
+const PendingSplitsSection = ({ pendingSplits, theme, formatMoney, setSelectedSplitTx, setSplitModalVisible, highlightedId, highlightAnim, animStyle, itemLayouts, sectionLayouts }) => (
   <Animated.View 
-    onLayout={(e) => { animStyle.onLayout(e); }}
-    style={animStyle.style}
+    onLayout={(e) => { sectionLayouts.current.pending = e.nativeEvent.layout.y; }}
+    style={animStyle.style || animStyle}
   >
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
       <MaterialIcons name="notification-important" size={20} color={theme.primary} />
@@ -143,8 +146,11 @@ const PendingSplitsSection = ({ pendingSplits, theme, formatMoney, setSelectedSp
 );
 
 // --- [SUB-KOMPONEN: Wallets Section] ---
-const WalletsSection = ({ accounts, theme, formatMoney, navigation, animStyle, width }) => (
-  <Animated.View style={animStyle.style}>
+const WalletsSection = ({ accounts, theme, formatMoney, navigation, animStyle, width, sectionLayouts }) => (
+  <Animated.View 
+    onLayout={(e) => { sectionLayouts.current.wallets = e.nativeEvent.layout.y; }}
+    style={animStyle.style || animStyle}
+  >
     <View style={styles.sectionHeader}>
       <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Dompet Kita</Text>
       <TouchableOpacity onPress={() => navigation.navigate('Wallets')}><Text style={{ color: theme.primary, fontWeight: 'bold' }}>Semua</Text></TouchableOpacity>
@@ -153,7 +159,7 @@ const WalletsSection = ({ accounts, theme, formatMoney, navigation, animStyle, w
       horizontal 
       showsHorizontalScrollIndicator={false} 
       style={styles.walletScroll}
-      contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 150 }}
+      contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 12 }}
     >
       {accounts.length === 0 ? (
         <TouchableOpacity 
@@ -173,7 +179,7 @@ const WalletsSection = ({ accounts, theme, formatMoney, navigation, animStyle, w
           {accounts.map(acc => (
             <TouchableOpacity 
               key={acc.id} 
-              style={[styles.walletCard, { backgroundColor: theme.surface, shadowColor: theme.onSurface, shadowOpacity: 0.04 }]} 
+              style={[styles.walletCard, { backgroundColor: theme.surface, ...getShadow(theme.onSurface, 0.04, 8, { width: 0, height: 4 }, 2) }]} 
               onPress={() => navigation.navigate('Wallets', { walletId: acc.id })}
             >
               <View style={[styles.walletIcon, { backgroundColor: (acc.color || theme.primary) + '15' }]}>
@@ -208,7 +214,7 @@ const ExpenseAnalysisSection = ({
 }) => (
   <Animated.View 
     onLayout={(e) => { sectionLayouts.current.expense = e.nativeEvent.layout.y; }}
-    style={animStyle}
+    style={animStyle.style || animStyle}
   >
     <View style={[styles.surfaceCard, { backgroundColor: theme.surfaceContainerLow, padding: 24, borderRadius: 32, marginBottom: 24, borderWidth: 1, borderColor: theme.outlineVariant + '15' }]}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -328,10 +334,10 @@ const ExpenseAnalysisSection = ({
 
 
 // --- [SUB-KOMPONEN: Bills Section] ---
-const BillsSection = ({ bills, theme, formatMoney, setSelectedBill, setBillActionModalVisible, highlightedId, highlightAnim, animStyle, itemLayouts, resetBillForm, setBillModalVisible }) => (
+const BillsSection = ({ bills, theme, formatMoney, setSelectedBill, setBillActionModalVisible, highlightedId, highlightAnim, animStyle, itemLayouts, resetBillForm, setBillModalVisible, sectionLayouts }) => (
   <Animated.View 
-    onLayout={(e) => { animStyle.onLayout(e); }}
-    style={animStyle.style}
+    onLayout={(e) => { sectionLayouts.current.bills = e.nativeEvent.layout.y; }}
+    style={animStyle.style || animStyle}
   >
     <View style={[styles.sectionHeader, { marginBottom: 16 }]}>
       <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Tagihan Mendatang</Text>
@@ -344,7 +350,7 @@ const BillsSection = ({ bills, theme, formatMoney, setSelectedBill, setBillActio
     {bills.length === 0 ? (
       <TouchableOpacity 
         onPress={() => setBillModalVisible(true)}
-        style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 24, padding: 20, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: theme.outlineVariant + '44' }}
+        style={{ backgroundColor: theme.surface, borderRadius: 24, padding: 20, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: theme.outlineVariant + '44' }}
       >
         <MaterialIcons name="receipt-long" size={32} color={theme.onSurfaceVariant + '44'} />
         <Text style={{ color: theme.onSurfaceVariant, fontSize: 13, marginTop: 8 }}>Belum ada tagihan terdaftar</Text>
@@ -367,8 +373,8 @@ const BillsSection = ({ bills, theme, formatMoney, setSelectedBill, setBillActio
               onPress={() => { setSelectedBill(bill); setBillActionModalVisible(true); }}
               style={{ 
                 backgroundColor: highlightedId === bill.id ? 
-                  highlightAnim.interpolate({ inputRange: [0, 1], outputRange: [theme.surfaceContainerLow, theme.primary + '33'] }) : 
-                  theme.surfaceContainerLow, 
+                  highlightAnim.interpolate({ inputRange: [0, 1], outputRange: [theme.surface, theme.primary + '33'] }) : 
+                  theme.surface, 
                 padding: 20, borderRadius: 28, width: 220, marginRight: 16, borderWidth: 1, 
                 borderColor: highlightedId === bill.id ? theme.primary : theme.outlineVariant + '11' 
               }}
@@ -426,7 +432,7 @@ const BillsSection = ({ bills, theme, formatMoney, setSelectedBill, setBillActio
 const GoalsSection = ({ goals, hasPartner, theme, formatMoney, navigation, animStyle, itemLayouts, sectionLayouts }) => (
   <Animated.View 
     onLayout={(e) => { sectionLayouts.current.goals = e.nativeEvent.layout.y; }}
-    style={animStyle}
+    style={animStyle.style || animStyle}
   >
     <View style={[styles.sectionHeader, { marginBottom: 20 }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -437,7 +443,7 @@ const GoalsSection = ({ goals, hasPartner, theme, formatMoney, navigation, animS
           </View>
           {goals.filter(g => g.achieved).length > 0 && (
             <TouchableOpacity 
-              onPress={() => navigation.navigate('Mimpi', { initialTab: 'achieved' })}
+              onPress={() => navigation.navigate('Goals', { initialTab: 'achieved' })}
               style={{ backgroundColor: '#81C784' + '15', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: '#81C784' + '33' }}
             >
               <MaterialIcons name="stars" size={10} color="#81C784" />
@@ -446,19 +452,19 @@ const GoalsSection = ({ goals, hasPartner, theme, formatMoney, navigation, animS
           )}
         </View>
       </View>
-      <TouchableOpacity onPress={() => navigation.navigate('Mimpi')}>
+      <TouchableOpacity onPress={() => navigation.navigate('Goals')}>
         <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold', fontSize: 13 }}>Lihat Semua</Text>
       </TouchableOpacity>
     </View>
 
     {!hasPartner ? (
-      <View style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 32, padding: 24, borderWidth: 1, borderColor: theme.primary + '33' }}>
-        <Text style={{ color: theme.onSurfaceVariant, fontSize: 13, textAlign: 'center', lineHeight: 20 }}>Menunggu pasangan bergabung sebelum memulai mimpi bersama.</Text>
+      <View style={{ backgroundColor: theme.surface, borderRadius: 32, padding: 24, borderWidth: 1, borderColor: theme.primary + '33' }}>
+        <Text style={{ color: theme.onSurfaceVariant, fontSize: 13, textAlign: 'center', lineHeight: 20 }}>Menunggu pasangan bergabung sebelum memulai goal bersama.</Text>
       </View>
     ) : goals.filter(g => !g.achieved).length === 0 ? (
       <TouchableOpacity 
-        onPress={() => navigation.navigate('Mimpi')}
-        style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 32, padding: 24, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: theme.outlineVariant + '44' }}
+        onPress={() => navigation.navigate('Goals')}
+        style={{ backgroundColor: theme.surface, borderRadius: 32, padding: 24, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: theme.outlineVariant + '44' }}
       >
         <MaterialIcons name="favorite" size={32} color={theme.onSurfaceVariant + '44'} />
         <Text style={{ color: theme.onSurfaceVariant, fontSize: 13, marginTop: 8 }}>Belum ada goals aktif</Text>
@@ -472,7 +478,7 @@ const GoalsSection = ({ goals, hasPartner, theme, formatMoney, navigation, animS
             onLayout={(e) => { itemLayouts.current[goal.id || idx] = { localY: e.nativeEvent.layout.y, section: 'goals' }; }}
             onPress={() => navigation.navigate('GoalDetail', { goalId: goal.id })}
             activeOpacity={0.9}
-            style={{ backgroundColor: theme.surfaceContainerLow, padding: 14, borderRadius: 30, flexDirection: 'row', alignItems: 'center', marginBottom: 14, borderWidth: 1, borderColor: theme.outlineVariant + '15', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 }}
+            style={{ backgroundColor: theme.surface, padding: 14, borderRadius: 30, flexDirection: 'row', alignItems: 'center', marginBottom: 14, borderWidth: 1, borderColor: theme.outlineVariant + '15', shadowColor: theme.onSurface, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 }}
           >
             <View style={{ width: 90, height: 90, borderRadius: 22, overflow: 'hidden', backgroundColor: theme.surfaceContainerHighest, borderWidth: 1, borderColor: theme.outlineVariant + '11' }}>
               {goal.previewImage ? <Image source={{ uri: goal.previewImage }} style={{ width: '100%', height: '100%' }} /> : <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><MaterialIcons name="auto-awesome" size={32} color={theme.primary + '33'} /></View>}
@@ -511,7 +517,7 @@ const GoalsSection = ({ goals, hasPartner, theme, formatMoney, navigation, animS
 const RecentActivitiesSection = ({ filteredTx, theme, formatMoney, navigation, openQuickEdit, highlightedId, highlightAnim, animStyle, itemLayouts, sectionLayouts }) => (
   <Animated.View 
     onLayout={(e) => { sectionLayouts.current.recent = e.nativeEvent.layout.y; }}
-    style={animStyle}
+    style={animStyle.style || animStyle}
   >
     <View style={[styles.sectionHeader, { marginBottom: 16 }]}>
       <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Aktivitas Terakhir</Text>
@@ -559,7 +565,7 @@ const DashboardScreen = ({ navigation, route }) => {
   const authCtx = useContext(AuthContext);
 
   // Fallback theme: Biar kalo Context-nya macet, aplikasi nggak langsung crash (layar putih).
-  const theme = themeCtx?.theme || { background: '#0b0f10', surface: '#0b0f10', primary: '#b2cad3', onSurface: '#dde7eb' };
+  const theme = themeCtx?.theme || { background: '#0b0f10', surface: '#0b0f10', primary: '#b2cad3', onSurface: '#dde7eb', surfaceContainerLow: '#151a1c', onPrimary: '#000', onError: '#fff', onSurfaceVariant: '#a0acb0', outlineVariant: '#2d3538' };
   
   // Destructuring Data: Kita ambil semua fungsi sakti dari DataContext.
   const { 
@@ -604,12 +610,20 @@ const DashboardScreen = ({ navigation, route }) => {
   const [billColor, setBillColor] = useState('#6366F1');
   const [selectedPayAccountId, setSelectedPayAccountId] = useState(null);
   const [confirmConfig, setConfirmConfig] = useState({});
+  const [aestheticAlertVisible, setAestheticAlertVisible] = useState(false);
+  const [aestheticAlertConfig, setAestheticAlertConfig] = useState({ title: '', message: '', icon: 'info', color: '#6366F1' });
+
+  const showAestheticAlert = (title, message, icon = 'info', color = '#6366F1') => {
+    setAestheticAlertConfig({ title, message, icon, color });
+    setAestheticAlertVisible(true);
+  };
   const [loading, setLoading] = useState(false);
   const [selectedSplitTx, setSelectedSplitTx] = useState(null);
   const [selectedSplitAccountId, setSelectedSplitAccountId] = useState(null);
   const [quickEditTx, setQuickEditTx] = useState(null);
   const [quickEditName, setQuickEditName] = useState('');
   const [quickEditAmount, setQuickEditAmount] = useState('');
+  const [quickEditAccountId, setQuickEditAccountId] = useState(null);
   const quickSelectionRef = useRef({ start: 0, end: 0 });
   const [quickSelectionState, setQuickSelectionState] = useState({ start: 0, end: 0 });
   const quickAmountRef = useRef('');
@@ -662,10 +676,11 @@ const DashboardScreen = ({ navigation, route }) => {
     // Auto scroll logic
     const layout = itemLayouts.current[id];
     if (layout && scrollRef.current) {
-      // Calculate absolute Y dynamically to avoid race conditions with section layouts
+      // Calculate absolute Y dynamically
       const absoluteY = layout.localY + (sectionLayouts.current[layout.section] || 0);
-      // Offset adjusted to 300 to ensure item is clearly in the top half of the screen
-      scrollRef.current.scrollTo({ y: Math.max(0, absoluteY - 300), animated: true });
+      // Offset -100 places the item at the very top of the visible area for maximum readability.
+      // We use a large paddingBottom to ensure even items at the end can reach this position.
+      scrollRef.current.scrollTo({ y: Math.max(0, absoluteY - 100), animated: true });
     }
 
     Animated.sequence([
@@ -712,8 +727,8 @@ const DashboardScreen = ({ navigation, route }) => {
     const type = notif.type || notif.targetType;
     const title = notif.title?.toLowerCase() || '';
 
-    // Advanced routing based on old UI logic
-    if ((type === 'goal' || title.includes('goal') || title.includes('mimpi') || title.includes('dana')) && targetId) {
+    // Advanced routing based on notification payload
+    if ((type === 'goal' || title.includes('goal') || title.includes('dana')) && targetId) {
       const goalData = Array.isArray(goals) ? goals.find(g => String(g.id) === targetId) : null;
       if (goalData?.achieved || goalData?.status === 'achieved') {
         navigation.navigate('MemoryDetail', { goalId: targetId });
@@ -852,17 +867,31 @@ const DashboardScreen = ({ navigation, route }) => {
       if (action === 'pengeluaran') navigation.navigate('Transaksi', { type: 'expense' });
       else if (action === 'pemasukan') navigation.navigate('Transaksi', { type: 'income' });
       else if (action === 'transfer') navigation.navigate('Transfer');
-      else if (action === 'goals') navigation.navigate('Mimpi');
+      else if (action === 'goals') navigation.navigate('Goals');
       else if (action === 'tagihan') { resetBillForm(); setBillModalVisible(true); }
     }, 200);
   };
 
   const openQuickEdit = (tx) => {
+    // PROTEKSI: Cek kepemilikan transaksi
+    if (tx.owner !== myName && tx.owner !== 'Bersama') {
+      showAestheticAlert(
+        'Akses Terbatas',
+        `Transaksi ini dicatat oleh ${tx.owner}. Kamu hanya bisa mengedit transaksi milikmu sendiri untuk menjaga integritas data pribadi pasangan.`,
+        'lock',
+        theme.primary
+      );
+      return;
+    }
+    
     const formatted = formatInput((tx.amount || 0).toString());
     setQuickEditTx(tx);
     setQuickEditName(tx.name);
     setQuickEditAmount(formatted);
     quickAmountRef.current = formatted;
+    setQuickEditAccountId(tx.type === 'transfer' ? tx.fromAccountId : tx.accountId);
+    setQuickSelectionState({ start: formatted.length, end: formatted.length });
+    quickSelectionRef.current = { start: formatted.length, end: formatted.length };
     setIsQuickEditVisible(true);
   };
 
@@ -881,7 +910,8 @@ const DashboardScreen = ({ navigation, route }) => {
         name: quickEditName,
         amount: numAmount,
         myContrib: fMy,
-        partnerContrib: fPar
+        partnerContrib: fPar,
+        accountId: quickEditAccountId
       });
       setIsQuickEditVisible(false);
       showToast('Transaksi diperbarui!');
@@ -948,6 +978,8 @@ const DashboardScreen = ({ navigation, route }) => {
     setBillName('');
     setBillAmount('');
     billAmountRef.current = '';
+    setSelectionBill({ start: 0, end: 0 });
+    selectionBillRef.current = { start: 0, end: 0 };
     setBillDueDate(new Date());
     setBillType('one-time');
     setBillTotalTenor('12');
@@ -983,7 +1015,7 @@ const DashboardScreen = ({ navigation, route }) => {
       processedVal = oldText.slice(0, oldSel - 2) + oldText.slice(oldSel);
     }
     const digitsAfter = oldText.slice(oldSel).replace(/\D/g, '').length;
-    const formatted = formatMoney(processedVal.replace(/\D/g, ''));
+    const formatted = formatInput(processedVal);
     setBillAmount(formatted);
     billAmountRef.current = formatted;
     let newPos = formatted.length;
@@ -1169,7 +1201,7 @@ const DashboardScreen = ({ navigation, route }) => {
 
       <ScrollView 
         ref={scrollRef}
-        contentContainerStyle={styles.main} 
+        contentContainerStyle={[styles.main, { paddingBottom: 150 }]} 
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />}
       >
@@ -1192,8 +1224,9 @@ const DashboardScreen = ({ navigation, route }) => {
           setSplitModalVisible={setSplitModalVisible} 
           highlightedId={highlightedId} 
           highlightAnim={highlightAnim} 
-          animStyle={{ onLayout: (e) => { sectionLayouts.current.pending = e.nativeEvent.layout.y; }, style: { opacity: sectionsAnim[1], transform: [{ translateY: sectionsAnim[1].interpolate({ inputRange:[0,1], outputRange:[20,0] }) }], marginTop: 24 } }}
+          animStyle={{ opacity: sectionsAnim[1], transform: [{ translateY: sectionsAnim[1].interpolate({ inputRange:[0,1], outputRange:[20,0] }) }], marginTop: 24 }}
           itemLayouts={itemLayouts}
+          sectionLayouts={sectionLayouts}
         />
 
         <WalletsSection 
@@ -1202,7 +1235,8 @@ const DashboardScreen = ({ navigation, route }) => {
           formatMoney={formatMoney} 
           navigation={navigation} 
           width={width}
-          animStyle={{ style: { opacity: sectionsAnim[2], transform: [{ translateY: sectionsAnim[2].interpolate({ inputRange:[0,1], outputRange:[20,0] }) }], marginTop: 24 } }}
+          animStyle={{ opacity: sectionsAnim[2], transform: [{ translateY: sectionsAnim[2].interpolate({ inputRange:[0,1], outputRange:[20,0] }) }], marginTop: 24 }}
+          sectionLayouts={sectionLayouts}
         />
 
         <ExpenseAnalysisSection 
@@ -1219,12 +1253,13 @@ const DashboardScreen = ({ navigation, route }) => {
         />
 
 
-        {/* Bill Reminder Section */}        <BillsSection 
+        <BillsSection 
           bills={bills} theme={theme} formatMoney={formatMoney} 
           setSelectedBill={setSelectedBill} setBillActionModalVisible={setBillActionModalVisible} 
           highlightedId={highlightedId} highlightAnim={highlightAnim} 
-          animStyle={{ onLayout: (e) => { sectionLayouts.current.bills = e.nativeEvent.layout.y; }, style: { opacity: sectionsAnim[4], transform: [{ translateY: sectionsAnim[4].interpolate({ inputRange:[0,1], outputRange:[20,0] }) }], marginTop: 32 } }}
+          animStyle={{ opacity: sectionsAnim[4], transform: [{ translateY: sectionsAnim[4].interpolate({ inputRange:[0,1], outputRange:[20,0] }) }], marginTop: 32 }}
           itemLayouts={itemLayouts} resetBillForm={resetBillForm} setBillModalVisible={setBillModalVisible}
+          sectionLayouts={sectionLayouts}
         />
 
         <GoalsSection 
@@ -1241,13 +1276,12 @@ const DashboardScreen = ({ navigation, route }) => {
           itemLayouts={itemLayouts} sectionLayouts={sectionLayouts}
         />
 
-
         <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* Modern FAB */}
       <View style={styles.fabContainer}>
-          {fabOpen && fabActions.map((act, i) => (
+        {fabOpen ? fabActions.map((act, i) => (
             <Animated.View 
               key={act.key} 
               style={[
@@ -1262,16 +1296,16 @@ const DashboardScreen = ({ navigation, route }) => {
                 style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', width: 250, paddingRight: 8 }} 
                 onPress={() => handleFabAction(act.key)}
               >
-                <View style={{ backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, marginRight: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
-                  <Text style={{ color: '#fff', fontSize: 13, fontWeight: 'bold' }}>{act.label}</Text>
+                <View style={{ backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, marginRight: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }}>
+                  <RNText style={{ color: '#ffffff', fontSize: 13, fontWeight: 'bold' }}>{act.label}</RNText>
                 </View>
                 <View style={[styles.fabMini, { backgroundColor: act.color, shadowColor: act.color, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4 }]}>
-                   <MaterialIcons name={act.icon} size={20} color="#fff" />
+                   <MaterialIcons name={act.icon} size={20} color="#ffffff" />
                 </View>
               </TouchableOpacity>
             </Animated.View>
-          ))}
-         <TouchableOpacity onPress={toggleFab} style={[styles.fabMain, { backgroundColor: theme.surface }]} activeOpacity={0.8}>
+          )) : null}
+         <TouchableOpacity onPress={toggleFab} style={styles.fabMain} activeOpacity={0.8}>
             <LinearGradient 
               colors={[theme.primary, theme.primary + 'CC']} 
               style={styles.fabGradient}
@@ -1295,16 +1329,12 @@ const DashboardScreen = ({ navigation, route }) => {
             backgroundColor: theme.surfaceContainer, 
             borderRadius: 32, 
             padding: 20, 
-            shadowColor: '#000', 
-            shadowOffset: { width: 0, height: 20 }, 
-            shadowOpacity: 0.5, 
-            shadowRadius: 30, 
-            elevation: 20, 
+            ...getShadow('#000', 0.5, 30, { width: 0, height: 20 }, 20),
             borderWidth: 1, 
             borderColor: 'rgba(255,255,255,0.08)' 
           }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <Text style={{ fontSize: 18, fontWeight: '900', color: '#fff', letterSpacing: -0.5 }}>Pemberitahuan</Text>
+              <Text style={{ fontSize: 18, fontWeight: '900', color: theme.onSurface, letterSpacing: -0.5 }}>Pemberitahuan</Text>
               <TouchableOpacity onPress={() => { setNotifyVisible(false); if (markAllNotificationsAsRead) markAllNotificationsAsRead(); }} style={{ padding: 4 }}>
                 <MaterialIcons name="done-all" size={20} color={theme.primary} />
               </TouchableOpacity>
@@ -1339,24 +1369,24 @@ const DashboardScreen = ({ navigation, route }) => {
                     const notifIcon = notif.icon || '';
                     
                     // Goal icons
-                    if (notifIcon === 'favorite' || notifIcon === 'savings' || notifIcon === 'stars' || type === 'goal' || msgLower.includes('goal') || msgLower.includes('dana') || msgLower.includes('mimpi')) {
+                    if (notifIcon === 'favorite' || notifIcon === 'savings' || notifIcon === 'stars' || type === 'goal' || msgLower.includes('goal') || msgLower.includes('dana')) {
                       return { name: 'favorite', color: '#E879F9' };
                     }
                     
                     // Bill icons
                     if (type === 'bill' || msgLower.includes('tagihan') || titleLower.includes('tagihan')) {
                       if (msgLower.includes('bayar') || msgLower.includes('lunas') || msgLower.includes('terbayar')) {
-                        return { name: 'receipt-long', color: '#10B981' };
+                        return { name: 'receipt-long', color: theme.success };
                       }
                       return { name: 'bolt', color: '#F59E0B' };
                     }
                     
                     // Transaction icons
                     if (type === 'transaction' || type === 'split_pending' || type === 'split_approved') {
-                      if (msgLower.includes('pemasukan')) return { name: 'payments', color: '#10B981' };
-                      if (msgLower.includes('patungan') || msgLower.includes('konfirmasi')) return { name: 'people', color: '#6366F1' };
+                      if (msgLower.includes('pemasukan')) return { name: 'payments', color: theme.success };
+                      if (msgLower.includes('patungan') || msgLower.includes('konfirmasi')) return { name: 'people', color: theme.primary };
                       if (msgLower.includes('tagihan')) return { name: 'receipt-long', color: '#F59E0B' };
-                      return { name: 'shopping-bag', color: '#F43F5E' };
+                      return { name: 'shopping-bag', color: theme.error };
                     }
                     
                     return { name: 'notifications', color: theme.primary };
@@ -1382,7 +1412,7 @@ const DashboardScreen = ({ navigation, route }) => {
                       <View style={{ flex: 1, marginLeft: 16 }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                           <Text style={{ fontSize: 15, fontWeight: 'bold', color: theme.onSurface }}>{title}</Text>
-                          {isUnread && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.primary }} />}
+                          {!!isUnread && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.primary }} />}
                         </View>
                         <Text style={{ fontSize: 13, color: theme.onSurfaceVariant, marginTop: 4 }} numberOfLines={2}>{message}</Text>
                       </View>
@@ -1397,11 +1427,11 @@ const DashboardScreen = ({ navigation, route }) => {
 
       {/* Full Add/Edit Bill Modal */}
       <Modal visible={billModalVisible} transparent animationType="slide" onRequestClose={() => setBillModalVisible(false)}>
-        <View style={[styles.modalOverlay, { justifyContent: 'flex-end' }]}>
-          <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} activeOpacity={1} onPress={() => setBillModalVisible(false)} />
-          <View style={[styles.modalContent, { maxHeight: '90%', padding: 0, overflow: 'hidden', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }]}>
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }]}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setBillModalVisible(false)} />
+          <View style={[styles.modalContent, { backgroundColor: theme.surface, maxHeight: '90%', padding: 0, overflow: 'hidden', borderBottomLeftRadius: 0, borderBottomRightRadius: 0, opacity: 1 }]}>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <View style={{ padding: 24, paddingBottom: 40 }}>
+              <View style={{ padding: 24, paddingBottom: 150 }}>
                 <Text style={{ fontSize: 22, fontWeight: '900', color: theme.onSurface, marginBottom: 24 }}>{isEditingBill ? 'Edit Tagihan' : 'Tambah Tagihan'}</Text>
                 
                 <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8, marginLeft: 4 }}>TIPE TAGIHAN</Text>
@@ -1444,7 +1474,20 @@ const DashboardScreen = ({ navigation, route }) => {
                 <TextInput style={[styles.input, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface }]} placeholder="Misal: Listrik" placeholderTextColor={theme.onSurfaceVariant} value={billName} onChangeText={setBillName} />
                 
                 <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8, marginLeft: 4 }}>NOMINAL (RP)</Text>
-                    <TextInput style={[styles.input, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface }]} placeholder="0" keyboardType="numeric" placeholderTextColor={theme.onSurfaceVariant} value={billAmount} onChangeText={handleBillAmountChange} selection={selectionBill} onSelectionChange={(e) => setSelectionBill(e.nativeEvent.selection)} />
+                    <TextInput 
+                      style={[styles.input, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface }]} 
+                      placeholder="0" 
+                      keyboardType="numeric" 
+                      placeholderTextColor={theme.onSurfaceVariant} 
+                      value={billAmount} 
+                      onChangeText={handleBillAmountChange} 
+                      selection={selectionBill} 
+                      onSelectionChange={(e) => {
+                        const sel = e.nativeEvent.selection;
+                        setSelectionBill(sel);
+                        selectionBillRef.current = sel;
+                      }} 
+                    />
                 
                 <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8, marginLeft: 4 }}>JATUH TEMPO</Text>
                 <TouchableOpacity 
@@ -1589,7 +1632,7 @@ const DashboardScreen = ({ navigation, route }) => {
       <Modal visible={payBillModalVisible} transparent animationType="fade" onRequestClose={() => setPayBillModalVisible(false)}>
         <View style={[styles.modalOverlay, { justifyContent: 'flex-end' }]}>
           <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} activeOpacity={1} onPress={() => setPayBillModalVisible(false)} />
-          <View style={[styles.modalContent, { padding: 0, overflow: 'hidden', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface, padding: 0, overflow: 'hidden', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }]}>
             <View style={{ padding: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '33' }}>
               <Text style={{ fontSize: 20, fontWeight: '900', color: theme.onSurface, marginBottom: 4 }}>Pilih Pembayaran</Text>
               <Text style={{ fontSize: 13, color: theme.onSurfaceVariant }}>Bayar "{selectedBill?.name}" sebesar Rp {formatMoney(selectedBill?.amount)}</Text>
@@ -1616,10 +1659,29 @@ const DashboardScreen = ({ navigation, route }) => {
         </View>
       </Modal>
 
+      {/* Aesthetic Alert Modal */}
+      <Modal visible={aestheticAlertVisible} transparent animationType="fade" onRequestClose={() => setAestheticAlertVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setAestheticAlertVisible(false)}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface, padding: 32, alignItems: 'center', borderRadius: 32, borderTopLeftRadius: 32, borderTopRightRadius: 32 }]}>
+            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: aestheticAlertConfig.color + '15', justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
+               <MaterialIcons name={aestheticAlertConfig.icon} size={40} color={aestheticAlertConfig.color} />
+            </View>
+            <Text style={{ fontSize: 22, fontWeight: '900', color: theme.onSurface, marginBottom: 12, textAlign: 'center' }}>{aestheticAlertConfig.title}</Text>
+            <Text style={{ fontSize: 15, color: theme.onSurfaceVariant, marginBottom: 32, textAlign: 'center', lineHeight: 22 }}>{aestheticAlertConfig.message}</Text>
+            <TouchableOpacity 
+              style={{ backgroundColor: aestheticAlertConfig.color, paddingVertical: 18, paddingHorizontal: 48, borderRadius: 20, width: '100%', alignItems: 'center', elevation: 4, shadowColor: aestheticAlertConfig.color, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 }} 
+              onPress={() => setAestheticAlertVisible(false)}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Mengerti</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Confirm Modal */}
       <Modal visible={confirmVisible} transparent animationType="fade" onRequestClose={() => setConfirmVisible(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setConfirmVisible(false)}>
-          <View style={[styles.modalContent, { padding: 24 }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface, padding: 24 }]}>
             <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 12, textAlign: 'center' }}>{confirmConfig.title}</Text>
             <Text style={{ fontSize: 14, color: theme.onSurfaceVariant, marginBottom: 24, textAlign: 'center', lineHeight: 20 }}>{confirmConfig.message}</Text>
             <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -1627,7 +1689,7 @@ const DashboardScreen = ({ navigation, route }) => {
                 <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Batal</Text>
               </TouchableOpacity>
               <TouchableOpacity style={{ flex: 1, backgroundColor: theme.primary, padding: 16, borderRadius: 16, alignItems: 'center' }} onPress={confirmConfig.onConfirm}>
-                <Text style={{ color: '#fff', fontWeight: 'bold' }}>OK</Text>
+                <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>OK</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1650,6 +1712,30 @@ const DashboardScreen = ({ navigation, route }) => {
                 selection={quickSelectionState}
                 onSelectionChange={(e) => { setQuickSelectionState(e.nativeEvent.selection); quickSelectionRef.current = e.nativeEvent.selection; }}
               />
+
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 12, marginLeft: 4 }}>SUMBER DANA</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 24 }}>
+                {accounts.filter(acc => acc.owner === myName || acc.owner === 'Bersama').map(acc => {
+                  const isActive = quickEditAccountId === acc.id;
+                  return (
+                    <TouchableOpacity 
+                      key={acc.id} 
+                      onPress={() => setQuickEditAccountId(acc.id)} 
+                      style={{ 
+                        padding: 12, borderRadius: 16, backgroundColor: isActive ? theme.primary + '15' : theme.surfaceContainerLow, 
+                        borderWidth: 1.5, borderColor: isActive ? theme.primary : 'transparent', marginRight: 10,
+                        flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 120
+                      }}
+                    >
+                      <MaterialIcons name={acc.icon || 'payments'} size={18} color={isActive ? theme.primary : theme.onSurfaceVariant} />
+                      <View>
+                        <Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.onSurface }}>{acc.name}</Text>
+                        <Text style={{ fontSize: 10, color: theme.onSurfaceVariant }}>Rp {formatMoney(acc.balance)}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
               <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
                 <TouchableOpacity onPress={handleDeleteQuickEdit} disabled={loading} style={{ flex: 1, backgroundColor: theme.error + '15', padding: 18, borderRadius: 20, alignItems: 'center', opacity: loading ? 0.6 : 1 }}><Text style={{ color: theme.error, fontWeight: 'bold' }}>Hapus</Text></TouchableOpacity>
                 <TouchableOpacity onPress={handleSaveQuickEdit} disabled={loading} style={{ flex: 2, backgroundColor: theme.primary, padding: 18, borderRadius: 20, alignItems: 'center', opacity: loading ? 0.6 : 1 }}><Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>{loading ? 'Menyimpan...' : 'Simpan'}</Text></TouchableOpacity>
@@ -1682,7 +1768,7 @@ const DashboardScreen = ({ navigation, route }) => {
                 disabled={loading}
                 style={{ flex: 1, height: 56, borderRadius: 20, backgroundColor: theme.error, justifyContent: 'center', alignItems: 'center', opacity: loading ? 0.6 : 1 }}
               >
-                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{loading ? 'Menghapus...' : 'Hapus'}</Text>
+                <Text style={{ color: theme.onError, fontWeight: 'bold' }}>{loading ? 'Menghapus...' : 'Hapus'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1736,7 +1822,7 @@ const DashboardScreen = ({ navigation, route }) => {
             }) 
           }] 
         }]}>
-          <View style={[styles.toastContent, { backgroundColor: theme.surface, borderColor: theme.outlineVariant + '22' }]}>
+          <View style={[styles.toastContent, { backgroundColor: theme.surface, borderColor: theme.outlineVariant + '22', padding: 16 }]}>
             <MaterialIcons name="favorite" size={20} color={theme.primary} />
             <Text style={[styles.toastText, { color: theme.onSurface }]}>{toastMsg}</Text>
           </View>
@@ -1770,29 +1856,27 @@ const styles = StyleSheet.create({
     borderRadius: 8, 
     backgroundColor: '#F43F5E', 
     borderWidth: 1.5, 
-    borderColor: '#fff',
+    borderColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 2
   },
-  main: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 150 },
+  main: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: Dimensions.get('window').height },
 
   heroCard: { borderRadius: 36, padding: 28, marginBottom: 24 },
   heroLabel: { color: 'rgba(255,255,255,0.9)', fontSize: 11, fontWeight: '900', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 1 },
-  heroValue: { color: '#fff', fontSize: 34, fontWeight: '900', letterSpacing: -1.5 },
+  heroValue: { color: '#ffffff', fontSize: 34, fontWeight: '900', letterSpacing: -1.5 },
   filterRow: { flexDirection: 'row', gap: 8, marginTop: 24 },
   filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)' },
-  filterChipActive: { backgroundColor: '#fff' },
+  filterChipActive: { backgroundColor: '#ffffff' },
   filterChipText: { color: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: 'bold' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   sectionTitle: { fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
   walletScroll: { marginHorizontal: -24, marginTop: 4 },
   surfaceCard: {
     borderRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
+    ...getShadow('#000', 0.05, 12, { width: 0, height: 4 }, 4),
+    backgroundColor: 'transparent',
     elevation: 3,
   },
   walletCard: { 
@@ -1803,11 +1887,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     alignItems: 'center', 
     gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
   },
   walletIcon: { width: 40, height: 40, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   walletName: { fontSize: 13, fontWeight: 'bold' },

@@ -167,12 +167,12 @@ const WalletsScreen = ({ route }) => {
             end={{ x: 1, y: 1 }}
           >
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.summaryLabel}>Total Saldo Gabungan</Text>
-                <Text style={styles.summaryValue}>Rp {formatMoney(totalBalance)}</Text>
+                <Text style={styles.summaryValue} numberOfLines={1} adjustsFontSizeToFit>Rp {formatMoney(totalBalance)}</Text>
               </View>
               <View style={styles.summaryIcon}>
-                <MaterialIcons name="people" size={32} color="#fff" />
+                <MaterialIcons name="people" size={32} color="#ffffff" />
               </View>
             </View>
             <View style={styles.summaryFooter}>
@@ -213,14 +213,6 @@ const WalletsScreen = ({ route }) => {
           )}
         </Animated.View>
 
-        <Animated.View style={{ opacity: fadeAnims[4], transform: [{ translateY: slideAnims[4] }] }}>
-          <View style={[styles.infoBox, { backgroundColor: theme.surfaceContainerLow }]}>
-            <MaterialIcons name="info-outline" size={20} color={theme.primary} />
-            <Text style={[styles.infoText, { color: theme.onSurfaceVariant }]}>
-              Keamanan terjaga: Kamu hanya bisa mengelola dompet milikmu sendiri. Dompet pasangan bersifat hanya baca.
-            </Text>
-          </View>
-        </Animated.View>
       </ScrollView>
 
       {/* Action Modal */}
@@ -339,7 +331,7 @@ const styles = StyleSheet.create({
   content: { padding: 24, paddingBottom: 150 },
   summaryCard: { padding: 28, borderRadius: 36, marginBottom: 40, elevation: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.25, shadowRadius: 24 },
   summaryLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 'bold', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 },
-  summaryValue: { color: '#fff', fontSize: 36, fontWeight: '900', letterSpacing: -1 },
+  summaryValue: { color: '#ffffff', fontSize: 36, fontWeight: '900', letterSpacing: -1 },
   summaryIcon: { width: 56, height: 56, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
   summaryFooter: { marginTop: 20, paddingTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)' },
   summaryFooterText: { color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: '500' },
@@ -348,7 +340,7 @@ const styles = StyleSheet.create({
   emptyContainer: { padding: 48, borderRadius: 32, alignItems: 'center', gap: 16, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' },
   emptyText: { textAlign: 'center', fontSize: 14, lineHeight: 22 },
   accountList: { gap: 14 },
-  accountCard: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 28, gap: 16, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10 },
+  accountCard: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 28, gap: 16 },
   iconContainer: { width: 52, height: 52, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   accountInfo: { flex: 1 },
   accountName: { fontSize: 17, fontWeight: 'bold', letterSpacing: -0.3 },
@@ -358,7 +350,7 @@ const styles = StyleSheet.create({
   infoText: { fontSize: 12, flex: 1, lineHeight: 18, fontWeight: '500' },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 40, borderTopRightRadius: 40, padding: 28, paddingBottom: Platform.OS === 'ios' ? 44 : 28, maxHeight: '90%' },
+  modalContent: { borderTopLeftRadius: 40, borderTopRightRadius: 40, padding: 28, paddingBottom: 40, maxHeight: '90%' },
   modalHeader: { alignItems: 'center', paddingBottom: 24, borderBottomWidth: 1, marginBottom: 12 },
   modalIcon: { width: 64, height: 64, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   modalTitle: { fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },

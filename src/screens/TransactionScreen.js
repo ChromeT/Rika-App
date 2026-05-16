@@ -43,6 +43,14 @@ const TransactionScreen = ({ navigation, route }) => {
 
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [aestheticAlertVisible, setAestheticAlertVisible] = useState(false);
+  const [aestheticAlertConfig, setAestheticAlertConfig] = useState({ title: '', message: '', icon: 'info', color: '#6366F1' });
+
+  const showAestheticAlert = (title, message, icon = 'info', color = '#6366F1') => {
+    setAestheticAlertConfig({ title, message, icon, color });
+    setAestheticAlertVisible(true);
+  };
   const [name, setName] = useState('');
   const [isKonta, setIsKonta] = useState(false);
   const [type, setType] = useState('expense');
@@ -187,11 +195,19 @@ const TransactionScreen = ({ navigation, route }) => {
     }
     if (route?.params?.editingTransaction) {
       const tx = route.params.editingTransaction;
+      const myName = user?.name || 'Saya';
+      if (tx.owner !== myName && tx.owner !== 'Bersama') {
+        showAestheticAlert('Akses Dibatasi', 'Kamu hanya bisa mengedit transaksi milikmu sendiri untuk menjaga integritas data pribadi pasangan.', 'lock', theme.primary);
+        setTimeout(() => navigation.goBack(), 2000);
+        return;
+      }
       setIsEditMode(true);
       setEditingId(tx.id);
       const formattedAmt = formatInput((tx.amount || 0).toString());
       setAmount(formattedAmt);
       amountRef.current = formattedAmt;
+      setSelectionState({ start: formattedAmt.length, end: formattedAmt.length });
+      selectionRef.current = { start: formattedAmt.length, end: formattedAmt.length };
       setName(tx.name);
       setType(tx.type);
       setIsKonta(tx.isJoint);
@@ -457,6 +473,25 @@ const TransactionScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Aesthetic Alert Modal */}
+      <Modal visible={aestheticAlertVisible} transparent animationType="fade" onRequestClose={() => setAestheticAlertVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setAestheticAlertVisible(false)}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface, padding: 32, alignItems: 'center', borderRadius: 32 }]}>
+            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: aestheticAlertConfig.color + '15', justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
+               <MaterialIcons name={aestheticAlertConfig.icon} size={40} color={aestheticAlertConfig.color} />
+            </View>
+            <Text style={{ fontSize: 22, fontWeight: '900', color: theme.onSurface, marginBottom: 12, textAlign: 'center' }}>{aestheticAlertConfig.title}</Text>
+            <Text style={{ fontSize: 15, color: theme.onSurfaceVariant, marginBottom: 32, textAlign: 'center', lineHeight: 22 }}>{aestheticAlertConfig.message}</Text>
+            <TouchableOpacity 
+              style={{ backgroundColor: aestheticAlertConfig.color, paddingVertical: 18, paddingHorizontal: 48, borderRadius: 20, width: '100%', alignItems: 'center', elevation: 4, shadowColor: aestheticAlertConfig.color, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 }} 
+              onPress={() => setAestheticAlertVisible(false)}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Mengerti</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       <Animated.View style={[styles.header, { opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }]}>
         <View style={styles.headerLeft}>
           <View style={styles.avatarWrapper}>

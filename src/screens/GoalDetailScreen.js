@@ -337,7 +337,7 @@ const GoalDetailScreen = ({ route }) => {
           {/* Title Info */}
           <View style={{ position: 'absolute', bottom: 30, left: 24, right: 24 }}>
             <View>
-              <Text style={{ color: '#fff', fontSize: 34, fontWeight: '900', letterSpacing: -1 }}>{goal.name}</Text>
+              <Text style={{ color: '#ffffff', fontSize: 34, fontWeight: '900', letterSpacing: -1 }} numberOfLines={2} adjustsFontSizeToFit>{goal.name}</Text>
               {targetDate && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
                    <View style={{ backgroundColor: isOverdue ? 'rgba(244, 67, 54, 0.3)' : 'rgba(178, 202, 211, 0.3)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
@@ -366,7 +366,7 @@ const GoalDetailScreen = ({ route }) => {
         }}>
           {/* Description */}
           <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
-            {goal.description && (
+            {!!goal.description && (
               <Text style={{ color: safeTheme.onSurfaceVariant, fontSize: 15, lineHeight: 24, marginBottom: 32 }}>{goal.description}</Text>
             )}
           </Animated.View>
@@ -408,7 +408,7 @@ const GoalDetailScreen = ({ route }) => {
                   <Text style={{ fontSize: 16, fontWeight: 'bold', color: remaining > 0 ? safeTheme.error : '#81C784' }}>
                     {remaining > 0 ? `Rp ${formatMoney(remaining)}` : 'TERCAPAI!'}
                   </Text>
-                  <Text style={{ fontSize: 10, color: safeTheme.onSurfaceVariant, fontWeight: 'bold' }}>{remaining > 0 ? 'KEKURANGAN' : 'MIMPI JADI NYATA'}</Text>
+                  <Text style={{ fontSize: 10, color: safeTheme.onSurfaceVariant, fontWeight: 'bold' }}>{remaining > 0 ? 'KEKURANGAN' : 'GOAL TERCAPAI!'}</Text>
                 </View>
               </View>
             </LinearGradient>
@@ -521,7 +521,7 @@ const GoalDetailScreen = ({ route }) => {
             </View>
             <Text style={{ fontSize: 24, fontWeight: '900', color: safeTheme.onSurface, marginBottom: 8, textAlign: 'center', letterSpacing: -0.5 }}>Hapus Goal?</Text>
             <Text style={{ fontSize: 14, color: safeTheme.onSurfaceVariant, textAlign: 'center', marginBottom: 32, lineHeight: 20 }}>
-              Mimpi "{goal?.name}" akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
+              Goal "{goal?.name}" akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
             </Text>
             <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
               <TouchableOpacity onPress={() => setDeleteModalVisible(false)} style={{ flex: 1, height: 56, borderRadius: 20, backgroundColor: safeTheme.surfaceContainerHighest, justifyContent: 'center', alignItems: 'center' }}>

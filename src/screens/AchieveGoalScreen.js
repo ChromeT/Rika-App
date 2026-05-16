@@ -23,7 +23,7 @@ const VideoPreview = ({ uri, theme }) => {
   });
 
   return (
-    <View style={{ width: '100%', height: 120, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+    <View style={{ width: '100%', height: 120, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' }}>
       <VideoView
         player={player}
         style={{ width: '100%', height: 120 }}
@@ -179,6 +179,18 @@ export const AchieveGoalScreen = () => {
   const handleSave = async () => {
     if (!goal) return;
 
+    // VALIDASI SAKTI
+    const numericAmount = Number(actualAmount.replace(/\./g, '')) || 0;
+    if (numericAmount <= 0) {
+      Alert.alert('Nominal Tidak Valid', 'Masukkan nominal riil yang kamu keluarkan untuk goal ini.');
+      return;
+    }
+
+    if (mediaList.length === 0) {
+      Alert.alert('Media Kosong', 'Kenangan manis butuh setidaknya satu foto atau video untuk diabadikan!');
+      return;
+    }
+
     setUploading(true);
     let finalMediaList = mediaList;
 
@@ -247,13 +259,13 @@ export const AchieveGoalScreen = () => {
 
       {uploading && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}>
-          <ActivityIndicator size="large" color="#fff" />
-          <Text style={{ color: '#fff', marginTop: 12, fontSize: 14 }}>Mengupload media...</Text>
+          <ActivityIndicator size="large" color="#ffffff" />
+          <Text style={{ color: '#ffffff', marginTop: 12, fontSize: 14 }}>Mengupload media...</Text>
         </View>
       )}
 
       <ScrollView 
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 150 }}
       >
         <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
           <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 4 }}>🎉 {goal.name}</Text>
@@ -271,7 +283,7 @@ export const AchieveGoalScreen = () => {
                 <Image source={{ uri: m.uri }} style={{ width: '100%', height: 120 }} />
               )}
               <TouchableOpacity onPress={() => removeMedia(i)} style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 14, padding: 4 }}>
-                <MaterialIcons name="close" size={16} color="#fff" />
+                <MaterialIcons name="close" size={16} color="#ffffff" />
               </TouchableOpacity>
               <TextInput
                 style={{ padding: 10, color: theme.onSurface, fontSize: 13 }}
@@ -346,7 +358,7 @@ export const AchieveGoalScreen = () => {
         <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>TRANSAKSI TERKAIT (OPSIONAL)</Text>
         <Text style={{ fontSize: 10, color: theme.onSurfaceVariant, marginBottom: 12 }}>Pilih transaksi yang relevan dengan goal ini</Text>
         
-        {transactions.slice(0, 10).map(tx => {
+        {transactions.slice(0, 30).map(tx => {
           const isSelected = selectedTxIds.includes(tx.id);
           const total = (tx.myContrib || 0) + (tx.partnerContrib || 0);
           return (
@@ -354,8 +366,8 @@ export const AchieveGoalScreen = () => {
               style={{ flexDirection: 'row', alignItems: 'center', padding: 12, marginBottom: 8, borderRadius: 12,
                 backgroundColor: isSelected ? theme.primary + '1A' : theme.surfaceContainerLow,
                 borderWidth: 1.5, borderColor: isSelected ? theme.primary : theme.outlineVariant + '22' }}>
-              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: theme.primaryContainer + '33', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
-                <MaterialIcons name={tx.icon || 'receipt'} size={16} color={theme.primary} />
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: (tx.type === 'income' ? theme.primary : theme.error) + '1A', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                <MaterialIcons name={tx.icon || (tx.type === 'income' ? 'add' : 'remove')} size={16} color={tx.type === 'income' ? theme.primary : theme.error} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.onSurface }}>{tx.name}</Text>

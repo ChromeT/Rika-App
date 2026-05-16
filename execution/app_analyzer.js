@@ -62,14 +62,28 @@ const analyzeCodebase = (rootDir) => {
                         });
                     }
 
-                    // Check for hardcoded colors
-                    if (line.match(/color:\s*'(#[0-9a-fA-F]{3,6}|red|blue|green|white|black)'/) && content.includes('ThemeContext')) {
+                    // Check for hardcoded colors (improved regex)
+                    if (line.match(/color:\s*'(#[0-9a-fA-F]{3,6}|rgba?\(.*?\)|red|blue|green|white|black|transparent)'/) && content.includes('ThemeContext')) {
                         report.ui_issues.push({
                             file: relPath,
                             line: i + 1,
                             type: "Hardcoded Color",
-                            message: "Uses hardcoded hex/color name instead of theme object."
+                            message: "Uses hardcoded color instead of theme object."
                         });
+                    }
+
+                    // Check for missing key in .map()
+                    if (line.includes('.map(') && !content.includes('key={', i)) {
+                         // Simple check for key prop in subsequent lines if map starts here
+                         const nextFewLines = lines.slice(i, i + 5).join(' ');
+                         if (nextFewLines.includes('=>') && !nextFewLines.includes('key=')) {
+                            report.logic_risks.push({
+                                file: relPath,
+                                line: i + 1,
+                                type: "Missing List Key",
+                                message: "Found .map() without an obvious 'key' prop. May cause rendering issues."
+                            });
+                         }
                     }
                 });
             }

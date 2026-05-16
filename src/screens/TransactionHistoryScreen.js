@@ -1,28 +1,25 @@
-import React, { useContext, useState, useEffect, useRef, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, Alert, ActivityIndicator, Animated, Platform, Modal } from 'react-native';
+import React, { useState, useMemo, useContext, useEffect, useRef } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Animated, Platform, Modal, TextInput, Alert, ActivityIndicator, Dimensions } from 'react-native';
+import Text from '../components/ThemeText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { formatMoney } from '../utils/formatUtils';
 import { ThemeContext } from '../context/ThemeContext';
 import { DataContext } from '../context/DataContext';
 import { AuthContext } from '../context/AuthContext';
+import { formatMoney } from '../utils/formatUtils';
 import { exportToPDF, exportToXLS } from '../utils/exportUtils';
-import { useNavigation } from '@react-navigation/native';
-import Text from '../components/ThemeText';
 
-// --- [SUB-KOMPONEN: History Header] ---
+// --- [SUB-KOMPONEN: Header] ---
 const HistoryHeader = ({ theme, avatar, navigation, fadeAnim, slideAnim }) => (
   <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
     <View style={styles.headerLeft}>
-      <Text style={[styles.headerTitle, { color: theme.onSurface }]}>Riwayat Keuangan</Text>
+      <TouchableOpacity onPress={() => navigation.goBack()}>
+        <MaterialIcons name="arrow-back-ios-new" size={24} color={theme.onSurface} />
+      </TouchableOpacity>
+      <Text style={[styles.headerTitle, { color: theme.onSurface }]}>Riwayat</Text>
     </View>
     <TouchableOpacity onPress={() => navigation.navigate('Couple')} style={styles.avatarWrapper}>
-      {avatar?.startsWith('file://') || avatar?.startsWith('data:image') ? (
-        <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />
-      ) : (
-        <MaterialIcons name={avatar || 'person'} size={20} color={theme.primary} />
-      )}
+       <MaterialIcons name="account-circle" size={32} color={theme.onSurfaceVariant} />
     </TouchableOpacity>
   </Animated.View>
 );
@@ -30,109 +27,85 @@ const HistoryHeader = ({ theme, avatar, navigation, fadeAnim, slideAnim }) => (
 // --- [SUB-KOMPONEN: Summary Cards] ---
 const SummaryCards = ({ theme, totalIncome, totalExpense, formatMoney, fadeAnim, slideAnim }) => (
   <Animated.View style={[styles.summaryGrid, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-     <LinearGradient colors={[theme.primary, theme.primary + 'AA']} style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>Total Masuk</Text>
-        <Text style={styles.summaryValue}>Rp {formatMoney(totalIncome)}</Text>
-     </LinearGradient>
-     <LinearGradient colors={[theme.error, theme.error + 'AA']} style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>Total Keluar</Text>
-        <Text style={styles.summaryValue}>Rp {formatMoney(totalExpense)}</Text>
-     </LinearGradient>
+    <View style={[styles.summaryCard, { backgroundColor: theme.primary }]}>
+       <Text style={styles.summaryLabel}>Pemasukan</Text>
+       <Text style={styles.summaryValue}>+Rp {formatMoney(totalIncome)}</Text>
+    </View>
+    <View style={[styles.summaryCard, { backgroundColor: theme.error }]}>
+       <Text style={styles.summaryLabel}>Pengeluaran</Text>
+       <Text style={styles.summaryValue}>-Rp {formatMoney(totalExpense)}</Text>
+    </View>
   </Animated.View>
 );
 
-// --- [SUB-KOMPONEN: Filter Section] ---
-const FilterSection = ({ 
-  theme, search, setSearch, setDateModalVisible, filterMonth, filterYear, 
-  filterOwner, setFilterOwner, filterType, setFilterType, 
-  myName, partnerName, fadeAnim, slideAnim 
-}) => (
-  <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-    <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
-      <View style={[styles.searchBox, { flex: 1, backgroundColor: theme.surfaceContainerLow, borderColor: theme.outlineVariant + '22', marginBottom: 0 }]}>
+// --- [SUB-KOMPONEN: Filters] ---
+const FilterSection = ({ theme, search, setSearch, setDateModalVisible, filterMonth, filterYear, filterOwner, setFilterOwner, filterType, setFilterType, myName, partnerName, fadeAnim, slideAnim }) => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  return (
+    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+      <View style={[styles.searchBox, { backgroundColor: theme.surfaceContainerLow, borderColor: theme.outlineVariant + '15' }]}>
         <MaterialIcons name="search" size={20} color={theme.onSurfaceVariant} />
         <TextInput 
-          nativeID="search-transactions"
-          name="search-transactions"
-          style={[styles.searchInput, { color: theme.onSurface }]} 
           placeholder="Cari transaksi..." 
-          placeholderTextColor={theme.onSurfaceVariant}
+          style={[styles.searchInput, { color: theme.onSurface }]} 
+          placeholderTextColor={theme.onSurfaceVariant + '88'}
           value={search}
           onChangeText={setSearch}
         />
+        {search !== '' && <TouchableOpacity onPress={() => setSearch('')}><MaterialIcons name="close" size={20} color={theme.onSurfaceVariant} /></TouchableOpacity>}
       </View>
-      <TouchableOpacity 
-        onPress={() => setDateModalVisible(true)}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.primary + '15', paddingHorizontal: 16, borderRadius: 20, borderWidth: 1, borderColor: theme.primary + '33' }}
-      >
-        <MaterialIcons name="calendar-today" size={18} color={theme.primary} />
-        <Text style={{ color: theme.primary, fontWeight: '900', fontSize: 13 }}>
-          {['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][filterMonth]} {filterYear}
-        </Text>
-      </TouchableOpacity>
-    </View>
 
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20, marginHorizontal: -20, paddingHorizontal: 20 }}>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        {['Semua', 'Saya', 'Pasangan'].map(o => (
-          <TouchableOpacity key={o} onPress={() => setFilterOwner(o)} style={[styles.pill, { backgroundColor: filterOwner === o ? theme.primary : theme.surfaceContainerLow, borderColor: filterOwner === o ? theme.primary : theme.outlineVariant + '22' }]}>
-            <Text style={[styles.pillText, { color: filterOwner === o ? theme.onPrimary : theme.onSurfaceVariant }]}>{o === 'Pasangan' ? partnerName : o}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16, marginBottom: 8 }}>
+        <TouchableOpacity onPress={() => setDateModalVisible(true)} style={[styles.pill, { backgroundColor: theme.surfaceContainerLow, borderColor: theme.primary, marginRight: 10, flexDirection: 'row', gap: 6 }]}>
+           <MaterialIcons name="calendar-today" size={16} color={theme.primary} />
+           <Text style={[styles.pillText, { color: theme.onSurface }]}>{months[filterMonth]} {filterYear}</Text>
+        </TouchableOpacity>
+        
+        {['Semua', 'Saya', 'Pasangan'].map(opt => (
+          <TouchableOpacity key={opt} onPress={() => setFilterOwner(opt)} style={[styles.pill, { marginRight: 10, backgroundColor: filterOwner === opt ? theme.primary : theme.surfaceContainerLow, borderColor: filterOwner === opt ? theme.primary : theme.outlineVariant + '22' }]}>
+            <Text style={[styles.pillText, { color: filterOwner === opt ? theme.onPrimary : theme.onSurfaceVariant }]}>{opt}</Text>
           </TouchableOpacity>
         ))}
-        <View style={{ width: 1, height: 20, backgroundColor: theme.outlineVariant + '33', alignSelf: 'center', marginHorizontal: 4 }} />
-        {['Semua', 'income', 'expense'].map(t => (
-          <TouchableOpacity key={t} onPress={() => setFilterType(t)} style={[styles.pill, { backgroundColor: filterType === t ? (t === 'income' ? theme.primary : (t === 'expense' ? theme.error : theme.primary)) : theme.surfaceContainerLow, borderColor: filterType === t ? (t === 'income' ? theme.primary : (t === 'expense' ? theme.error : theme.primary)) : theme.outlineVariant + '22' }]}>
-            <Text style={[styles.pillText, { color: filterType === t ? theme.onPrimary : theme.onSurfaceVariant }]}>{t === 'Semua' ? 'Semua Tipe' : (t === 'income' ? 'Masuk' : 'Keluar')}</Text>
+
+        {['Semua', 'income', 'expense', 'transfer'].map(opt => (
+          <TouchableOpacity key={opt} onPress={() => setFilterType(opt)} style={[styles.pill, { marginRight: 10, backgroundColor: filterType === opt ? theme.primary : theme.surfaceContainerLow, borderColor: filterType === opt ? theme.primary : theme.outlineVariant + '22' }]}>
+            <Text style={[styles.pillText, { color: filterType === opt ? theme.onPrimary : theme.onSurfaceVariant }]}>
+              {opt === 'income' ? 'Pemasukan' : opt === 'expense' ? 'Pengeluaran' : opt === 'transfer' ? 'Transfer' : 'Semua Tipe'}
+            </Text>
           </TouchableOpacity>
         ))}
-      </View>
-    </ScrollView>
-  </Animated.View>
-);
+      </ScrollView>
+    </Animated.View>
+  );
+};
 
+// --- [SUB-KOMPONEN: Export] ---
 const ExportTools = ({ theme, handleExportPDF, handleExportExcel, loading }) => (
-  <View style={{ flexDirection: 'row', marginBottom: 24 }}>
-    <TouchableOpacity onPress={handleExportPDF} disabled={loading} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceContainerLow, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: theme.outlineVariant + '22', marginRight: 12 }}>
-      <MaterialIcons name="picture-as-pdf" size={20} color={theme.error} />
-      <Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.onSurface, marginLeft: 8 }}>Laporan PDF</Text>
+  <View style={{ flexDirection: 'row', gap: 12, marginTop: 12, marginBottom: 20 }}>
+    <TouchableOpacity onPress={handleExportPDF} disabled={loading} style={{ flex: 1, height: 48, borderRadius: 16, backgroundColor: theme.surfaceContainerLow, borderDash: [2, 2], borderWidth: 1, borderColor: theme.outlineVariant + '33', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+      <MaterialIcons name="picture-as-pdf" size={18} color={theme.onSurfaceVariant} />
+      <Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.onSurfaceVariant }}>Export PDF</Text>
     </TouchableOpacity>
-    <TouchableOpacity onPress={handleExportExcel} disabled={loading} style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.surfaceContainerLow, padding: 14, borderRadius: 16, borderWidth: 1, borderColor: theme.outlineVariant + '22' }}>
-      <MaterialIcons name="description" size={20} color="#10B981" />
-      <Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.onSurface, marginLeft: 8 }}>Data Excel</Text>
+    <TouchableOpacity onPress={handleExportExcel} disabled={loading} style={{ flex: 1, height: 48, borderRadius: 16, backgroundColor: theme.surfaceContainerLow, borderDash: [2, 2], borderWidth: 1, borderColor: theme.outlineVariant + '33', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+      <MaterialIcons name="table-view" size={18} color={theme.onSurfaceVariant} />
+      <Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.onSurfaceVariant }}>Export Excel</Text>
     </TouchableOpacity>
   </View>
 );
 
-const LoadingOverlay = ({ theme }) => (
-  <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center', zIndex: 999 }]}>
-    <View style={{ backgroundColor: theme.surface, padding: 30, borderRadius: 24, alignItems: 'center' }}>
-      <ActivityIndicator size="large" color={theme.primary} />
-      <Text style={{ marginTop: 16, color: theme.onSurface, fontWeight: 'bold' }}>Menyiapkan Laporan...</Text>
-    </View>
-  </View>
-);
-
-// --- [KOMPONEN UTAMA: TransactionHistoryScreen] ---
-const TransactionHistoryScreen = ({ route }) => {
+const TransactionHistoryScreen = ({ navigation, route }) => {
   const { highlightId, highlightName } = route.params || {};
   const { theme } = useContext(ThemeContext);
+  const { transactions, accounts, deleteTransaction, updateTransaction } = useContext(DataContext);
   const { user, householdUsers, avatar } = useContext(AuthContext);
-  const { transactions, accounts, deleteTransaction } = useContext(DataContext);
-  const navigation = useNavigation();
 
-  // Highlighting & Scrolling logic
-  const [highlightedId, setHighlightedId] = useState(null);
   const scrollRef = useRef(null);
   const itemLayouts = useRef({});
   const dateLayouts = useRef({});
+  const [highlightedId, setHighlightedId] = useState(null);
 
   useEffect(() => {
     if (highlightId || highlightName) {
-      setFilterOwner('Semua');
-      setFilterType('Semua');
-      setSearch('');
-      setHighlightedId(highlightId || null);
-      
       let attempts = 0;
       const findAndScroll = setInterval(() => {
         let targetLayout = itemLayouts.current[String(highlightId)];
@@ -149,6 +122,8 @@ const TransactionHistoryScreen = ({ route }) => {
         if (targetLayout && scrollRef.current) {
           const sectionY = dateLayouts.current[targetLayout.date] || 0;
           const absoluteY = targetLayout.localY + sectionY;
+          // Offset set to -100 to place the item at the top for maximum readability.
+          // Large paddingBottom ensures items at the end can reach this position.
           scrollRef.current.scrollTo({ y: Math.max(0, absoluteY - 100), animated: true });
           clearInterval(findAndScroll);
           setTimeout(() => { setHighlightedId(null); }, 5000);
@@ -174,6 +149,14 @@ const TransactionHistoryScreen = ({ route }) => {
   const [actionModalVisible, setActionModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const [aestheticAlertVisible, setAestheticAlertVisible] = useState(false);
+  const [aestheticAlertConfig, setAestheticAlertConfig] = useState({ title: '', message: '', icon: 'info', color: '#6366F1' });
+
+  const showAestheticAlert = (title, message, icon = 'info', color = '#6366F1') => {
+    setAestheticAlertConfig({ title, message, icon, color });
+    setAestheticAlertVisible(true);
+  };
+
   const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
   const slideAnims = useRef([new Animated.Value(20), new Animated.Value(20), new Animated.Value(20), new Animated.Value(20)]).current;
 
@@ -198,7 +181,13 @@ const TransactionHistoryScreen = ({ route }) => {
     ]).start();
   }, []);
 
-  const handleBack = () => navigation.goBack();
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Beranda');
+    }
+  };
 
   const filtered = useMemo(() => {
     return (transactions || []).filter(tx => {
@@ -246,13 +235,17 @@ const TransactionHistoryScreen = ({ route }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
-      <HistoryHeader theme={theme} avatar={avatar} navigation={navigation} fadeAnim={fadeAnims[0]} slideAnim={slideAnims[0]} /><ScrollView ref={scrollRef} contentContainerStyle={[styles.main, { paddingBottom: 150 }]} showsVerticalScrollIndicator={false}>
-        <SummaryCards theme={theme} totalIncome={totalIncome} totalExpense={totalExpense} formatMoney={formatMoney} fadeAnim={fadeAnims[1]} slideAnim={slideAnims[1]} /><FilterSection 
+      <HistoryHeader theme={theme} avatar={avatar} navigation={navigation} fadeAnim={fadeAnims[0]} slideAnim={slideAnims[0]} />
+      <ScrollView ref={scrollRef} contentContainerStyle={[styles.main, { paddingBottom: Dimensions.get('window').height }]} showsVerticalScrollIndicator={false}>
+        <SummaryCards theme={theme} totalIncome={totalIncome} totalExpense={totalExpense} formatMoney={formatMoney} fadeAnim={fadeAnims[1]} slideAnim={slideAnims[1]} />
+        <FilterSection 
           theme={theme} search={search} setSearch={setSearch} setDateModalVisible={setDateModalVisible} 
           filterMonth={filterMonth} filterYear={filterYear} filterOwner={filterOwner} setFilterOwner={setFilterOwner} 
           filterType={filterType} setFilterType={setFilterType} myName={myName} partnerName={partnerName} 
           fadeAnim={fadeAnims[2]} slideAnim={slideAnims[2]} 
-        /><ExportTools theme={theme} handleExportPDF={handleExportPDF} handleExportExcel={handleExportExcel} loading={loading} />{grouped.map(([date, txs]) => (
+        />
+        <ExportTools theme={theme} handleExportPDF={handleExportPDF} handleExportExcel={handleExportExcel} loading={loading} />
+        {grouped.map(([date, txs]) => (
           <View key={date} onLayout={(e) => { dateLayouts.current[date] = e.nativeEvent.layout.y; }}>
             <View style={styles.dateHeader}>
                <Text style={[styles.dateText, { color: theme.onSurfaceVariant }]}>{date}</Text>
@@ -261,13 +254,21 @@ const TransactionHistoryScreen = ({ route }) => {
             {txs.map((item, index) => (
               <TransactionCard 
                 key={item.id} tx={item} index={index} theme={theme} myName={myName} accounts={accounts} formatMoney={formatMoney}
-                onEdit={() => { setSelectedTx(item); setActionModalVisible(true); }}
+                onEdit={() => { 
+                  if (item.owner !== myName && item.owner !== 'Bersama') {
+                    showAestheticAlert('Akses Terbatas', `Transaksi ini dicatat oleh ${item.owner}. Kamu hanya bisa mengedit transaksi milikmu sendiri untuk menjaga integritas data pribadi pasangan.`, 'lock', theme.primary);
+                    return;
+                  }
+                  setSelectedTx(item); 
+                  setActionModalVisible(true); 
+                }}
                 isHighlighted={highlightedId === item.id}
                 onLayout={(e) => { itemLayouts.current[String(item.id)] = { localY: e.nativeEvent.layout.y, date }; }}
               />
             ))}
           </View>
-        ))}{filtered.length === 0 && (
+        ))}
+        {filtered.length === 0 && (
           <View style={styles.emptyState}>
             <MaterialIcons name="receipt-long" size={80} color={theme.outlineVariant + '44'} />
             <Text style={[styles.emptyText, { color: theme.onSurfaceVariant }]}>Belum ada riwayat.</Text>
@@ -275,7 +276,27 @@ const TransactionHistoryScreen = ({ route }) => {
           </View>
         )}
       </ScrollView>
+
       {loading && <LoadingOverlay theme={theme} />}
+
+      {/* Aesthetic Alert Modal */}
+      <Modal visible={aestheticAlertVisible} transparent animationType="fade" onRequestClose={() => setAestheticAlertVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setAestheticAlertVisible(false)}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface, padding: 32, alignItems: 'center', borderRadius: 32 }]}>
+            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: aestheticAlertConfig.color + '15', justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
+               <MaterialIcons name={aestheticAlertConfig.icon} size={40} color={aestheticAlertConfig.color} />
+            </View>
+            <Text style={{ fontSize: 22, fontWeight: '900', color: theme.onSurface, marginBottom: 12, textAlign: 'center' }}>{aestheticAlertConfig.title}</Text>
+            <Text style={{ fontSize: 15, color: theme.onSurfaceVariant, marginBottom: 32, textAlign: 'center', lineHeight: 22 }}>{aestheticAlertConfig.message}</Text>
+            <TouchableOpacity 
+              style={{ backgroundColor: aestheticAlertConfig.color, paddingVertical: 18, paddingHorizontal: 48, borderRadius: 20, width: '100%', alignItems: 'center', elevation: 4, shadowColor: aestheticAlertConfig.color, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 }} 
+              onPress={() => setAestheticAlertVisible(false)}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Mengerti</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Action Modal */}
       <Modal visible={actionModalVisible} transparent animationType="fade" onRequestClose={() => setActionModalVisible(false)}>
@@ -284,12 +305,49 @@ const TransactionHistoryScreen = ({ route }) => {
            <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
               <View style={styles.modalHandle} />
               <View style={{ padding: 24 }}>
-                 <Text style={[styles.modalTitle, { color: theme.onSurface, marginBottom: 24 }]}>Opsi Transaksi</Text>
+                 <Text style={[styles.modalTitle, { color: theme.onSurface, marginBottom: 8 }]}>Opsi Transaksi</Text>
+                 <Text style={{ fontSize: 13, color: theme.onSurfaceVariant, marginBottom: 24 }}>{selectedTx?.name} - Rp {formatMoney((selectedTx?.myContrib || 0) + (selectedTx?.partnerContrib || 0))}</Text>
+                 
+                 <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, marginBottom: 12 }}>UBAH SUMBER DANA</Text>
+                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 24 }}>
+                    {accounts.filter(acc => acc.owner === myName || acc.owner === 'Bersama').map(acc => {
+                      const isActive = selectedTx?.accountId === acc.id || selectedTx?.fromAccountId === acc.id;
+                      return (
+                        <TouchableOpacity 
+                          key={acc.id} 
+                          onPress={async () => {
+                            try {
+                              setLoading(true);
+                              await updateTransaction(selectedTx.id, { accountId: acc.id });
+                              setSelectedTx({ ...selectedTx, accountId: acc.id });
+                              setLoading(false);
+                            } catch (e) {
+                              setLoading(false);
+                              Alert.alert('Gagal', 'Gagal mengubah sumber dana.');
+                            }
+                          }}
+                          style={{ 
+                            padding: 12, borderRadius: 16, backgroundColor: isActive ? theme.primary + '15' : theme.surfaceContainerLow, 
+                            borderWidth: 1.5, borderColor: isActive ? theme.primary : 'transparent', marginRight: 10,
+                            flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 120
+                          }}
+                        >
+                          <MaterialIcons name={acc.icon || 'payments'} size={18} color={isActive ? theme.primary : theme.onSurfaceVariant} />
+                          <View>
+                            <Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.onSurface }}>{acc.name}</Text>
+                            <Text style={{ fontSize: 10, color: theme.onSurfaceVariant }}>Rp {formatMoney(acc.balance)}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                 </ScrollView>
+
+                 <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, marginBottom: 8 }}>TINDAKAN</Text>
                  <TouchableOpacity 
                    style={styles.modalAction} 
                    onPress={() => {
                      setActionModalVisible(false);
-                     navigation.navigate('Transaction', { editingTransaction: selectedTx });
+                     navigation.navigate('Transaksi', { editingTransaction: selectedTx });
                    }}
                  >
                     <View style={[styles.modalActionIcon, { backgroundColor: theme.primary + '15' }]}>
@@ -331,65 +389,62 @@ const TransactionHistoryScreen = ({ route }) => {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 24 }}>
                    {[2024, 2025, 2026].map(y => (
                      <TouchableOpacity key={y} onPress={() => setFilterYear(y)} style={[styles.pill, { marginRight: 8, backgroundColor: filterYear === y ? theme.primary : theme.surfaceContainerLow, borderColor: filterYear === y ? theme.primary : theme.outlineVariant + '22' }]}>
-                        <Text style={[styles.pillText, { color: filterYear === y ? theme.onPrimary : theme.onSurfaceVariant }]}>{y}</Text>
+                       <Text style={[styles.pillText, { color: filterYear === y ? theme.onPrimary : theme.onSurfaceVariant }]}>{y}</Text>
                      </TouchableOpacity>
                    ))}
                 </ScrollView>
                 <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 12 }}>BULAN</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                   {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((m, i) => (
-                     <TouchableOpacity key={m} onPress={() => setFilterMonth(i)} style={[styles.pill, { width: '31%', backgroundColor: filterMonth === i ? theme.primary : theme.surfaceContainerLow, borderColor: filterMonth === i ? theme.primary : theme.outlineVariant + '22' }]}>
+                   {['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'].map((m, i) => (
+                     <TouchableOpacity key={m} onPress={() => { setFilterMonth(i); setDateModalVisible(false); }} style={[styles.pill, { width: '23%', backgroundColor: filterMonth === i ? theme.primary : theme.surfaceContainerLow, borderColor: filterMonth === i ? theme.primary : theme.outlineVariant + '22' }]}>
                         <Text style={[styles.pillText, { color: filterMonth === i ? theme.onPrimary : theme.onSurfaceVariant }]}>{m}</Text>
                      </TouchableOpacity>
                    ))}
                 </View>
-                <TouchableOpacity onPress={() => setDateModalVisible(false)} style={{ backgroundColor: theme.primary, padding: 16, borderRadius: 20, alignItems: 'center', marginTop: 32 }}>
-                   <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Terapkan</Text>
-                </TouchableOpacity>
               </View>
+              <TouchableOpacity onPress={() => setDateModalVisible(false)} style={styles.modalClose}>
+                 <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Batal</Text>
+              </TouchableOpacity>
            </View>
         </View>
       </Modal>
-
     </SafeAreaView>
   );
 };
 
 // --- [SUB-KOMPONEN: Transaction Card] ---
 const TransactionCard = ({ tx, index, theme, myName, accounts, formatMoney, onEdit, isHighlighted, onLayout }) => {
-  const typeColor = tx.type === 'income' ? theme.primary : tx.type === 'transfer' ? theme.onSurfaceVariant : theme.error;
+  const typeColor = tx.type === 'income' ? theme.primary : tx.type === 'transfer' ? theme.onSurface : theme.error;
   const totalAmt = (tx.myContrib || 0) + (tx.partnerContrib || 0);
-  const isOwner = tx.owner === myName;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 400, delay: index * 50, useNativeDriver: true }),
-      Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 8, delay: index * 50, useNativeDriver: true })
-    ]).start();
+    Animated.timing(opacity, { toValue: 1, duration: 400, delay: index * 50, useNativeDriver: Platform.OS !== 'web' }).start();
   }, []);
 
   return (
-    <Animated.View onLayout={onLayout} style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-      <Animated.View style={[isHighlighted && { backgroundColor: theme.primary + '15', borderRadius: 24, transform: [{ scale: 1.02 }] }]}>
-        <TouchableOpacity 
-          activeOpacity={0.8}
-          onPress={() => isOwner && onEdit()}
-          style={styles.txCard}
-        >
+    <Animated.View 
+      onLayout={onLayout}
+      style={{ opacity }}
+    >
+      <Animated.View style={[
+        styles.txCard, 
+        { 
+          backgroundColor: isHighlighted ? theme.primary + '22' : theme.surfaceContainerLow,
+          borderWidth: 1,
+          borderColor: isHighlighted ? theme.primary : theme.outlineVariant + '15'
+        }
+      ]}>
+        <TouchableOpacity style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }} onPress={onEdit}>
           <View style={[styles.txIconBg, { backgroundColor: typeColor + '15' }]}>
-            <MaterialIcons name={tx.icon || (tx.type === 'income' ? 'payments' : tx.type === 'transfer' ? 'swap-horiz' : 'shopping-bag')} size={24} color={typeColor} />
+            <MaterialIcons name={tx.icon || (tx.type === 'income' ? 'add' : tx.type === 'transfer' ? 'swap-horiz' : 'remove')} size={24} color={typeColor} />
           </View>
           <View style={styles.txInfo}>
             <Text style={[styles.txName, { color: theme.onSurface }]} numberOfLines={1}>{tx.name}</Text>
             <View style={styles.txMeta}>
-              <View style={{ backgroundColor: theme.primary + '15', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10 }}>
-                <Text style={{ color: theme.primary, fontSize: 10, fontWeight: 'bold' }}>{tx.category?.toUpperCase() || 'UMUM'}</Text>
-              </View>
-              <Text style={[styles.txWalletName, { color: theme.onSurfaceVariant, marginLeft: 8 }]}>
+              <Text style={[styles.txWalletName, { color: theme.onSurfaceVariant }]}>
                 {(() => {
-                  const accId = tx.type === 'transfer' ? tx.fromAccountId : tx.accountId;
+                  const accId = tx.accountId || tx.fromAccountId;
                   const acc = (accounts || []).find(a => a.id === accId);
                   return acc ? acc.name : 'Tunai';
                 })()}
@@ -408,6 +463,12 @@ const TransactionCard = ({ tx, index, theme, myName, accounts, formatMoney, onEd
   );
 };
 
+const LoadingOverlay = ({ theme }) => (
+  <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }]}>
+    <ActivityIndicator size="large" color={theme.primary} />
+  </View>
+);
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 20 },
@@ -418,7 +479,7 @@ const styles = StyleSheet.create({
   summaryGrid: { flexDirection: 'row', gap: 12, marginVertical: 20 },
   summaryCard: { flex: 1, padding: 20, borderRadius: 24, elevation: 4 },
   summaryLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 4 },
-  summaryValue: { color: '#fff', fontSize: 17, fontWeight: '900' },
+  summaryValue: { color: '#ffffff', fontSize: 17, fontWeight: '900' },
   searchBox: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 56, borderRadius: 20, borderWidth: 1 },
   searchInput: { flex: 1, marginHorizontal: 12, fontSize: 15 },
   pill: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },

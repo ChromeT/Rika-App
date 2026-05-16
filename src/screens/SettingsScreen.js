@@ -121,11 +121,11 @@ const SettingsScreen = ({ navigation }) => {
       onPress={onPress}
       activeOpacity={onPress ? 0.7 : 1}
     >
-      <View style={styles.settingRowLeft}>
+      <View style={[styles.settingRowLeft, { flex: 1, marginRight: 16 }]}>
         <View style={[styles.settingIcon, { backgroundColor: theme.primary + '10' }]}>
           <MaterialIcons name={icon} size={22} color={theme.primary} />
         </View>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={[styles.settingTitle, { color: theme.onSurface }]}>{title}</Text>
           {desc && <Text style={[styles.settingDesc, { color: theme.onSurfaceVariant }]}>{desc}</Text>}
         </View>
@@ -436,7 +436,11 @@ const SettingsScreen = ({ navigation }) => {
                 value={isDarkMode} 
                 onValueChange={toggleTheme}
                 trackColor={{ false: theme.outlineVariant + '44', true: theme.primary }}
-                thumbColor="#fff"
+                thumbColor="#ffffff"
+                style={Platform.OS === 'ios' 
+                  ? { transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }], marginRight: -4 } 
+                  : { transform: [{ scaleX: 1.1 }, { scaleY: 1.1 }], marginRight: -4 }
+                }
               />
             </SettingRow>
             
@@ -450,7 +454,7 @@ const SettingsScreen = ({ navigation }) => {
                    <Text style={[styles.paletteSubtitle, { color: theme.onSurfaceVariant }]}>Pilih warna kesukaan kita</Text>
                  </View>
               </View>
-              <View style={styles.paletteList}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.paletteList}>
                 {palettes.map((hex, i) => {
                   const isActive = accentColor === hex;
                   return (
@@ -474,7 +478,7 @@ const SettingsScreen = ({ navigation }) => {
                 >
                   <MaterialIcons name="add" size={24} color={theme.onSurfaceVariant} />
                 </TouchableOpacity>
-              </View>
+              </ScrollView>
             </View>
 
             <View style={[styles.paletteContainer, { backgroundColor: theme.surfaceContainerLow, marginTop: 12 }]}>
@@ -786,7 +790,7 @@ const styles = StyleSheet.create({
   paletteIconBg: { width: 44, height: 44, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   paletteTitle: { fontSize: 16, fontWeight: '900' },
   paletteSubtitle: { fontSize: 11, fontWeight: '500' },
-  paletteList: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  paletteList: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingRight: 10 },
   paletteDot: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   paletteDotActive: { width: 38, height: 38, borderRadius: 19 },
   plusBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },

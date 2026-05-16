@@ -97,32 +97,33 @@ const ActiveGoalItem = React.memo(({ item, index, navigation, safeTheme, formatM
           {/* Top Info Badges */}
           <View style={{ position: 'absolute', top: 16, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
              <View style={{ backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.2)' }}>
-                <Text style={{ color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 }}>{Math.round(progress)}%</Text>
+                <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 }}>{Math.round(progress)}%</Text>
              </View>
-             {item.targetDate && (
+             {!!item.targetDate && (
                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <MaterialIcons name="calendar-today" size={12} color="rgba(255,255,255,0.8)" />
-                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>{dayjs(item.targetDate).format('MMM YYYY')}</Text>
+                  <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '700' }}>{dayjs(item.targetDate).format('MMM YYYY')}</Text>
                </View>
              )}
           </View>
           {/* Bottom Info Floating Section */}
           <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20 }}>
             <Text style={{ 
-              color: '#fff', fontSize: 24, fontWeight: '900', letterSpacing: -0.5, marginBottom: 12,
+              color: '#ffffff', fontSize: 24, fontWeight: '900', letterSpacing: -0.5, marginBottom: 12,
               ...Platform.select({
                 ios: { textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: {width:0, height:2}, textShadowRadius: 4 },
                 android: { textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: {width:0, height:2}, textShadowRadius: 4 },
                 web: { textShadow: '0 2px 4px rgba(0,0,0,0.3)' }
               })
-            }}>{item.name}</Text><View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}>
+            }}>{item.name}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}>
                <View>
                   <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 10, fontWeight: 'bold', marginBottom: 2 }}>TERKUMPUL</Text>
                   <Text style={{ color: safeTheme.primary, fontSize: 18, fontWeight: '900' }}>Rp {formatMoney(item.currentAmount)}</Text>
                </View>
                <View style={{ alignItems: 'flex-end' }}>
                   <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 10, fontWeight: 'bold', marginBottom: 2 }}>TARGET</Text>
-                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800' }}>Rp {formatMoney(item.targetAmount)}</Text>
+                  <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '800' }}>Rp {formatMoney(item.targetAmount)}</Text>
                </View>
             </View>
 
@@ -174,9 +175,12 @@ const EmptyGoalsState = ({ safeTheme, activeTab, navigation }) => (
   <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 80 }}>
     <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: safeTheme.surfaceContainerLow, justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
       <MaterialIcons name={activeTab === 'active' ? 'auto-awesome' : 'emoji-events'} size={48} color={safeTheme.outlineVariant + '44'} />
-    </View><Text style={{ fontSize: 18, fontWeight: 'bold', color: safeTheme.onSurface, marginBottom: 8 }}>Belum Ada Goal</Text><Text style={{ fontSize: 14, color: safeTheme.onSurfaceVariant, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20, marginBottom: 32 }}>
+    </View>
+    <Text style={{ fontSize: 18, fontWeight: 'bold', color: safeTheme.onSurface, marginBottom: 8 }}>Belum Ada Goal</Text>
+    <Text style={{ fontSize: 14, color: safeTheme.onSurfaceVariant, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20, marginBottom: 32 }}>
       {activeTab === 'active' ? 'Yuk, mulai catat rencana masa depan kita berdua sekarang!' : 'Kenangan manis kita bakal kumpul di sini.'}
-    </Text>{activeTab === 'active' && (
+    </Text>
+    {activeTab === 'active' && (
       <TouchableOpacity 
         onPress={() => navigation.navigate('AddGoal')}
         style={{ backgroundColor: safeTheme.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 16 }}
@@ -228,13 +232,14 @@ const AchievedGoalItem = React.memo(({ item, index, navigation, safeTheme, forma
             <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 6, borderRadius: 12 }}>
                <MaterialIcons name="emoji-events" size={16} color="#fff" />
             </View>
-          </View><View style={{ position: 'absolute', bottom: 16, left: 16, right: 16 }}>
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900', letterSpacing: -0.3, marginBottom: 2 }} numberOfLines={2}>
+          </View>
+          <View style={{ position: 'absolute', bottom: 16, left: 16, right: 16 }}>
+            <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '900', letterSpacing: -0.3, marginBottom: 2 }} numberOfLines={2}>
               {item.name}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: safeTheme.primary }} />
-               <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 'bold' }}>Rp {formatMoney(item.targetAmount)}</Text>
+               <Text style={{ color: '#ffffffcc', fontSize: 11, fontWeight: 'bold' }}>Rp {formatMoney(item.actualAmount || item.targetAmount)}</Text>
             </View>
           </View>
         </View>
@@ -417,7 +422,19 @@ export const AddGoalScreen = () => {
   };
 
   const handleSave = async () => {
-    if (!name.trim() || uploading) return;
+    if (uploading) return;
+
+    // VALIDASI SAKTI
+    if (!name.trim()) {
+      Alert.alert('Nama Goal Kosong', 'Berikan nama yang manis untuk goal kita berdua.');
+      return;
+    }
+
+    const numericTarget = Number(target.replace(/\./g, '')) || 0;
+    if (numericTarget <= 0) {
+      Alert.alert('Target Tidak Valid', 'Masukkan target nominal yang ingin dicapai.');
+      return;
+    }
     
     console.log('--- HandleSave Start ---');
     setUploading(true);
@@ -498,8 +515,8 @@ export const AddGoalScreen = () => {
         </TouchableOpacity>
       </Animated.View>{uploading && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}>
-          <ActivityIndicator size="large" color="#fff" />
-          <Text style={{ color: '#fff', marginTop: 12, fontSize: 14 }}>{loadingMsg}</Text>
+          <ActivityIndicator size="large" color="#ffffff" />
+          <Text style={{ color: '#ffffff', marginTop: 12, fontSize: 14 }}>{loadingMsg}</Text>
         </View>
       )}<ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
         {/* Media Section */}
@@ -1158,7 +1175,7 @@ const GoalsScreen = ({ navigation, route }) => {
             renderItem={({ item, index }) => (
               <ActiveGoalItem item={item} index={index} navigation={navigation} safeTheme={safeTheme} formatMoney={formatMoney} />
             )}
-            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150 }}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={<EmptyGoalsState safeTheme={safeTheme} activeTab={activeTab} navigation={navigation} />}
           />
@@ -1171,7 +1188,7 @@ const GoalsScreen = ({ navigation, route }) => {
             renderItem={({ item, index }) => (
               <AchievedGoalItem item={item} index={index} navigation={navigation} safeTheme={safeTheme} formatMoney={formatMoney} />
             )}
-            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 120 }}
+            contentContainerStyle={{ padding: 16, paddingBottom: 160 }}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={<EmptyGoalsState safeTheme={safeTheme} activeTab={activeTab} navigation={navigation} />}
           />
@@ -1184,14 +1201,14 @@ const GoalsScreen = ({ navigation, route }) => {
             </View>
             <Text style={{ fontSize: 24, fontWeight: 'bold', color: safeTheme.onSurface, marginBottom: 8, textAlign: 'center' }}>Hapus Goal?</Text>
             <Text style={{ fontSize: 14, color: safeTheme.onSurfaceVariant, textAlign: 'center', marginBottom: 32, lineHeight: 20 }}>
-              Mimpi "{goalToDelete?.name}" akan dihapus. Tindakan ini tidak bisa dibatalkan.
+              Goal "{goalToDelete?.name}" akan dihapus. Tindakan ini tidak bisa dibatalkan.
             </Text>
             <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
               <TouchableOpacity onPress={() => setDeleteModalVisible(false)} style={{ flex: 1, height: 56, borderRadius: 20, backgroundColor: safeTheme.surfaceContainerHighest, justifyContent: 'center', alignItems: 'center' }}>
                 <Text style={{ color: safeTheme.onSurface, fontWeight: 'bold' }}>Batal</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={confirmDeleteGoal} style={{ flex: 1, height: 56, borderRadius: 20, backgroundColor: safeTheme.error, justifyContent: 'center', alignItems: 'center' }}>
-                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Hapus</Text>
+                <Text style={{ color: safeTheme.onError, fontWeight: 'bold' }}>Hapus</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1216,7 +1233,7 @@ const GoalsScreen = ({ navigation, route }) => {
         }}>
           <View style={{ backgroundColor: '#1E293B', paddingVertical: 14, paddingHorizontal: 20, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 10 }}>
             <MaterialIcons name="check-circle" size={20} color={safeTheme.primary} />
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>{toastMsg}</Text>
+            <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: 'bold' }}>{toastMsg}</Text>
           </View>
         </Animated.View>
       )}

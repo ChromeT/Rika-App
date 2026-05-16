@@ -74,7 +74,7 @@ const MediaModal = ({ visible, mediaList, onClose, startIndex = 0 }) => {
           </View>
         ) : null}
         {mediaList.length > 1 && (
-          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12, paddingBottom: 40, paddingTop: 12 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12, paddingBottom: 150, paddingHorizontal: 20 }}>
             <TouchableOpacity disabled={currentIdx === 0} onPress={() => setCurrentIdx(c => c - 1)} style={{ opacity: currentIdx === 0 ? 0.3 : 1 }}>
               <MaterialIcons name="chevron-left" size={32} color="#fff" />
             </TouchableOpacity>
@@ -107,7 +107,7 @@ const CapsuleBottomSheet = ({ visible, onClose, onSave, theme }) => {
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: theme.surface, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 48 }}>
+        <View style={{ backgroundColor: theme.surface, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 160 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface }}>Tulis Pesan Capsule</Text>
             <TouchableOpacity onPress={onClose}><MaterialIcons name="close" size={24} color={theme.onSurfaceVariant} /></TouchableOpacity>
@@ -238,23 +238,14 @@ const MemoryDetailScreen = ({ route }) => {
   };
 
   // Data fetching
-  const loadData = async () => {
-    console.log('MemoryDetail: Loading data for goalId:', goalId, 'householdId:', householdId);
-    
-    if (!householdId) {
-      console.log('MemoryDetail: No householdId, skipping');
-      return; 
-    }
+  useEffect(() => {
+    if (!householdId || !goalId) return;
+
+    let unsubTx = () => {};
+    let unsubCapsules = () => {};
 
     try {
-      // Goal is now handled via context, we just need to update local memories if goal exists
-      if (goal && goal.media) {
-        setMemories(goal.media);
-      }
-      
-      setLoading(false);
-
-      const unsubTx = onSnapshot(
+      unsubTx = onSnapshot(
         collection(db, 'households', householdId, 'transactions'),
         (snap) => {
           const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -262,37 +253,30 @@ const MemoryDetailScreen = ({ route }) => {
         }
       );
 
-      const unsubCapsules = onSnapshot(
+      unsubCapsules = onSnapshot(
         collection(db, 'households', householdId, 'goals', goalId, 'capsules'),
         (snap) => {
           const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
           setCapsules(data);
         }
       );
-
-      return () => {
-        unsubTx();
-        unsubCapsules();
-      };
     } catch (error) {
-      console.error('Error loading memory detail:', error);
-      setGoal({ name: 'Error Loading' });
+      console.error('Error in MemoryDetail subscriptions:', error);
+    }
+
+    return () => {
+      unsubTx();
+      unsubCapsules();
+    };
+  }, [goalId, householdId]);
+
+  // Initial data load for goal media (handled primarily by context now)
+  useEffect(() => {
+    if (goal && goal.media) {
+      setMemories(goal.media);
       setLoading(false);
     }
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      const cleanup = loadData();
-      return () => {
-        if (cleanup && typeof cleanup.then === 'function') {
-          cleanup.then(fns => {
-            if (fns && fns.length) fns.forEach(fn => fn());
-          });
-        }
-      };
-    }, [goalId, householdId, goal])
-  );
+  }, [goal]);
 
   // Sync memories and loading state when goal changes
   useEffect(() => {
@@ -388,11 +372,11 @@ const MemoryDetailScreen = ({ route }) => {
               <MaterialIcons name="close" size={24} color="#fff" />
             </TouchableOpacity>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity onPress={() => navigation.navigate('EditGoal', { goalId: goal.id })} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }}>
-                <MaterialIcons name="edit" size={20} color="#fff" />
+              <TouchableOpacity onPress={() => navigation.navigate('EditGoal', { goalId: goal.id })} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.surfaceContainerHighest + '99', justifyContent: 'center', alignItems: 'center' }}>
+                <MaterialIcons name="edit" size={20} color={theme.onSurface} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setDeleteModalVisible(true)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }}>
-                <MaterialIcons name="delete" size={20} color="#fff" />
+              <TouchableOpacity onPress={() => setDeleteModalVisible(true)} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.errorContainer + '99', justifyContent: 'center', alignItems: 'center' }}>
+                <MaterialIcons name="delete" size={20} color={theme.onErrorContainer} />
               </TouchableOpacity>
             </View>
           </View>
@@ -533,8 +517,8 @@ const MemoryDetailScreen = ({ route }) => {
           <View style={{ padding: 16, marginTop: 16 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, textTransform: 'uppercase' }}>ESTIMASI VS RIIL</Text>
-              <View style={{ backgroundColor: (goal.actualAmount || 0) <= goal.targetAmount ? '#10B981' + '22' : theme.error + '22', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-                <Text style={{ fontSize: 10, fontWeight: 'bold', color: (goal.actualAmount || 0) <= goal.targetAmount ? '#10B981' : theme.error }}>
+              <View style={{ backgroundColor: (goal.actualAmount || 0) <= goal.targetAmount ? theme.success + '22' : theme.error + '22', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                <Text style={{ fontSize: 10, fontWeight: 'bold', color: (goal.actualAmount || 0) <= goal.targetAmount ? theme.success : theme.error }}>
                   {(goal.actualAmount || 0) <= goal.targetAmount ? 'DI BAWAH BUDGET' : 'MELEBIHI BUDGET'}
                 </Text>
               </View>
@@ -576,7 +560,7 @@ const MemoryDetailScreen = ({ route }) => {
                 <MaterialIcons 
                   name={(goal.actualAmount || 0) <= goal.targetAmount ? "sentiment-very-satisfied" : "sentiment-neutral"} 
                   size={16} 
-                  color={(goal.actualAmount || 0) <= goal.targetAmount ? '#10B981' : theme.onSurfaceVariant} 
+                  color={(goal.actualAmount || 0) <= goal.targetAmount ? theme.success : theme.onSurfaceVariant} 
                 />
                 <Text style={{ fontSize: 12, color: theme.onSurfaceVariant, textAlign: 'center', fontWeight: '500' }}>
                   {(goal.actualAmount || 0) <= goal.targetAmount ? 'Hemat ' : 'Selisih '} 

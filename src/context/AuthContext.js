@@ -63,6 +63,13 @@ export const AuthProvider = ({ children }) => {
         } else {
           // Native Push (APK)
           if (Device.isDevice) {
+            // Cek apakah di Expo Go (Remote Notif nggak didukung di Expo Go SDK 51+)
+            const isExpoGo = Constants.executionEnvironment === 'store-client' || Constants.appOwnership === 'expo';
+            if (isExpoGo) {
+              console.log('Skipping Push Notification registration: Not supported in Expo Go.');
+              return;
+            }
+
             try {
               const { status: existingStatus } = await Notifications.getPermissionsAsync();
               let finalStatus = existingStatus;
@@ -95,6 +102,13 @@ export const AuthProvider = ({ children }) => {
         });
         return () => unsubscribe();
       } else if (Platform.OS !== 'web') {
+        // Check if running in Expo Go
+        const isExpoGo = Constants.executionEnvironment === 'store-client' || Constants.appOwnership === 'expo';
+        if (isExpoGo) {
+          console.log('Skipping Notification Listener: Not supported in Expo Go.');
+          return;
+        }
+
         const subscription = Notifications.addNotificationReceivedListener(notification => {
           console.log('Pesan diterima (Native):', notification);
         });

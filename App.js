@@ -1,4 +1,6 @@
 import React from 'react';
+import { Buffer } from 'buffer';
+global.Buffer = Buffer;
 import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';

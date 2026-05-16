@@ -97,12 +97,7 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
 
     // Sanitize rows to ensure no null/undefined values reach XLSX
     const sanitizedRows = rows.map(row => 
-      row.map(cell => {
-        if (cell === null || cell === undefined) return '-';
-        // Ensure no complex objects are passed as cell values
-        if (typeof cell === 'object' && !(cell instanceof Date)) return JSON.stringify(cell);
-        return cell;
-      })
+      row.map(cell => (cell === null || cell === undefined) ? '-' : cell)
     );
 
     const ws = XLSX.utils.aoa_to_sheet(sanitizedRows);
@@ -111,13 +106,12 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
 
     const timestamp = Date.now();
     const filename = `Rika_Report_${timestamp}.xlsx`;
-
-    // Robust sanitization for Android file system
     const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
     
     if (Platform.OS === 'web') {
       XLSX.writeFile(wb, sanitizedFilename);
     } else {
+      // Use type 'base64' but ensure we use global Buffer if available
       const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
       const fileUri = `${FileSystem.documentDirectory}${sanitizedFilename}`;
       
@@ -137,9 +131,7 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
     }
   } catch (e) {
     console.error('XLS Export Error:', e);
-    // More detailed error message for debugging
-    const errorMsg = e.message || 'Terjadi kesalahan teknis.';
-    Alert.alert('Gagal Ekspor', `Sistem gagal membuat file Excel. \n\nDetail: ${errorMsg}`);
+    Alert.alert('Gagal Ekspor XLS', `Terjadi kesalahan saat membuat file Excel: ${e.message}`);
   }
 };
 

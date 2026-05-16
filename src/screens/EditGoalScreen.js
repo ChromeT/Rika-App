@@ -335,7 +335,7 @@ export const EditGoalScreen = () => {
       .catch(e => console.error('Delete error:', e));
     
     // Kembali ke tab Goals
-    navigation.navigate('Mimpi');
+    navigation.navigate('Goals');
   };
 
   if (!goal) {
@@ -561,7 +561,7 @@ export const EditGoalScreen = () => {
                 <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 16 }}>Batal</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleDeleteConfirm} style={{ flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: theme.error, alignItems: 'center' }}>
-                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Hapus</Text>
+                <Text style={{ color: theme.onError, fontWeight: 'bold', fontSize: 16 }}>Hapus</Text>
               </TouchableOpacity>
             </View>
           </View>
