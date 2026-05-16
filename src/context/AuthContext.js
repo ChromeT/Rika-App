@@ -314,8 +314,52 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateProfile = async (newName, nickname) => {
+    if (!user) return;
+    
+    const updatedUser = { ...user, name: newName, nickname: nickname || '' };
+    setUser(updatedUser);
+    await AsyncStorage.setItem('@rika_user', JSON.stringify(updatedUser));
+    
+    if (user.householdId) {
+      try {
+        const docRef = doc(db, 'households', user.householdId);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          const currentData = docSnap.data();
+          const currentUsers = currentData.users || [];
+          
+          // Update nama di array users (kalau berubah)
+          const newUsers = currentUsers.map(u => u === user.name ? newName : u);
+          
+          const updateObj = {
+            users: newUsers,
+            [`nicknames.${newName}`]: nickname || '',
+          };
+          
+          // Kalau nama berubah, kita juga pindahin data avatar, fcm, dll ke key baru
+          if (newName !== user.name) {
+            if (currentData.avatars?.[user.name]) {
+              updateObj[`avatars.${newName}`] = currentData.avatars[user.name];
+              // updateObj[`avatars.${user.name}`] = deleteField(); // Opsional, biarin aja buat history
+            }
+            if (currentData.fcmTokens?.[user.name]) {
+              updateObj[`fcmTokens.${newName}`] = currentData.fcmTokens[user.name];
+              updateObj[`tokenType.${newName}`] = currentData.tokenType[user.name];
+            }
+          }
+          
+          await updateDoc(docRef, updateObj);
+        }
+      } catch (e) {
+        console.error('Failed to sync profile update', e);
+      }
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, householdUsers, householdAvatars, householdData, customColors, addCustomColor, loading, createHousehold, joinHousehold, loginWithData, logout, avatar, updateAvatar, lastReadNotif, markNotificationsAsRead, updateAnniversaryDate }}>
+    <AuthContext.Provider value={{ user, householdUsers, householdAvatars, householdData, customColors, addCustomColor, loading, createHousehold, joinHousehold, loginWithData, logout, avatar, updateAvatar, lastReadNotif, markNotificationsAsRead, updateAnniversaryDate, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

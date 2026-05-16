@@ -194,7 +194,10 @@ const TransactionHistoryScreen = ({ navigation, route }) => {
       const txDate = new Date(tx.date);
       const monthMatch = txDate.getMonth() === filterMonth;
       const yearMatch = txDate.getFullYear() === filterYear;
-      const ownerMatch = filterOwner === 'Semua' || (filterOwner === 'Saya' && tx.owner === myName) || (filterOwner === 'Pasangan' && tx.owner !== myName);
+      const isShared = tx.isPatungan || tx.isJoint;
+      const ownerMatch = filterOwner === 'Semua' || 
+                         (filterOwner === 'Saya' && (tx.owner === myName || (isShared && (tx.myContrib || 0) > 0))) || 
+                         (filterOwner === 'Pasangan' && (tx.owner === partnerName || (isShared && (tx.partnerContrib || 0) > 0)));
       const typeMatch = filterType === 'Semua' || tx.type === filterType;
       const searchMatch = !search || tx.name?.toLowerCase().includes(search.toLowerCase()) || tx.category?.toLowerCase().includes(search.toLowerCase());
       return monthMatch && yearMatch && ownerMatch && typeMatch && searchMatch;
@@ -220,7 +223,7 @@ const TransactionHistoryScreen = ({ navigation, route }) => {
     const period = `${monthNames[filterMonth]} ${filterYear}`;
     setLoading(true);
     try {
-      await exportToPDF(filtered, period, myName, { user: filterOwner, type: filterType === 'income' ? 'Pemasukan' : filterType === 'expense' ? 'Pengeluaran' : 'Semua' }, accounts);
+      await exportToPDF(filtered, period, myName, { user: filterOwner, type: filterType === 'income' ? 'Pemasukan' : filterType === 'expense' ? 'Pengeluaran' : 'Semua' }, accounts, householdUsers);
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
@@ -253,7 +256,7 @@ const TransactionHistoryScreen = ({ navigation, route }) => {
             </View>
             {txs.map((item, index) => (
               <TransactionCard 
-                key={item.id} tx={item} index={index} theme={theme} myName={myName} accounts={accounts} formatMoney={formatMoney}
+                key={item.id} tx={item} index={index} theme={theme} myName={myName} partnerName={partnerName} accounts={accounts} formatMoney={formatMoney} filterOwner={filterOwner}
                 onEdit={() => { 
                   if (item.owner !== myName && item.owner !== 'Bersama') {
                     showAestheticAlert('Akses Terbatas', `Transaksi ini dicatat oleh ${item.owner}. Kamu hanya bisa mengedit transaksi milikmu sendiri untuk menjaga integritas data pribadi pasangan.`, 'lock', theme.primary);
@@ -413,7 +416,7 @@ const TransactionHistoryScreen = ({ navigation, route }) => {
 };
 
 // --- [SUB-KOMPONEN: Transaction Card] ---
-const TransactionCard = ({ tx, index, theme, myName, accounts, formatMoney, onEdit, isHighlighted, onLayout }) => {
+const TransactionCard = ({ tx, index, theme, myName, partnerName, accounts, formatMoney, filterOwner, onEdit, isHighlighted, onLayout }) => {
   const typeColor = tx.type === 'income' ? theme.primary : tx.type === 'transfer' ? theme.onSurface : theme.error;
   const totalAmt = (tx.myContrib || 0) + (tx.partnerContrib || 0);
   const opacity = useRef(new Animated.Value(0)).current;
@@ -453,9 +456,20 @@ const TransactionCard = ({ tx, index, theme, myName, accounts, formatMoney, onEd
           </View>
           <View style={{ alignItems: 'flex-end' }}>
              <Text style={[styles.txAmount, { color: typeColor }]}>
-               {tx.type === 'income' ? '+' : tx.type === 'transfer' ? '' : '-'}Rp {formatMoney(totalAmt)}
+               {tx.type === 'income' ? '+' : tx.type === 'transfer' ? '' : '-'}Rp {formatMoney(
+                 filterOwner === 'Semua' 
+                 ? totalAmt 
+                 : (filterOwner === 'Saya' ? (tx.myContrib || 0) : (tx.partnerContrib || 0))
+               )}
              </Text>
-             <Text style={{ fontSize: 9, fontWeight: 'bold', color: theme.onSurfaceVariant, marginTop: 4 }}>{tx.owner === myName ? 'OLEH SAYA' : `OLEH ${tx.owner?.toUpperCase()}`}</Text>
+             <Text style={{ fontSize: 9, fontWeight: 'bold', color: theme.onSurfaceVariant, marginTop: 4 }}>
+                {tx.isJoint ? 'UANG BERSAMA' : (tx.isPatungan ? 'PATUNGAN' : (tx.owner === myName ? 'PRIBADI SAYA' : `PRIBADI ${tx.owner?.toUpperCase()}`))}
+             </Text>
+             {(tx.isJoint || tx.isPatungan) && (
+               <Text style={{ fontSize: 8, color: theme.onSurfaceVariant, marginTop: 2, textAlign: 'right' }}>
+                 {myName}: {formatMoney(tx.myContrib || 0)} • {partnerName}: {formatMoney(tx.partnerContrib || 0)}
+               </Text>
+             )}
           </View>
         </TouchableOpacity>
       </Animated.View>

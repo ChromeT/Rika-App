@@ -1,64 +1,85 @@
+import { Platform } from 'react-native';
 import { CLOUDINARY_UPLOAD_PRESET, CLOUDINARY_BASE_URL } from '../config/cloudinary';
 
-export const uploadToCloudinary = async (uri, mediaType) => {
+export const uploadToCloudinary = async (uri, mediaType, onProgress) => {
   if (!mediaType) mediaType = 'image';
   console.log('=== CLOUDINARY UPLOAD START ===');
-  console.log('URI:', uri.substring(0, 50));
   
-  try {
-    // For React Native and web, we need to handle both data URLs and local blob/file URIs.
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
     const formData = new FormData();
-    let fileName = uri.split('/').pop();
-    if (!fileName) {
-      fileName = `upload.${mediaType === 'video' ? 'mp4' : 'jpg'}`;
-    }
+    
+    let fileName = uri.split('/').pop() || `upload.${mediaType === 'video' ? 'mp4' : 'jpg'}`;
     const mimeType = mediaType === 'video' ? 'video/mp4' : 'image/jpeg';
-    if (uri.startsWith('data:')) {
-      // Data URL – Cloudinary accepts it directly as a string.
-      formData.append('file', uri);
-    } else if (uri.startsWith('blob:') || uri.startsWith('http')) {
-      // Web blob URL or remote URL – fetch the blob and append it.
-      console.log('Fetching blob from URI...');
-      const resp = await fetch(uri);
-      if (!resp.ok) throw new Error('Failed to fetch blob: ' + resp.status);
-      const blob = await resp.blob();
-      formData.append('file', blob, fileName);
-    } else {
-      // Native file URI – provide an object with uri, name, and MIME type.
-      // @ts-ignore – FormData can accept plain objects in React Native.
-      formData.append('file', { uri, name: fileName, type: mimeType });
-    }
+
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
     const endpoint = mediaType === 'video' ? 'video' : 'image';
     const url = CLOUDINARY_BASE_URL + '/' + endpoint + '/upload';
-    console.log('POST to Cloudinary:', url);
-    const response = await fetch(url, { method: 'POST', body: formData });
 
-    const responseText = await response.text();
-    console.log('Cloudinary response status:', response.status);
-    console.log('Cloudinary response (truncated):', responseText.substring(0, 300));
-    const data = JSON.parse(responseText);
-    if (data.error) {
-      console.error('Cloudinary error details:', data.error);
-      throw new Error(data.error.message || JSON.stringify(data.error));
+    xhr.open('POST', url);
+
+    if (onProgress) {
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          onProgress(progress);
+        }
+      };
     }
-    console.log('=== UPLOAD SUCCESS ===');
-    console.log('Secure URL:', data.secure_url);
-    return data.secure_url;
-  } catch (error) {
-    console.error('=== UPLOAD FAILED ===');
-    console.error('Error message:', error.message);
-    throw error;
-  }
+
+    xhr.onload = () => {
+      try {
+        const response = JSON.parse(xhr.responseText);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          console.log('=== UPLOAD SUCCESS ===');
+          resolve(response.secure_url);
+        } else {
+          reject(new Error(response.error?.message || 'Upload failed'));
+        }
+      } catch (e) {
+        reject(new Error('Failed to parse response'));
+      }
+    };
+
+    xhr.onerror = () => reject(new Error('Network error'));
+
+    const sendXhr = () => {
+      xhr.send(formData);
+    };
+
+    if (uri.startsWith('data:')) {
+      formData.append('file', uri);
+      sendXhr();
+    } else {
+      if (Platform.OS === 'web' || uri.startsWith('blob:')) {
+        fetch(uri)
+          .then(res => res.blob())
+          .then(blob => {
+            formData.append('file', blob, fileName);
+            sendXhr();
+          })
+          .catch(err => reject(err));
+      } else {
+        formData.append('file', { uri, name: fileName, type: mimeType });
+        sendXhr();
+      }
+    }
+  });
 };
 
-export const uploadMultipleToCloudinary = async (mediaList) => {
+export const uploadMultipleToCloudinary = async (mediaList, onProgress) => {
   const results = [];
   for (let i = 0; i < mediaList.length; i++) {
     const media = mediaList[i];
     try {
-      const url = await uploadToCloudinary(media.uri, media.type);
+      // Panggil upload dengan callback progres per item
+      const url = await uploadToCloudinary(media.uri, media.type, (percent) => {
+        if (onProgress) {
+          onProgress(i, percent); // Kasih tau index ke-berapa dan berapa persen
+        }
+      });
+      
       results.push({
         url: url,
         type: media.type,

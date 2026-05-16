@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useContext, useRef } from 'react';
-import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Modal, FlatList, TextInput, Platform, Linking, Alert, ActivityIndicator, Animated } from 'react-native';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Dimensions, Modal, FlatList, TextInput, Platform, Linking, Alert, ActivityIndicator, Animated, SafeAreaView } from 'react-native';
 import Text from '../components/ThemeText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -14,6 +14,8 @@ import { AuthContext } from '../context/AuthContext';
 import { DataContext } from '../context/DataContext';
 import { db } from '../config/firebase';
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, deleteDoc } from 'firebase/firestore';
+import * as ImagePicker from 'expo-image-picker';
+import { uploadMultipleToCloudinary } from '../utils/cloudinaryUpload';
 import dayjs from 'dayjs';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -46,6 +48,13 @@ const VideoPlayer = ({ uri, width, height, onClose }) => {
 const MediaModal = ({ visible, mediaList, onClose, startIndex = 0 }) => {
   const insets = useSafeAreaInsets();
   const [currentIdx, setCurrentIdx] = useState(startIndex);
+
+  // Sync index when modal opens
+  useEffect(() => {
+    if (visible) {
+      setCurrentIdx(startIndex);
+    }
+  }, [visible, startIndex]);
   const current = mediaList[currentIdx];
   
   if (!current) return null;
@@ -171,6 +180,55 @@ const CapsuleBottomSheet = ({ visible, onClose, onSave, theme }) => {
   );
 };
 
+const MasonryItem = ({ item, index, onPress, theme }) => {
+  const [aspectRatio, setAspectRatio] = useState(1); // Default square
+  const uri = item.url || item.uri;
+
+  useEffect(() => {
+    if (uri) {
+      Image.getSize(uri, (width, height) => {
+        if (width && height) {
+          setAspectRatio(width / height);
+        }
+      }, (error) => console.log('Get size error:', error));
+    }
+  }, [uri]);
+
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={{ marginBottom: 12 }}>
+      <View style={{ 
+        borderRadius: 24, 
+        overflow: 'hidden', 
+        backgroundColor: theme.surfaceContainerLow,
+        borderWidth: 1,
+        borderColor: theme.outlineVariant + '15',
+        aspectRatio: aspectRatio,
+        width: '100%'
+      }}>
+        <ExpoImage source={{ uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
+        
+        {/* Added By Badge */}
+        {item.addedBy && (
+          <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+            <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>{item.addedBy}</Text>
+          </View>
+        )}
+
+        {item.type === 'video' && (
+          <View style={{ position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.6)', padding: 6, borderRadius: 12 }}>
+            <MaterialIcons name="play-arrow" size={16} color="#fff" />
+          </View>
+        )}
+        {item.caption ? (
+          <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12 }}>
+            <Text style={{ color: '#fff', fontSize: 11, fontWeight: '500' }} numberOfLines={2}>{item.caption}</Text>
+          </LinearGradient>
+        ) : null}
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 // --- Main Screen ---
 const MemoryDetailScreen = ({ route }) => {
   console.log('MemoryDetailScreen params:', route?.params);
@@ -178,7 +236,7 @@ const MemoryDetailScreen = ({ route }) => {
   const navigation = useNavigation();
   const { theme } = useContext(ThemeContext);
   const { user, householdUsers } = useContext(AuthContext);
-  const { goals, addNotification } = useContext(DataContext);
+  const { goals, addNotification, updateGoal } = useContext(DataContext);
   const insets = useSafeAreaInsets();
   const householdId = user?.householdId;
   
@@ -196,6 +254,10 @@ const MemoryDetailScreen = ({ route }) => {
   const [capsuleSheetVisible, setCapsuleSheetVisible] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [loading, setLoading] = useState(!goal);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedUploads, setSelectedUploads] = useState([]);
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
 
   // Animations
   const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
@@ -330,6 +392,81 @@ const MemoryDetailScreen = ({ route }) => {
     timelineMonths.push(created.add(i, 'month').format('MMM'));
   }
 
+  const handleAddMedia = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsMultipleSelection: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets) {
+        const newUploads = result.assets.map(asset => ({
+          uri: asset.uri,
+          type: asset.type === 'video' ? 'video' : 'image',
+          caption: '',
+          addedBy: user?.name || 'Ayip',
+          addedAt: new Date().toISOString(),
+        }));
+        setSelectedUploads(newUploads);
+        setUploadModalVisible(true);
+      }
+    } catch (e) {
+      console.error('Pick media error:', e);
+      Alert.alert('Gagal', 'Tidak dapat memilih foto kenangan.');
+    }
+  };
+
+  const processUpload = async () => {
+    if (selectedUploads.length === 0) return;
+    
+    setUploadModalVisible(false);
+    setUploadingMedia(true);
+    setUploadProgress(0);
+    
+    try {
+      const uploaded = await uploadMultipleToCloudinary(selectedUploads, (idx, percent) => {
+        setUploadProgress(percent);
+      });
+
+      if (uploaded.length > 0) {
+        const mediaWithMetadata = uploaded.map((up, idx) => ({
+          ...up,
+          addedBy: selectedUploads[idx].addedBy,
+          addedAt: selectedUploads[idx].addedAt,
+          caption: selectedUploads[idx].caption || '',
+        }));
+
+        const currentMedia = goal.media || [];
+        const updatedMedia = [...currentMedia, ...mediaWithMetadata];
+        
+        await updateGoal(goal.id, { 
+          media: updatedMedia,
+          mediaCount: updatedMedia.length,
+          previewImage: goal.previewImage || (mediaWithMetadata[0].type === 'image' ? (mediaWithMetadata[0].url || mediaWithMetadata[0].uri) : null)
+        });
+        
+        if (hasPartner) {
+          addNotification({
+            title: 'Foto Kenangan Baru',
+            body: `${user?.name || 'Pasanganmu'} menambahkan ${uploaded.length} foto baru di album "${goal.name}".`,
+            icon: 'add-a-photo',
+            targetType: 'goal',
+            targetId: goal.id,
+            sender: user?.name || 'Sistem',
+            createdAt: new Date().toISOString(),
+          });
+        }
+      }
+      setUploadingMedia(false);
+      setSelectedUploads([]);
+    } catch (e) {
+      console.error('Process upload error:', e);
+      setUploadingMedia(false);
+      Alert.alert('Gagal', 'Gagal mengupload foto kenangan.');
+    }
+  };
+
   const handleDeleteConfirm = async () => {
     setDeleteModalVisible(false);
     try {
@@ -437,79 +574,6 @@ const MemoryDetailScreen = ({ route }) => {
           </View>
         </Animated.View>
 
-        {/* --- KENANGAN (Masonry 2 Kolom) --- */}
-        <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }], paddingHorizontal: 16, marginTop: 8 }}>
-          {memories.length > 0 && (
-            <View>
-              <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 12 }}>KENANGAN</Text>
-              
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {/* Kolom Kiri - Item index 0, 2, 4 */}
-                <View style={{ flex: 1, gap: 8 }}>
-                  {memories.filter((_, i) => i % 2 === 0).slice(0, 5).map((m, i) => {
-                    const originalIndex = i * 2;
-                    // Heights: 130px, 85px, 100px, 115px, 90px
-                    const heights = [130, 85, 100, 115, 90];
-                    const itemHeight = heights[i % 5];
-                    
-                    return (
-                      <TouchableOpacity key={originalIndex} onPress={() => { setSelectedMediaIndex(originalIndex); setMediaModalVisible(true); }} activeOpacity={0.8}>
-                        <View style={{ borderRadius: 16, overflow: 'hidden', height: itemHeight, position: 'relative', backgroundColor: theme.surfaceContainerLow }}>
-                          <ExpoImage source={{ uri: m.url || m.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-                          {m.type === 'video' && (
-                            <View style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                              <MaterialIcons name="play-circle-filled" size={12} color="#fff" />
-                            </View>
-                          )}
-                          {(m.caption || m.caption === '') && (
-                            <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 8 }}>
-                              <Text style={{ color: '#fff', fontSize: 10, fontWeight: '500' }} numberOfLines={2}>{m.caption || ''}</Text>
-                            </LinearGradient>
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-                
-                {/* Kolom Kanan - Item index 1, 3, 5 */}
-                <View style={{ flex: 1, gap: 8 }}>
-                  {memories.filter((_, i) => i % 2 !== 0).slice(0, 5).map((m, i) => {
-                    const originalIndex = i * 2 + 1;
-                    // Heights: 130px, 85px, 100px, 115px, 90px
-                    const heights = [130, 85, 100, 115, 90];
-                    const itemHeight = heights[i % 5];
-                    
-                    return (
-                      <TouchableOpacity key={originalIndex} onPress={() => { setSelectedMediaIndex(originalIndex); setMediaModalVisible(true); }} activeOpacity={0.8}>
-                        <View style={{ borderRadius: 16, overflow: 'hidden', height: itemHeight, position: 'relative', backgroundColor: theme.surfaceContainerLow }}>
-                          <ExpoImage source={{ uri: m.url || m.uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
-                          {m.type === 'video' && (
-                            <View style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                              <MaterialIcons name="play-circle-filled" size={12} color="#fff" />
-                            </View>
-                          )}
-                          {(m.caption || m.caption === '') && (
-                            <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 8 }}>
-                              <Text style={{ color: '#fff', fontSize: 10, fontWeight: '500' }} numberOfLines={2}>{m.caption || ''}</Text>
-                            </LinearGradient>
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                  
-                  {/* +X lainnya tile */}
-                  {memories.length > 5 && (
-                    <TouchableOpacity onPress={() => { setSelectedMediaIndex(0); setMediaModalVisible(true); }} style={{ height: 90, backgroundColor: theme.surfaceContainerLow, borderRadius: 16, justifyContent: 'center', alignItems: 'center' }}>
-                      <Text style={{ color: theme.primary, fontWeight: 'bold', fontSize: 14 }}>+{memories.length - 5} lainnya</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-            </View>
-          )}
-        </Animated.View>
 
         {/* --- DATA SECTIONS --- */}
         <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
@@ -577,17 +641,29 @@ const MemoryDetailScreen = ({ route }) => {
               <Text style={{ color: theme.onSurfaceVariant, textAlign: 'center', padding: 20 }}>Belum ada transaksi terkait goal ini</Text>
             ) : (
               relatedTransactions.map(tx => (
-                <View key={tx.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '22' }}>
-                  <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: theme.primaryContainer + '33', justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
-                     <MaterialIcons name={tx.icon || 'receipt'} size={18} color={theme.primary} />
+                <View key={tx.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '15' }}>
+                  <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: (tx.type === 'income' ? theme.primary : theme.error) + '15', justifyContent: 'center', alignItems: 'center', marginRight: 14 }}>
+                     <MaterialIcons name={tx.icon || 'receipt'} size={20} color={tx.type === 'income' ? theme.primary : theme.error} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 13 }}>{tx.name}</Text>
-                    <Text style={{ color: theme.onSurfaceVariant, fontSize: 10 }}>{dayjs(tx.date).format('DD MMM YYYY')}</Text>
+                    <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 14, marginBottom: 2 }}>{tx.name}</Text>
+                    <Text style={{ color: theme.onSurfaceVariant, fontSize: 10, fontWeight: 'bold' }}>
+                      {dayjs(tx.date).format('DD MMM YYYY')} • {tx.category}
+                    </Text>
+                    {(tx.isJoint || tx.isPatungan) && (
+                      <Text style={{ fontSize: 9, color: theme.onSurfaceVariant, marginTop: 4 }}>
+                        {user?.name}: {formatMoney(tx.myContrib || 0)} • {partnerName}: {formatMoney(tx.partnerContrib || 0)}
+                      </Text>
+                    )}
                   </View>
-                  <Text style={{ color: tx.type === 'income' ? theme.primary : theme.error, fontWeight: '900', fontSize: 13 }}>
-                    {tx.type === 'income' ? '+' : '-'}Rp {formatMoney((tx.myContrib || 0) + (tx.partnerContrib || 0))}
-                  </Text>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={{ color: tx.type === 'income' ? theme.primary : theme.error, fontWeight: '900', fontSize: 15 }}>
+                      {tx.type === 'income' ? '+' : '-'}Rp {formatMoney((tx.myContrib || 0) + (tx.partnerContrib || 0))}
+                    </Text>
+                    <Text style={{ fontSize: 8, fontWeight: 'bold', color: theme.onSurfaceVariant, marginTop: 4 }}>
+                       {tx.isJoint ? 'BERSAMA' : (tx.isPatungan ? 'PATUNGAN' : (tx.owner === user?.name ? 'PRIBADI' : tx.owner?.toUpperCase()))}
+                    </Text>
+                  </View>
                 </View>
               ))
             )}
@@ -664,7 +740,105 @@ const MemoryDetailScreen = ({ route }) => {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* --- KENANGAN (Masonry 2 Kolom) --- */}
+        <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }], paddingHorizontal: 16, marginTop: 24 }}>
+          {uploadingMedia && (
+            <View style={{ backgroundColor: theme.primary + '15', borderRadius: 20, padding: 16, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <ActivityIndicator size="small" color={theme.primary} />
+              <Text style={{ color: theme.primary, fontWeight: 'bold', fontSize: 12 }}>Mengabadikan momen... {uploadProgress}%</Text>
+            </View>
+          )}
+          {memories.length > 0 && (
+            <View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: theme.onSurfaceVariant, letterSpacing: 1.2, textTransform: 'uppercase' }}>ALBUM KENANGAN</Text>
+                <TouchableOpacity 
+                  onPress={handleAddMedia}
+                  disabled={uploadingMedia}
+                  style={{ backgroundColor: theme.primary, width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center', shadowColor: theme.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }}
+                >
+                  <MaterialIcons name="add-a-photo" size={16} color={theme.onPrimary} />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                {/* Kolom Kiri */}
+                <View style={{ flex: 1 }}>
+                  {memories.filter((_, i) => i % 2 === 0).map((m, i) => (
+                    <MasonryItem 
+                      key={i * 2} 
+                      item={m} 
+                      index={i * 2} 
+                      onPress={() => { setSelectedMediaIndex(i * 2); setMediaModalVisible(true); }}
+                      theme={theme}
+                    />
+                  ))}
+                </View>
+                
+                {/* Kolom Kanan */}
+                <View style={{ flex: 1, marginTop: 32 }}>
+                  {memories.filter((_, i) => i % 2 !== 0).map((m, i) => (
+                    <MasonryItem 
+                      key={i * 2 + 1} 
+                      item={m} 
+                      index={i * 2 + 1} 
+                      onPress={() => { setSelectedMediaIndex(i * 2 + 1); setMediaModalVisible(true); }}
+                      theme={theme}
+                    />
+                  ))}
+                </View>
+              </View>
+            </View>
+          )}
+        </Animated.View>
       </Animated.View>
+
+      {/* Upload Review Modal */}
+      <Modal visible={uploadModalVisible} animationType="slide" transparent>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)' }}>
+          <SafeAreaView style={{ flex: 1 }}>
+            <View style={{ padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <TouchableOpacity onPress={() => setUploadModalVisible(false)}>
+                <MaterialIcons name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>Review Kenangan ({selectedUploads.length})</Text>
+              <TouchableOpacity 
+                onPress={processUpload}
+                style={{ backgroundColor: theme.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }}
+              >
+                <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Simpan</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={{ padding: 20 }}>
+              {selectedUploads.map((item, idx) => (
+                <View key={idx} style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 24, padding: 16, marginBottom: 16, flexDirection: 'row', gap: 16 }}>
+                  <View style={{ width: 100, height: 100, borderRadius: 16, overflow: 'hidden' }}>
+                    <Image source={{ uri: item.uri }} style={{ width: '100%', height: '100%' }} />
+                    {item.type === 'video' && <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}><MaterialIcons name="play-arrow" size={32} color="#fff" /></View>}
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#fff', fontSize: 12, marginBottom: 8, fontWeight: 'bold' }}>Tulis keterangan momen ini...</Text>
+                    <TextInput
+                      style={{ color: '#fff', fontSize: 14, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 12, textAlignVertical: 'top', height: 60 }}
+                      placeholder="Apa yang terjadi di sini?"
+                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      multiline
+                      value={item.caption}
+                      onChangeText={(text) => {
+                        const updated = [...selectedUploads];
+                        updated[idx].caption = text;
+                        setSelectedUploads(updated);
+                      }}
+                    />
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          </SafeAreaView>
+        </View>
+      </Modal>
 
       </ScrollView>
 

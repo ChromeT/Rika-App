@@ -88,7 +88,7 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
         })(),
         tx.type === 'income' ? 'Pemasukan' : tx.type === 'transfer' ? 'Transfer' : 'Pengeluaran',
         tx.isJoint ? 'Uang Bersama' : (tx.isPatungan ? 'Patungan' : 'Pribadi'),
-        tx.owner || '-',
+        tx.isJoint || tx.isPatungan ? 'Bersama' : (tx.owner || '-'),
         myP,
         parP,
         total
@@ -135,7 +135,7 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
   }
 };
 
-export const exportToPDF = async (transactions, period = 'Laporan', userName = 'User', filters = { user: 'Kita', type: 'Semua' }, accounts = []) => {
+export const exportToPDF = async (transactions, period = 'Laporan', userName = 'User', filters = { user: 'Kita', type: 'Semua' }, accounts = [], householdUsers = []) => {
   try {
     const { user: filterUser, type: filterType } = filters;
     
@@ -229,7 +229,14 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
             </div>
             <div class="tx-info">
               <div class="tx-name">${tx.name || '-'}</div>
-              <div class="tx-meta">${tx.category || '-'} • ${walletName}</div>
+              <div class="tx-meta">
+                ${tx.category || '-'} • ${walletName} • Oleh: ${tx.isJoint || tx.isPatungan ? 'Kita' : (tx.owner || '-')}
+                ${(tx.isJoint || tx.isPatungan) ? `
+                  <div style="margin-top: 4px; font-size: 10px; color: #64748B;">
+                    Porsi: ${userName} (Rp ${formatMoney(tx.myContrib)}) • ${tx.owner === userName ? (householdUsers.find(u => u !== userName) || 'Pasangan') : tx.owner} (Rp ${formatMoney(tx.partnerContrib)})
+                  </div>
+                ` : ''}
+              </div>
             </div>
           </div>
           <div class="tx-right">

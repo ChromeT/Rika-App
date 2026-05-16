@@ -15,9 +15,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 const SettingsScreen = ({ navigation }) => {
   const { getBalance, transactions, accounts } = useContext(DataContext);
-  const { user, householdUsers, householdAvatars, customColors, addCustomColor, logout, avatar, updateAvatar } = useContext(AuthContext);
+  const { user, householdUsers, householdAvatars, householdData, customColors, addCustomColor, logout, avatar, updateAvatar, updateProfile } = useContext(AuthContext);
   const { theme, isDarkMode, toggleTheme, changeAccent, accentColor, fontFamily, changeFont, customFonts, uploadFont, deleteFont } = useContext(ThemeContext);
   
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [editName, setEditName] = useState(user?.name || '');
+  const [editNickname, setEditNickname] = useState(user?.nickname || '');
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
   const [customColorModalVisible, setCustomColorModalVisible] = useState(false);
   const [customHexInput, setCustomHexInput] = useState('');
@@ -295,8 +298,15 @@ const SettingsScreen = ({ navigation }) => {
                 )}
              </View>
              
-             <TouchableOpacity style={[styles.editProfileBtn, { backgroundColor: theme.primary }]} onPress={() => setAvatarModalVisible(true)}>
-                <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Ubah Profil & Avatar</Text>
+             <TouchableOpacity 
+               style={[styles.editProfileBtn, { backgroundColor: theme.primary }]} 
+               onPress={() => {
+                 setEditName(user?.name || '');
+                 setEditNickname(user?.nickname || '');
+                 setProfileModalVisible(true);
+               }}
+             >
+                <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Ubah Profil & Panggilan</Text>
              </TouchableOpacity>
           </LinearGradient>
         </Animated.View>
@@ -428,7 +438,16 @@ const SettingsScreen = ({ navigation }) => {
 
           <SectionHeader title="Kustomisasi" />
           <View style={styles.settingGroup}>
-            <SettingRow icon="person-outline" title="Profil Kamu" desc={`Halo ${user?.name || 'kamu'}, atur panggilan dan identitasmu di sini`} onPress={() => Alert.alert("Profil", "Fitur edit profil sedang disiapkan!")} />
+            <SettingRow 
+              icon="person-outline" 
+              title="Profil Kamu" 
+              desc={`Halo ${user?.nickname || user?.name || 'kamu'}, atur panggilan dan identitasmu di sini`} 
+              onPress={() => {
+                setEditName(user?.name || '');
+                setEditNickname(user?.nickname || '');
+                setProfileModalVisible(true);
+              }} 
+            />
             <SettingRow icon="favorite-border" title="Ruang Kita" desc={`Ruang spesial ${user?.name || 'kamu'} & ${partnerName || 'pasangan'}`} onPress={() => navigation.navigate("Couple")} />
             <SettingRow icon="category" title="Kelola Kategori" desc="Susun kategori agar sesuai dengan gaya hidup kita" onPress={() => navigation.navigate("Categories")} />
             <SettingRow icon="dark-mode" title="Mode Gelap" desc="Agar mata tetap nyaman saat kita bercerita di malam hari">
@@ -454,7 +473,11 @@ const SettingsScreen = ({ navigation }) => {
                    <Text style={[styles.paletteSubtitle, { color: theme.onSurfaceVariant }]}>Pilih warna kesukaan kita</Text>
                  </View>
               </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.paletteList}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                contentContainerStyle={[styles.paletteList, { flexGrow: 1, justifyContent: 'space-between', paddingRight: 0 }]}
+              >
                 {palettes.map((hex, i) => {
                   const isActive = accentColor === hex;
                   return (
@@ -521,8 +544,64 @@ const SettingsScreen = ({ navigation }) => {
 
       </ScrollView>
 
-      {/* Modals remain mostly similar but with premium touch */}
-      {/* ... (Other modals from SettingsScreen) */}
+      {/* Profile Edit Modal */}
+      <Modal visible={profileModalVisible} transparent animationType="slide" onRequestClose={() => setProfileModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <View style={{ width: '100%', alignItems: 'center', marginBottom: 24 }}>
+               <View style={{ width: 80, height: 80, borderRadius: 32, backgroundColor: theme.primary + '15', justifyContent: 'center', alignItems: 'center', marginBottom: 12, overflow: 'hidden' }}>
+                  {renderAvatar(avatar, 40)}
+               </View>
+               <Text style={[styles.modalTitle, { color: theme.onSurface, marginBottom: 4 }]}>Edit Profil</Text>
+               <Text style={{ color: theme.onSurfaceVariant, fontSize: 13, textAlign: 'center' }}>Atur bagaimana namamu muncul di app</Text>
+            </View>
+
+            <View style={{ width: '100%', gap: 16 }}>
+              <View>
+                <Text style={{ color: theme.onSurfaceVariant, fontSize: 11, fontWeight: 'bold', marginBottom: 8, marginLeft: 4 }}>NAMA ASLI</Text>
+                <TextInput 
+                  style={[styles.hexInput, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface, borderColor: theme.outlineVariant + '44', borderWidth: 1, letterSpacing: 0, textAlign: 'left', fontSize: 16 }]} 
+                  placeholder="Nama Kamu" 
+                  placeholderTextColor={theme.onSurfaceVariant}
+                  value={editName}
+                  onChangeText={setEditName}
+                />
+              </View>
+
+              <View>
+                <Text style={{ color: theme.onSurfaceVariant, fontSize: 11, fontWeight: 'bold', marginBottom: 8, marginLeft: 4 }}>PANGGILAN SAYANG (OPSIONAL)</Text>
+                <TextInput 
+                  style={[styles.hexInput, { backgroundColor: theme.surfaceContainerLow, color: theme.onSurface, borderColor: theme.outlineVariant + '44', borderWidth: 1, letterSpacing: 0, textAlign: 'left', fontSize: 16 }]} 
+                  placeholder="Misal: Princess, Sayang, atau Ayah" 
+                  placeholderTextColor={theme.onSurfaceVariant}
+                  value={editNickname}
+                  onChangeText={setEditNickname}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.modalActionBtn, { backgroundColor: theme.primary, marginTop: 24 }]} 
+              onPress={async () => {
+                if (!editName.trim()) {
+                  Alert.alert("Error", "Nama tidak boleh kosong!");
+                  return;
+                }
+                await updateProfile(editName.trim(), editNickname.trim());
+                setProfileModalVisible(false);
+                Alert.alert("Berhasil", "Profil diperbarui!");
+              }}
+            >
+               <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Simpan Profil</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setProfileModalVisible(false)}>
+              <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Batal</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={avatarModalVisible} transparent animationType="fade" onRequestClose={() => setAvatarModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <Animated.View style={[styles.modalContent, { backgroundColor: theme.surface }]}>

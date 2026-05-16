@@ -172,24 +172,74 @@ const GoalTabs = ({ safeTheme, activeTab, setActiveTab, activeCount, achievedCou
 
 // --- [SUB-KOMPONEN: Empty State] ---
 const EmptyGoalsState = ({ safeTheme, activeTab, navigation }) => (
-  <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 80 }}>
-    <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: safeTheme.surfaceContainerLow, justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
-      <MaterialIcons name={activeTab === 'active' ? 'auto-awesome' : 'emoji-events'} size={48} color={safeTheme.outlineVariant + '44'} />
+  <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 100 }}>
+    <View style={{ marginBottom: 32 }}>
+      <View style={{ 
+        width: 120, height: 120, borderRadius: 60, 
+        backgroundColor: safeTheme.primary + '15', 
+        justifyContent: 'center', alignItems: 'center',
+        borderWidth: 1, borderColor: safeTheme.primary + '33',
+        shadowColor: safeTheme.primary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+        elevation: 10,
+        overflow: 'hidden' // Biar gradasinya ga kotak
+      }}>
+        <LinearGradient
+          colors={[safeTheme.primary + '22', 'transparent']}
+          style={StyleSheet.absoluteFill}
+          borderRadius={60}
+        />
+        <MaterialIcons 
+          name={activeTab === 'active' ? 'auto-awesome' : 'stars'} 
+          size={56} 
+          color={safeTheme.primary} 
+        />
+      </View>
+      <View style={{ 
+        position: 'absolute', bottom: 5, right: 5, 
+        backgroundColor: safeTheme.surface, borderRadius: 15, padding: 4 
+      }}>
+        <MaterialIcons name="favorite" size={20} color={safeTheme.primary} />
+      </View>
     </View>
-    <Text style={{ fontSize: 18, fontWeight: 'bold', color: safeTheme.onSurface, marginBottom: 8 }}>Belum Ada Goal</Text>
-    <Text style={{ fontSize: 14, color: safeTheme.onSurfaceVariant, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20, marginBottom: 32 }}>
-      {activeTab === 'active' ? 'Yuk, mulai catat rencana masa depan kita berdua sekarang!' : 'Kenangan manis kita bakal kumpul di sini.'}
+
+    <Text style={{ fontSize: 22, fontWeight: '900', color: safeTheme.onSurface, marginBottom: 12, letterSpacing: -0.5 }}>
+      {activeTab === 'active' ? 'Mulai Impian Kita' : 'Belum Ada Kenangan'}
     </Text>
+    
+    <Text style={{ 
+      fontSize: 14, color: safeTheme.onSurfaceVariant, textAlign: 'center', 
+      paddingHorizontal: 50, lineHeight: 22, marginBottom: 40,
+      fontWeight: '500'
+    }}>
+      {activeTab === 'active' 
+        ? 'Setiap langkah kecil adalah bagian dari perjalanan besar kita. Yuk, tulis rencana masa depan kita di sini!' 
+        : 'Sabar ya, momen indah kita bakal segera kumpul di sini kok.'}
+    </Text>
+
     {activeTab === 'active' && (
       <TouchableOpacity 
         onPress={() => navigation.navigate('AddGoal')}
-        style={{ backgroundColor: safeTheme.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 16 }}
+        activeOpacity={0.8}
+        style={{ 
+          backgroundColor: safeTheme.primary, 
+          paddingHorizontal: 32, paddingVertical: 16, 
+          borderRadius: 20,
+          flexDirection: 'row', alignItems: 'center', gap: 10,
+          shadowColor: safeTheme.primary,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3, shadowRadius: 8, elevation: 4
+        }}
       >
-        <Text style={{ color: safeTheme.onPrimary, fontWeight: 'bold' }}>Buat Goal Baru</Text>
+        <MaterialIcons name="add" size={24} color={safeTheme.onPrimary} />
+        <Text style={{ color: safeTheme.onPrimary, fontWeight: '900', fontSize: 15 }}>Buat Goal Pertama</Text>
       </TouchableOpacity>
     )}
   </View>
 );
+
 
 const AchievedGoalItem = React.memo(({ item, index, navigation, safeTheme, formatMoney }) => {
   const itemAnim = useRef(new Animated.Value(0)).current;
@@ -220,7 +270,11 @@ const AchievedGoalItem = React.memo(({ item, index, navigation, safeTheme, forma
       >
         <View style={{ flex: 1 }}>
           {item.previewImage ? (
-            <Image source={{ uri: item.previewImage }} style={{ width: '100%', height: '100%' }} />
+            <Image 
+              source={{ uri: item.previewImage }} 
+              style={{ width: '100%', height: '100%' }} 
+              resizeMode="cover"
+            />
           ) : (
             <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: safeTheme.surfaceContainerLow }}>
               <MaterialIcons name="auto-awesome" size={40} color={safeTheme.primary + '33'} />
@@ -381,6 +435,8 @@ export const AddGoalScreen = () => {
   const [mediaList, setMediaList] = useState([]);
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [currentUploadIndex, setCurrentUploadIndex] = useState(0);
   const [loadingMsg, setLoadingMsg] = useState('');
 
   const pickMedia = async () => {
@@ -446,7 +502,10 @@ export const AddGoalScreen = () => {
       // Upload media to Cloudinary if any
       if (mediaList.length > 0) {
         console.log('Mulai upload', mediaList.length, 'media');
-        const uploaded = await uploadMultipleToCloudinary(mediaList);
+        const uploaded = await uploadMultipleToCloudinary(mediaList, (idx, percent) => {
+          setCurrentUploadIndex(idx);
+          setUploadProgress(percent);
+        });
         console.log('Upload selesai, berhasil', uploaded.length, 'item');
         if (uploaded.length === 0 && mediaList.length > 0) {
           setUploading(false);
@@ -513,12 +572,41 @@ export const AddGoalScreen = () => {
             <Text style={{ color: safeTheme.onPrimary, fontWeight: 'bold' }}>Simpan</Text>
           )}
         </TouchableOpacity>
-      </Animated.View>{uploading && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}>
-          <ActivityIndicator size="large" color="#ffffff" />
-          <Text style={{ color: '#ffffff', marginTop: 12, fontSize: 14 }}>{loadingMsg}</Text>
+      </Animated.View>
+
+      {uploading && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <View style={{ width: '80%', alignItems: 'center' }}>
+            <View style={{ marginBottom: 32 }}>
+              <MaterialIcons name="cloud-upload" size={64} color={safeTheme.primary} />
+              <View style={{ position: 'absolute', bottom: -10, right: -10, backgroundColor: safeTheme.primary, borderRadius: 20, padding: 4, borderWidth: 3, borderColor: '#000' }}>
+                <MaterialIcons name="auto-awesome" size={20} color={safeTheme.onPrimary} />
+              </View>
+            </View>
+
+            <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '900', marginBottom: 8, letterSpacing: -0.5 }}>{loadingMsg}</Text>
+            {mediaList.length > 0 && (
+              <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginBottom: 32 }}>Media {currentUploadIndex + 1} dari {mediaList.length}</Text>
+            )}
+            
+            {/* Progress Bar */}
+            <View style={{ width: '100%', height: 12, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+              <LinearGradient
+                colors={[safeTheme.primary, safeTheme.primary + '88']}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 0}}
+                style={{ height: '100%', width: `${uploadProgress}%`, borderRadius: 10 }}
+              />
+            </View>
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 12 }}>
+              <Text style={{ color: safeTheme.primary, fontSize: 12, fontWeight: 'bold' }}>{uploadProgress}% Selesai</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Sedang mengabadikan momen kita...</Text>
+            </View>
+          </View>
         </View>
-      )}<ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+      )}
+<ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
         {/* Media Section */}
         <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
           {mediaList.map((m, i) => (
@@ -649,11 +737,33 @@ export const AddGoalScreen = () => {
                 onChange={onDateChange}
               />
             )}
-
           </View>
         </Animated.View>
+
+        {/* Icon Selection */}
+        <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }], marginTop: 24 }}>
+          <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 12 }}>PILIH IKON GOAL</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+            {['favorite', 'flight', 'home', 'directions-car', 'restaurant', 'celebration', 'shopping-bag', 'laptop', 'star', 'savings'].map(ico => (
+              <TouchableOpacity 
+                key={ico} 
+                onPress={() => setCustomIcon(ico)}
+                style={{ 
+                  width: 50, height: 50, borderRadius: 16, 
+                  backgroundColor: customIcon === ico ? safeTheme.primary : safeTheme.surfaceContainerLow,
+                  justifyContent: 'center', alignItems: 'center',
+                  borderWidth: 2, borderColor: customIcon === ico ? safeTheme.primary : 'transparent'
+                }}
+              >
+                <MaterialIcons name={ico} size={24} color={customIcon === ico ? safeTheme.onPrimary : safeTheme.onSurfaceVariant} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Animated.View>
+
       </ScrollView>
     </SafeAreaView>
+
 
   );
 };

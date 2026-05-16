@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, TouchableOpacity, Switch, Image, Alert, ActivityIndicator, Animated, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, TextInput, TouchableOpacity, Switch, Image, Alert, ActivityIndicator, Animated, Platform, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -659,8 +659,8 @@ const TransactionScreen = ({ navigation, route }) => {
                 <MaterialIcons name="group" size={20} color={theme.primary} />
               </View>
               <View>
-                <Text style={styles.switchTitle}>Uang Bersama? (50:50)</Text>
-                <Text style={styles.switchSubtitle}>Bagi rata beban transaksi</Text>
+                <Text style={styles.switchTitle}>Bagi Rata 50:50? (Uang Bersama)</Text>
+                <Text style={styles.switchSubtitle}>Beban dibagi dua sama rata dengan pasangan</Text>
               </View>
             </View>
             <Switch
@@ -679,9 +679,9 @@ const TransactionScreen = ({ navigation, route }) => {
               <View style={styles.patunganHeader}>
                 <View style={styles.pHeaderLeft}>
                   <View style={styles.pIcon}>
-                    <MaterialIcons name="pie-chart" size={20} color={theme.primary} />
+                    <MaterialIcons name="call-split" size={20} color={theme.primary} />
                   </View>
-                  <Text style={styles.pTitle}>Patungan Custom</Text>
+                  <Text style={styles.pTitle}>Split Porsi (Custom)</Text>
                 </View>
                 <Switch
                   value={isPatungan}

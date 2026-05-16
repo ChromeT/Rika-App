@@ -97,6 +97,8 @@ export const AchieveGoalScreen = () => {
   const [selectedTxIds, setSelectedTxIds] = useState([]);
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [currentUploadIndex, setCurrentUploadIndex] = useState(0);
   
   // Animations
   const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
@@ -197,7 +199,11 @@ export const AchieveGoalScreen = () => {
     // Upload media to Cloudinary if any
     if (mediaList.length > 0) {
       try {
-        const uploaded = await uploadMultipleToCloudinary(mediaList);
+        const uploaded = await uploadMultipleToCloudinary(mediaList, (idx, percent) => {
+          setCurrentUploadIndex(idx);
+          setUploadProgress(percent);
+        });
+        
         if (uploaded.length === 0) {
           setUploading(false);
           Alert.alert('Upload gagal', 'Tidak ada media yang berhasil diupload. Cek koneksi internet kamu.');
@@ -258,9 +264,34 @@ export const AchieveGoalScreen = () => {
       </Animated.View>
 
       {uploading && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}>
-          <ActivityIndicator size="large" color="#ffffff" />
-          <Text style={{ color: '#ffffff', marginTop: 12, fontSize: 14 }}>Mengupload media...</Text>
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <View style={{ width: '80%', alignItems: 'center' }}>
+            {/* Aesthetic Progress Circle/Heart */}
+            <View style={{ marginBottom: 32 }}>
+              <MaterialIcons name="cloud-upload" size={64} color={theme.primary} />
+              <View style={{ position: 'absolute', bottom: -10, right: -10, backgroundColor: theme.primary, borderRadius: 20, padding: 4, borderWidth: 3, borderColor: '#000' }}>
+                <MaterialIcons name="favorite" size={20} color={theme.onPrimary} />
+              </View>
+            </View>
+
+            <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '900', marginBottom: 8, letterSpacing: -0.5 }}>Menyimpan Kenangan...</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginBottom: 32 }}>Media {currentUploadIndex + 1} dari {mediaList.length}</Text>
+            
+            {/* Progress Bar Container */}
+            <View style={{ width: '100%', height: 12, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
+              <LinearGradient
+                colors={[theme.primary, theme.primary + '88']}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 0}}
+                style={{ height: '100%', width: `${uploadProgress}%`, borderRadius: 10 }}
+              />
+            </View>
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 12 }}>
+              <Text style={{ color: theme.primary, fontSize: 12, fontWeight: 'bold' }}>{uploadProgress}% Selesai</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Sedang mengabadikan momen kita...</Text>
+            </View>
+          </View>
         </View>
       )}
 

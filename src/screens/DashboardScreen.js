@@ -210,13 +210,29 @@ const ExpenseAnalysisSection = ({
   theme, filter, myName, partnerName, setFilter, timeFilter, setTimeFilter, 
   customStartDate, customEndDate, setShowStartPicker, setShowEndPicker,
   showStartPicker, showEndPicker, setCustomStartDate, setCustomEndDate,
-  segments, totalExpense, formatMoney, RADIUS, CIRCUMFERENCE, animStyle, sectionLayouts
+  segments, totalExpense, formatMoney, RADIUS, CIRCUMFERENCE, animStyle, sectionLayouts, isDarkMode
 }) => (
   <Animated.View 
     onLayout={(e) => { sectionLayouts.current.expense = e.nativeEvent.layout.y; }}
     style={animStyle.style || animStyle}
   >
-    <View style={[styles.surfaceCard, { backgroundColor: theme.surfaceContainerLow, padding: 24, borderRadius: 32, marginBottom: 24, borderWidth: 1, borderColor: theme.outlineVariant + '15' }]}>
+    <View style={[
+      styles.surfaceCard, 
+      { 
+        backgroundColor: theme.surface, 
+        padding: 24, 
+        borderRadius: 32, 
+        marginBottom: 24, 
+        borderWidth: 1, 
+        borderColor: theme.outlineVariant + '33', // Increased border opacity to 20%
+        // Hardening shadow for web/ios/android
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: isDarkMode ? 0.2 : 0.08,
+        shadowRadius: 16,
+        elevation: 4
+      }
+    ]}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Pengeluaran</Text>
         <View style={{ flexDirection: 'row', backgroundColor: theme.surfaceContainerHighest + '66', padding: 3, borderRadius: 12, borderWidth: 1, borderColor: theme.outlineVariant + '11' }}>
@@ -514,7 +530,7 @@ const GoalsSection = ({ goals, hasPartner, theme, formatMoney, navigation, animS
 );
 
 // --- [SUB-KOMPONEN: Recent Activities] ---
-const RecentActivitiesSection = ({ filteredTx, theme, formatMoney, navigation, openQuickEdit, highlightedId, highlightAnim, animStyle, itemLayouts, sectionLayouts }) => (
+const RecentActivitiesSection = ({ filteredTx, theme, filter, myName, partnerName, formatMoney, navigation, openQuickEdit, highlightedId, highlightAnim, animStyle, itemLayouts, sectionLayouts }) => (
   <Animated.View 
     onLayout={(e) => { sectionLayouts.current.recent = e.nativeEvent.layout.y; }}
     style={animStyle.style || animStyle}
@@ -541,10 +557,21 @@ const RecentActivitiesSection = ({ filteredTx, theme, formatMoney, navigation, o
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={[styles.txName, { color: theme.onSurface }]} numberOfLines={1}>{tx.name}</Text>
-              <Text style={{ fontSize: 10, color: theme.onSurfaceVariant }}>{tx.category} • {tx.owner}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ fontSize: 10, color: theme.onSurfaceVariant }}>{tx.category} • {tx.isJoint || tx.isPatungan ? 'Kita' : tx.owner}</Text>
+              </View>
+              {(tx.isJoint || tx.isPatungan) && (
+                <Text style={{ fontSize: 8, color: theme.onSurfaceVariant, marginTop: 2 }}>
+                  {myName}: {formatMoney(tx.myContrib || 0)} • {partnerName}: {formatMoney(tx.partnerContrib || 0)}
+                </Text>
+              )}
             </View>
             <Text style={[styles.txAmount, { color: tx.type === 'income' ? theme.primary : theme.error }]}>
-              {tx.type === 'income' ? '+' : '-'}Rp {formatMoney(tx.myContrib + tx.partnerContrib)}
+              {tx.type === 'income' ? '+' : '-'}Rp {formatMoney(
+                filter === 'Kita' 
+                ? (tx.myContrib || 0) + (tx.partnerContrib || 0)
+                : (filter === myName ? (tx.myContrib || 0) : (tx.partnerContrib || 0))
+              )}
             </Text>
           </TouchableOpacity>
         </Animated.View>
@@ -822,8 +849,18 @@ const DashboardScreen = ({ navigation, route }) => {
     }
     
     let userMatch = true;
-    if (filter === 'Saya') userMatch = tx.owner === myName;
-    else if (filter !== 'Kita') userMatch = tx.owner === filter;
+    if (filter === 'Kita') {
+      userMatch = true;
+    } else {
+      // Muncul jika owner transaksi adalah filter (Saya/Pasangan)
+      // ATAU jika itu transaksi patungan/uang bersama (isPatungan/isJoint)
+      const isShared = tx.isPatungan || tx.isJoint;
+      if (filter === myName) {
+        userMatch = tx.owner === myName || (isShared && (tx.myContrib || 0) > 0);
+      } else {
+        userMatch = tx.owner === filter || (isShared && (tx.partnerContrib || 0) > 0);
+      }
+    }
     
     return timeMatch && userMatch;
   });
@@ -1250,6 +1287,7 @@ const DashboardScreen = ({ navigation, route }) => {
           RADIUS={RADIUS} CIRCUMFERENCE={CIRCUMFERENCE} 
           animStyle={{ opacity: sectionsAnim[3], transform: [{ translateY: sectionsAnim[3].interpolate({ inputRange:[0,1], outputRange:[20,0] }) }], marginTop: 24 }}
           sectionLayouts={sectionLayouts}
+          isDarkMode={themeCtx?.isDarkMode}
         />
 
 
@@ -1269,7 +1307,7 @@ const DashboardScreen = ({ navigation, route }) => {
         />
 
         <RecentActivitiesSection 
-          filteredTx={filteredTx} theme={theme} formatMoney={formatMoney} 
+          filteredTx={filteredTx} theme={theme} filter={filter} myName={myName} partnerName={partnerName} formatMoney={formatMoney} 
           navigation={navigation} openQuickEdit={openQuickEdit} 
           highlightedId={highlightedId} highlightAnim={highlightAnim} 
           animStyle={{ opacity: sectionsAnim[6], transform: [{ translateY: sectionsAnim[6].interpolate({ inputRange:[0,1], outputRange:[20,0] }) }], marginTop: 32 }}
