@@ -54,7 +54,7 @@ const ActiveGoalItem = React.memo(({ item, index, navigation, safeTheme, formatM
 
   /**
    * progress (Logika Persentase)
-   * Kenapa ada Math.min(..., 100)? Biar kalo tabungan lu lebih dari target, 
+   * Kenapa ada Math.min(..., 100)? Biar kalo tabungan kamu lebih dari target, 
    * barnya nggak "jebol" keluar layar.
    */
   const progress = item.targetAmount > 0 ? Math.min((item.currentAmount / item.targetAmount) * 100, 100) : 0;
@@ -106,7 +106,6 @@ const ActiveGoalItem = React.memo(({ item, index, navigation, safeTheme, formatM
                </View>
              )}
           </View>
-
           {/* Bottom Info Floating Section */}
           <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20 }}>
             <Text style={{ 
@@ -116,9 +115,7 @@ const ActiveGoalItem = React.memo(({ item, index, navigation, safeTheme, formatM
                 android: { textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: {width:0, height:2}, textShadowRadius: 4 },
                 web: { textShadow: '0 2px 4px rgba(0,0,0,0.3)' }
               })
-            }}>{item.name}</Text>
-            
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}>
+            }}>{item.name}</Text><View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}>
                <View>
                   <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 10, fontWeight: 'bold', marginBottom: 2 }}>TERKUMPUL</Text>
                   <Text style={{ color: safeTheme.primary, fontSize: 18, fontWeight: '900' }}>Rp {formatMoney(item.currentAmount)}</Text>
@@ -148,10 +145,8 @@ const ActiveGoalItem = React.memo(({ item, index, navigation, safeTheme, formatM
 const GoalsHeader = ({ safeTheme, navigation, fadeAnim, slideAnim }) => (
   <Animated.View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, paddingBottom: 12, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
     <View>
-      <Text style={{ fontSize: 13, fontWeight: 'bold', color: safeTheme.primary, letterSpacing: 2, marginBottom: 4 }}>DREAM & JOURNEY</Text>
-      <Text style={{ fontSize: 28, fontWeight: '900', color: safeTheme.onSurface, letterSpacing: -1 }}>Mimpi Kita</Text>
-    </View>
-    <TouchableOpacity onPress={() => navigation.navigate('Couple')} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: safeTheme.surfaceContainerLow, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: safeTheme.outlineVariant + '22' }}>
+      <Text style={{ fontSize: 28, fontWeight: '900', color: safeTheme.onSurface, letterSpacing: -1 }}>Goal Kita</Text>
+    </View><TouchableOpacity onPress={() => navigation.navigate('Couple')} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: safeTheme.surfaceContainerLow, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: safeTheme.outlineVariant + '22' }}>
       <MaterialIcons name="favorite" size={24} color={safeTheme.primary} />
     </TouchableOpacity>
   </Animated.View>
@@ -165,8 +160,7 @@ const GoalTabs = ({ safeTheme, activeTab, setActiveTab, activeCount, achievedCou
       style={{ flex: 1, backgroundColor: activeTab === 'active' ? safeTheme.primary : safeTheme.surfaceContainerLow, paddingVertical: 14, borderRadius: 20, alignItems: 'center', borderWidth: 1, borderColor: activeTab === 'active' ? safeTheme.primary : safeTheme.outlineVariant + '22' }}
     >
       <Text style={{ color: activeTab === 'active' ? safeTheme.onPrimary : safeTheme.onSurfaceVariant, fontWeight: 'bold', fontSize: 13 }}>Sedang Berjalan ({activeCount})</Text>
-    </TouchableOpacity>
-    <TouchableOpacity 
+    </TouchableOpacity><TouchableOpacity 
       onPress={() => setActiveTab('achieved')} 
       style={{ flex: 1, backgroundColor: activeTab === 'achieved' ? safeTheme.primary : safeTheme.surfaceContainerLow, paddingVertical: 14, borderRadius: 20, alignItems: 'center', borderWidth: 1, borderColor: activeTab === 'achieved' ? safeTheme.primary : safeTheme.outlineVariant + '22' }}
     >
@@ -180,17 +174,14 @@ const EmptyGoalsState = ({ safeTheme, activeTab, navigation }) => (
   <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 80 }}>
     <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: safeTheme.surfaceContainerLow, justifyContent: 'center', alignItems: 'center', marginBottom: 24 }}>
       <MaterialIcons name={activeTab === 'active' ? 'auto-awesome' : 'emoji-events'} size={48} color={safeTheme.outlineVariant + '44'} />
-    </View>
-    <Text style={{ fontSize: 18, fontWeight: 'bold', color: safeTheme.onSurface, marginBottom: 8 }}>Belum Ada Mimpi</Text>
-    <Text style={{ fontSize: 14, color: safeTheme.onSurfaceVariant, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20, marginBottom: 32 }}>
-      {activeTab === 'active' ? 'Yuk, mulai catat rencana masa depan lu berdua sekarang!' : 'Kenangan manis lu bakal kumpul di sini.'}
-    </Text>
-    {activeTab === 'active' && (
+    </View><Text style={{ fontSize: 18, fontWeight: 'bold', color: safeTheme.onSurface, marginBottom: 8 }}>Belum Ada Goal</Text><Text style={{ fontSize: 14, color: safeTheme.onSurfaceVariant, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20, marginBottom: 32 }}>
+      {activeTab === 'active' ? 'Yuk, mulai catat rencana masa depan kita berdua sekarang!' : 'Kenangan manis kita bakal kumpul di sini.'}
+    </Text>{activeTab === 'active' && (
       <TouchableOpacity 
         onPress={() => navigation.navigate('AddGoal')}
         style={{ backgroundColor: safeTheme.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 16 }}
       >
-        <Text style={{ color: safeTheme.onPrimary, fontWeight: 'bold' }}>Buat Mimpi Baru</Text>
+        <Text style={{ color: safeTheme.onPrimary, fontWeight: 'bold' }}>Buat Goal Baru</Text>
       </TouchableOpacity>
     )}
   </View>
@@ -230,20 +221,14 @@ const AchievedGoalItem = React.memo(({ item, index, navigation, safeTheme, forma
             <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: safeTheme.surfaceContainerLow }}>
               <MaterialIcons name="auto-awesome" size={40} color={safeTheme.primary + '33'} />
             </View>
-          )}
-          
-          <LinearGradient 
+          )}<LinearGradient 
             colors={['rgba(0,0,0,0.1)', 'transparent', 'rgba(0,0,0,0.9)']} 
             style={StyleSheet.absoluteFill} 
-          />
-
-          <View style={{ position: 'absolute', top: 12, right: 12 }}>
+          /><View style={{ position: 'absolute', top: 12, right: 12 }}>
             <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: 6, borderRadius: 12 }}>
                <MaterialIcons name="emoji-events" size={16} color="#fff" />
             </View>
-          </View>
-
-          <View style={{ position: 'absolute', bottom: 16, left: 16, right: 16 }}>
+          </View><View style={{ position: 'absolute', bottom: 16, left: 16, right: 16 }}>
             <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900', letterSpacing: -0.3, marginBottom: 2 }} numberOfLines={2}>
               {item.name}
             </Text>
@@ -448,7 +433,7 @@ export const AddGoalScreen = () => {
         console.log('Upload selesai, berhasil', uploaded.length, 'item');
         if (uploaded.length === 0 && mediaList.length > 0) {
           setUploading(false);
-          Alert.alert('Upload gagal', 'Tidak ada media yang berhasil diupload. Cek koneksi internet Anda.');
+          Alert.alert('Upload gagal', 'Tidak ada media yang berhasil diupload. Cek koneksi internet kamu.');
           return;
         }
         finalMediaList = uploaded;
@@ -511,16 +496,12 @@ export const AddGoalScreen = () => {
             <Text style={{ color: safeTheme.onPrimary, fontWeight: 'bold' }}>Simpan</Text>
           )}
         </TouchableOpacity>
-      </Animated.View>
-
-      {uploading && (
+      </Animated.View>{uploading && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 100 }}>
           <ActivityIndicator size="large" color="#fff" />
           <Text style={{ color: '#fff', marginTop: 12, fontSize: 14 }}>{loadingMsg}</Text>
         </View>
-      )}
-
-      <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+      )}<ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
         {/* Media Section */}
         <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
           {mediaList.map((m, i) => (
@@ -566,9 +547,7 @@ export const AddGoalScreen = () => {
               <MaterialIcons name="check" size={20} color={safeTheme.onPrimaryContainer} />
             </TouchableOpacity>
           </View>
-        </Animated.View>
-
-        {/* Nama & Deskripsi */}
+        </Animated.View>{/* Nama & Deskripsi */}
         <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
           <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>NAMA GOAL</Text>
           <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16, marginBottom: 16 }}>
@@ -592,9 +571,7 @@ export const AddGoalScreen = () => {
               style={{ color: safeTheme.onSurface, fontSize: 14 }}
             />
           </View>
-        </Animated.View>
-
-        {/* Target & Roadmap */}
+        </Animated.View>{/* Target & Roadmap */}
         <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
           <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>TARGET NOMINAL (RP)</Text>
           <View style={{ backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 16 }}>
@@ -1091,7 +1068,6 @@ const GoalsScreen = ({ navigation, route }) => {
                   />
                 )}
               </>
-
             )}
 
             {/* Media List - Both active and achieved can edit */}
@@ -1120,7 +1096,6 @@ const GoalsScreen = ({ navigation, route }) => {
             <TouchableOpacity onPress={handlePickEditMedia} style={{ height: 40, borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: safeTheme.primary + '66', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
               <Text style={{ color: safeTheme.primary, fontSize: 12, fontWeight: '600' }}>+ Tambah Media</Text>
             </TouchableOpacity>
-
             {/* Related Transactions - Only for achieved */}
             {isEditAchieved && (
               <>
@@ -1177,6 +1152,7 @@ const GoalsScreen = ({ navigation, route }) => {
       /><Animated.View style={{ flex: 1, opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
         {activeTab === 'active' ? (
           <FlatList
+            key="active-goals"
             data={activeGoals}
             keyExtractor={(item) => item.id}
             renderItem={({ item, index }) => (
@@ -1188,6 +1164,7 @@ const GoalsScreen = ({ navigation, route }) => {
           />
         ) : (
           <FlatList
+            key="achieved-goals"
             data={achievedGoals}
             keyExtractor={(item) => item.id}
             numColumns={2}
@@ -1199,8 +1176,7 @@ const GoalsScreen = ({ navigation, route }) => {
             ListEmptyComponent={<EmptyGoalsState safeTheme={safeTheme} activeTab={activeTab} navigation={navigation} />}
           />
         )}
-      </Animated.View><EditModal />{/* Delete Confirmation Modal */}
-      <Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => setDeleteModalVisible(false)}>
+      </Animated.View><EditModal /><Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => setDeleteModalVisible(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
           <View style={{ backgroundColor: safeTheme.surface, borderRadius: 32, padding: 32, width: '100%', maxWidth: 400, alignItems: 'center' }}>
             <View style={{ width: 72, height: 72, borderRadius: 24, backgroundColor: safeTheme.error + '15', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>

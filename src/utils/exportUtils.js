@@ -53,7 +53,7 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
       ['Filter Jenis:', filterType],
       ['Tanggal Ekspor:', new Date().toLocaleString('id-ID')],
       [],
-      [`RINGKASAN PENGELUARAN PER KATEGORI`],
+      [filterType === 'Pemasukan' ? 'RINGKASAN PEMASUKAN PER KATEGORI' : 'RINGKASAN PENGELUARAN PER KATEGORI'],
       ['KATEGORI', 'NOMINAL (Rp)', 'PERSENTASE (%)'],
     ];
 
@@ -340,22 +340,23 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
 
         <div class="insight-box">
            <div class="insight-title">Analisa & Insight Strategis</div>
-           <div class="insight-text">
-              ${filterType !== 'Pemasukan' ? `
-                Berdasarkan aktivitas keuangan pada periode <b>${period}</b>, kami mencatat bahwa pengeluaran terbesar dialokasikan untuk <b>${topTransaction.name}</b> dengan nominal <b>Rp ${formatMoney(topTransaction.amount)}</b>. 
-                Kategori yang paling dominan menyerap anggaran Anda adalah <b>${topCategoryByAmt[0]}</b> (Rp ${formatMoney(topCategoryByAmt[1])}).
+            <div class="insight-text">
+              ${filterType === 'Semua' ? `
+                Berdasarkan seluruh aktivitas keuangan kita, pengeluaran terbesar ada pada <b>${topTransaction.name}</b> (Rp ${formatMoney(topTransaction.amount)}). 
+                ${totalIncome > 0 ? `Kita juga berhasil mengumpulkan pemasukan sebesar <b>Rp ${formatMoney(totalIncome)}</b>.` : ''}
+              ` : filterType === 'Pemasukan' ? `
+                Berdasarkan data pemasukan kita, total dana yang terkumpul adalah <b>Rp ${formatMoney(totalIncome)}</b>.
               ` : `
-                Berdasarkan data pemasukan pada periode <b>${period}</b>, Anda telah berhasil mengumpulkan total <b>Rp ${formatMoney(totalIncome)}</b>.
+                Pengeluaran terbesar kita kali ini adalah <b>${topTransaction.name}</b> dengan nominal <b>Rp ${formatMoney(topTransaction.amount)}</b>.
+                Kategori yang paling banyak menyerap anggaran adalah <b>${topCategoryByAmt[0]}</b>.
               `}
               
               ${filterType === 'Semua' ? (
                 netBalance > 0 
-                ? `Kabar baik! Anda memiliki surplus sebesar <b>Rp ${formatMoney(netBalance)}</b>. Pertahankan ritme menabung ini untuk mempercepat tercapainya Goal Anda.` 
-                : `Perhatian: Pengeluaran Anda melebihi pemasukan pada periode ini. Pertimbangkan untuk mengevaluasi kategori <b>${topCategoryByAmt[0]}</b> guna menjaga kesehatan finansial bersama.`
+                ? `<br/><br/>Kabar baik! Kita memiliki surplus sebesar <b>Rp ${formatMoney(netBalance)}</b>. Yuk, tabung sisanya buat goal kita!` 
+                : `<br/><br/>Perhatian: Pengeluaran kita sedikit lebih besar dari pemasukan. Yuk, lebih bijak lagi di periode depan.`
               ) : ''}
-              
-              ${filterType === 'Pengeluaran' ? `Rata-rata pengeluaran per transaksi adalah <b>Rp ${formatMoney(expenses.length > 0 ? totalExpense / expenses.length : 0)}</b>.` : ''}
-           </div>
+            </div>
         </div>
 
 

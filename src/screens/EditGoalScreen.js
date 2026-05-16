@@ -335,7 +335,7 @@ export const EditGoalScreen = () => {
       .catch(e => console.error('Delete error:', e));
     
     // Kembali ke tab Goals
-    navigation.navigate('Goals');
+    navigation.navigate('Mimpi');
   };
 
   if (!goal) {

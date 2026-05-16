@@ -106,10 +106,10 @@ const CreateRoomScreen = ({ navigation }) => {
         {!generatedCode ? (
           <>
             <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
-              <Text style={styles.label}>Nama Panggilan Anda</Text>
+              <Text style={styles.label}>Nama Panggilan Kamu</Text>
               <TextInput 
                 style={styles.input} 
-                placeholder="Masukkan nama Anda" 
+                placeholder="Masukkan nama kamu" 
                 placeholderTextColor={theme.onSurfaceVariant}
                 value={name}
                 onChangeText={setName}
@@ -126,9 +126,9 @@ const CreateRoomScreen = ({ navigation }) => {
           </>
         ) : (
           <Animated.View style={[styles.codeContainer, { opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }]}>
-            <Text style={styles.codeLabel}>KODE PASANGAN ANDA</Text>
+            <Text style={styles.codeLabel}>KODE PASANGAN KAMU</Text>
             <Text style={styles.codeValue}>{generatedCode}</Text>
-            <Text style={styles.codeDesc}>Berikan kode ini kepada pasangan Anda agar mereka bisa bergabung ke dalam ruang finansial ini.</Text>
+            <Text style={styles.codeDesc}>Berikan kode ini kepada pasanganmu agar mereka bisa bergabung ke dalam ruang finansial ini.</Text>
             <TouchableOpacity style={[styles.btnPrimary, { marginTop: 32 }]} onPress={handleLogin}>
               <LinearGradient colors={[theme.primary, theme.primaryContainer]} style={styles.gradientPrimary} start={{x:0, y:0}} end={{x:1, y:1}}>
                 <Text style={styles.btnPrimaryText}>Masuk ke Dashboard</Text>

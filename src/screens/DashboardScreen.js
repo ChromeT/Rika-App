@@ -75,9 +75,9 @@ const HeroSection = ({ theme, filter, formatMoney, getBalance, myName, partnerNa
   <Animated.View style={animStyle}>
     <LinearGradient colors={[theme.primary, theme.primary + 'AA']} style={styles.heroCard} start={{x:0,y:0}} end={{x:1,y:1}}>
       <Text style={styles.heroLabel}>Total Saldo {filter}</Text>
-      <Text style={styles.heroValue}>Rp {formatMoney(getBalance(filter === 'Saya' ? myName : filter))}</Text>
+      <Text style={styles.heroValue}>Rp {formatMoney(getBalance(filter === myName ? myName : filter))}</Text>
       <View style={styles.filterRow}>
-        {['Kita', 'Saya', partnerName].filter(Boolean).map(f => (
+        {['Kita', myName, partnerName].filter(Boolean).map(f => (
           <TouchableOpacity key={f} onPress={() => setFilter(f)} style={[styles.filterChip, filter === f && styles.filterChipActive]}>
             <Text style={[styles.filterChipText, filter === f && { color: theme.primary }]}>{f}</Text>
           </TouchableOpacity>
@@ -201,7 +201,7 @@ const WalletsSection = ({ accounts, theme, formatMoney, navigation, animStyle, w
 // --- [SUB-KOMPONEN: Expense Analysis] ---
 // Ini bagian paling 'berat' karena ada SVG Donut Chart.
 const ExpenseAnalysisSection = ({ 
-  theme, filter, partnerName, setFilter, timeFilter, setTimeFilter, 
+  theme, filter, myName, partnerName, setFilter, timeFilter, setTimeFilter, 
   customStartDate, customEndDate, setShowStartPicker, setShowEndPicker,
   showStartPicker, showEndPicker, setCustomStartDate, setCustomEndDate,
   segments, totalExpense, formatMoney, RADIUS, CIRCUMFERENCE, animStyle, sectionLayouts
@@ -214,7 +214,7 @@ const ExpenseAnalysisSection = ({
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Pengeluaran</Text>
         <View style={{ flexDirection: 'row', backgroundColor: theme.surfaceContainerHighest + '66', padding: 3, borderRadius: 12, borderWidth: 1, borderColor: theme.outlineVariant + '11' }}>
-          {['Kita', 'Saya', (partnerName || 'Pasangan')].map(f => (
+          {['Kita', myName, (partnerName || 'Pasangan')].map(f => (
             <TouchableOpacity key={f} onPress={() => setFilter(f)} style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9, backgroundColor: filter === f ? theme.primary : 'transparent' }}>
               <Text style={{ fontSize: 10, fontWeight: '900', color: filter === f ? theme.onPrimary : theme.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.5 }}>{f}</Text>
             </TouchableOpacity>
@@ -430,14 +430,14 @@ const GoalsSection = ({ goals, hasPartner, theme, formatMoney, navigation, animS
   >
     <View style={[styles.sectionHeader, { marginBottom: 20 }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Goals kita</Text>
+        <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Goal kita</Text>
         <View style={{ flexDirection: 'row', gap: 6 }}>
           <View style={{ backgroundColor: theme.surfaceContainerHighest, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 }}>
             <Text style={{ fontSize: 10, color: theme.primary, fontWeight: '900' }}>{goals.filter(g => !g.achieved).length} AKTIF</Text>
           </View>
           {goals.filter(g => g.achieved).length > 0 && (
             <TouchableOpacity 
-              onPress={() => navigation.navigate('Goals', { initialTab: 'achieved' })}
+              onPress={() => navigation.navigate('Mimpi', { initialTab: 'achieved' })}
               style={{ backgroundColor: '#81C784' + '15', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: '#81C784' + '33' }}
             >
               <MaterialIcons name="stars" size={10} color="#81C784" />
@@ -446,7 +446,7 @@ const GoalsSection = ({ goals, hasPartner, theme, formatMoney, navigation, animS
           )}
         </View>
       </View>
-      <TouchableOpacity onPress={() => navigation.navigate('Goals')}>
+      <TouchableOpacity onPress={() => navigation.navigate('Mimpi')}>
         <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold', fontSize: 13 }}>Lihat Semua</Text>
       </TouchableOpacity>
     </View>
@@ -457,7 +457,7 @@ const GoalsSection = ({ goals, hasPartner, theme, formatMoney, navigation, animS
       </View>
     ) : goals.filter(g => !g.achieved).length === 0 ? (
       <TouchableOpacity 
-        onPress={() => navigation.navigate('Goals')}
+        onPress={() => navigation.navigate('Mimpi')}
         style={{ backgroundColor: theme.surfaceContainerLow, borderRadius: 32, padding: 24, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: theme.outlineVariant + '44' }}
       >
         <MaterialIcons name="favorite" size={32} color={theme.onSurfaceVariant + '44'} />
@@ -852,7 +852,7 @@ const DashboardScreen = ({ navigation, route }) => {
       if (action === 'pengeluaran') navigation.navigate('Transaksi', { type: 'expense' });
       else if (action === 'pemasukan') navigation.navigate('Transaksi', { type: 'income' });
       else if (action === 'transfer') navigation.navigate('Transfer');
-      else if (action === 'goals') navigation.navigate('Goals');
+      else if (action === 'goals') navigation.navigate('Mimpi');
       else if (action === 'tagihan') { resetBillForm(); setBillModalVisible(true); }
     }, 200);
   };
@@ -1206,7 +1206,7 @@ const DashboardScreen = ({ navigation, route }) => {
         />
 
         <ExpenseAnalysisSection 
-          theme={theme} filter={filter} partnerName={partnerName} setFilter={setFilter} 
+          theme={theme} filter={filter} myName={myName} partnerName={partnerName} setFilter={setFilter} 
           timeFilter={timeFilter} setTimeFilter={setTimeFilter} 
           customStartDate={customStartDate} customEndDate={customEndDate} 
           setShowStartPicker={setShowStartPicker} setShowEndPicker={setShowEndPicker}
@@ -1747,7 +1747,7 @@ const DashboardScreen = ({ navigation, route }) => {
 };
 
 const fabActions = [
-  { key: 'goals', icon: 'favorite', label: 'Goals baru', color: '#E879F9' },
+  { key: 'goals', icon: 'favorite', label: 'Goal baru', color: '#E879F9' },
   { key: 'transfer', icon: 'swap-horiz', label: 'Pindah dana', color: '#6366F1' },
   { key: 'tagihan', icon: 'receipt-long', label: 'Pengingat tagihan', color: '#F59E0B' },
   { key: 'pemasukan', icon: 'add-chart', label: 'Pemasukan', color: '#10B981' },

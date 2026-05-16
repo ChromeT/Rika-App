@@ -88,10 +88,10 @@ const JoinRoomScreen = ({ navigation }) => {
 
       <View style={styles.content}>
         <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
-          <Text style={styles.label}>Panggilan Anda (Sama jika masuk kembali)</Text>
+          <Text style={styles.label}>Panggilan Kamu (Sama jika masuk kembali)</Text>
           <TextInput 
             style={styles.input} 
-            placeholder="Masukkan nama Anda" 
+            placeholder="Masukkan nama kamu" 
             placeholderTextColor={theme.onSurfaceVariant}
             value={name}
             onChangeText={setName}

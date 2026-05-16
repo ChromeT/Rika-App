@@ -126,7 +126,7 @@ const CoupleScreen = ({ navigation }) => {
     setShowDatePicker(false);
     if (selectedDate) {
       updateAnniversaryDate(selectedDate.toISOString());
-      Alert.alert('Berhasil', 'Hari bersama kalian telah diperbarui.');
+      Alert.alert('Berhasil', 'Hari bersama kita telah diperbarui.');
     }
   };
 
@@ -179,7 +179,7 @@ const CoupleScreen = ({ navigation }) => {
               </View>
               <Text style={[styles.avatarName, { color: theme.onSurface, marginTop: 8 }]}>{myName}</Text>
               <View style={[styles.roleBadge, { backgroundColor: theme.primary + '15' }]}>
-                <Text style={[styles.roleText, { color: theme.primary }]}>SAYA</Text>
+                <Text style={[styles.roleText, { color: theme.primary }]}>{myName.toUpperCase()}</Text>
               </View>
             </View>
 
@@ -366,7 +366,7 @@ const CoupleScreen = ({ navigation }) => {
                   date: (relationshipStart && relationshipStart.isValid()) ? relationshipStart : now, 
                   icon: 'favorite', 
                   color: theme.primary, 
-                  desc: 'Momen pertama kalian resmi terhubung dan mulai berpetualang di Rika.', 
+                  desc: 'Momen pertama kita resmi terhubung dan mulai berpetualang di Rika.', 
                   type: 'SYSTEM' 
                 },
               ];

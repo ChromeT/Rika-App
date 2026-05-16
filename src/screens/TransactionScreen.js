@@ -244,7 +244,7 @@ const TransactionScreen = ({ navigation, route }) => {
         finalCategoryName = customCategory.trim();
         finalIcon = customIcon;
         if (!finalCategoryName) {
-          Alert.alert('Data kategori kosong', 'Tuliskan nama kategori baru Anda terlebih dahulu!');
+          Alert.alert('Data kategori kosong', 'Tuliskan nama kategori baru kamu terlebih dahulu!');
           setLoading(false);
           return;
         }
@@ -708,7 +708,7 @@ const TransactionScreen = ({ navigation, route }) => {
                 <MaterialIcons name="info" size={16} color={theme.primary} />
                 <Text style={styles.pInfoText}>
                   {isKonta
-                    ? 'Saldo Anda & Pasangan akan terpotong otomatis 50:50.'
+                    ? 'Saldo kamu & pasangan akan terpotong otomatis 50:50.'
                     : (isPatungan
                       ? 'Porsi pasangan akan ditagihkan untuk konfirmasi.'
                       : 'Nyalakan fitur ini jika ingin beban dibagi dengan pasangan.')}
@@ -787,7 +787,7 @@ const TransactionScreen = ({ navigation, route }) => {
 
         <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
           <View style={styles.recentHeader}>
-            <Text style={styles.recentTitle}>Riwayat Anda</Text>
+            <Text style={styles.recentTitle}>Riwayat Kamu</Text>
           </View>
 
           {(transactions || []).slice(0, 5).map(tx => (

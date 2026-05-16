@@ -428,8 +428,10 @@ const SettingsScreen = ({ navigation }) => {
 
           <SectionHeader title="Kustomisasi" />
           <View style={styles.settingGroup}>
-            <SettingRow icon="category" title="Kelola Kategori" desc="Atur kategori transaksi Anda" onPress={() => navigation.navigate("Categories")} />
-            <SettingRow icon="dark-mode" title="Mode Gelap" desc="Aktifkan tampilan mode malam">
+            <SettingRow icon="person-outline" title="Profil Kamu" desc={`Halo ${user?.name || 'kamu'}, atur panggilan dan identitasmu di sini`} onPress={() => Alert.alert("Profil", "Fitur edit profil sedang disiapkan!")} />
+            <SettingRow icon="favorite-border" title="Ruang Kita" desc={`Ruang spesial ${user?.name || 'kamu'} & ${partnerName || 'pasangan'}`} onPress={() => navigation.navigate("Couple")} />
+            <SettingRow icon="category" title="Kelola Kategori" desc="Susun kategori agar sesuai dengan gaya hidup kita" onPress={() => navigation.navigate("Categories")} />
+            <SettingRow icon="dark-mode" title="Mode Gelap" desc="Agar mata tetap nyaman saat kita bercerita di malam hari">
               <Switch 
                 value={isDarkMode} 
                 onValueChange={toggleTheme}

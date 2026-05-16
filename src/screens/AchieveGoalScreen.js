@@ -188,7 +188,7 @@ export const AchieveGoalScreen = () => {
         const uploaded = await uploadMultipleToCloudinary(mediaList);
         if (uploaded.length === 0) {
           setUploading(false);
-          Alert.alert('Upload gagal', 'Tidak ada media yang berhasil diupload. Cek koneksi internet Anda.');
+          Alert.alert('Upload gagal', 'Tidak ada media yang berhasil diupload. Cek koneksi internet kamu.');
           return;
         }
         finalMediaList = uploaded;
