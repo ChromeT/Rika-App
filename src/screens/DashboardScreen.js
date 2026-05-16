@@ -43,7 +43,7 @@ const DashboardHeader = ({ avatar, myName, theme, setNotifyVisible, notification
         {avatar?.startsWith('file://') || avatar?.startsWith('data:image') ? (
           <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />
         ) : (
-          <MaterialIcons name={avatar || 'person'} size={24} color={theme.primary} />
+          <MaterialIcons name={avatar || 'person'} size={28} color={theme.primary} />
         )}
       </TouchableOpacity>
       <View>
@@ -77,7 +77,7 @@ const HeroSection = ({ theme, filter, formatMoney, getBalance, myName, partnerNa
     <LinearGradient colors={[theme.primary, theme.primary + 'AA']} style={styles.heroCard} start={{x:0,y:0}} end={{x:1,y:1}}>
       <View style={{ flex: 1 }}>
         <Text style={styles.heroLabel}>Total Saldo {filter}</Text>
-        <Text style={styles.heroValue} numberOfLines={1} adjustsFontSizeToFit>Rp {formatMoney(getBalance(filter === myName ? myName : filter))}</Text>
+        <Text style={styles.heroValue} numberOfLines={1} adjustsFontSizeToFit>Rp {formatMoney(getBalance(filter))}</Text>
       </View>
       <View style={styles.filterRow}>
         {['Kita', myName, partnerName].filter(Boolean).map(f => (
@@ -855,8 +855,11 @@ const DashboardScreen = ({ navigation, route }) => {
       // Muncul jika owner transaksi adalah filter (Saya/Pasangan)
       // ATAU jika itu transaksi patungan/uang bersama (isPatungan/isJoint)
       const isShared = tx.isPatungan || tx.isJoint;
-      if (filter === myName) {
-        userMatch = tx.owner === myName || (isShared && (tx.myContrib || 0) > 0);
+      if (filter === 'Saya' || filter === myName) {
+        const owner = (tx.owner || '').toLowerCase().trim();
+        const normMe = (myName || '').toLowerCase().trim();
+        const isMe = owner === normMe || owner.includes(normMe) || normMe.includes(owner);
+        userMatch = isMe || (isShared && (tx.myContrib || 0) > 0);
       } else {
         userMatch = tx.owner === filter || (isShared && (tx.partnerContrib || 0) > 0);
       }
@@ -1753,7 +1756,11 @@ const DashboardScreen = ({ navigation, route }) => {
 
               <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 12, marginLeft: 4 }}>SUMBER DANA</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 24 }}>
-                {accounts.filter(acc => acc.owner === myName || acc.owner === 'Bersama').map(acc => {
+                {accounts.filter(acc => {
+                  const owner = (acc.owner || '').toLowerCase().trim();
+                  const normMe = (myName || '').toLowerCase().trim();
+                  return owner === normMe || owner.includes(normMe) || normMe.includes(owner) || owner === 'Bersama' || owner === '';
+                }).map(acc => {
                   const isActive = quickEditAccountId === acc.id;
                   return (
                     <TouchableOpacity 
@@ -1834,7 +1841,12 @@ const DashboardScreen = ({ navigation, route }) => {
             </View>
             <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 12, marginLeft: 4 }}>PILIH DOMPET KAMU</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 24 }}>
-              {accounts.filter(acc => acc.owner === myName).map(acc => (
+              {accounts.filter(acc => {
+                const owner = (acc.owner || '').toLowerCase().trim();
+                const curName = (user?.name || '').toLowerCase().trim();
+                // Match exact, match substring, or if no owner assume it's personal
+                return owner === curName || owner.includes(curName) || curName.includes(owner) || owner === '' || owner === 'saya';
+              }).map(acc => (
                 <TouchableOpacity key={acc.id} onPress={() => setSelectedSplitAccountId(acc.id)} style={{ padding: 14, borderRadius: 16, backgroundColor: selectedSplitAccountId === acc.id ? theme.primary + '20' : theme.surfaceContainerLow, borderWidth: 2, borderColor: selectedSplitAccountId === acc.id ? theme.primary : 'transparent', marginRight: 10, flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 140 }}>
                   <MaterialIcons name={acc.icon || 'payments'} size={20} color={selectedSplitAccountId === acc.id ? theme.primary : theme.onSurfaceVariant} />
                   <View><Text style={{ fontSize: 13, fontWeight: 'bold', color: theme.onSurface }}>{acc.name}</Text><Text style={{ fontSize: 10, color: theme.onSurfaceVariant }}>Rp {formatMoney(acc.balance)}</Text></View>
@@ -1882,7 +1894,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 20 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatarWrapper: { width: 44, height: 44, borderRadius: 16, overflow: 'hidden', backgroundColor: 'rgba(0,0,0,0.05)', justifyContent: 'center', alignItems: 'center' },
+  avatarWrapper: { width: 50, height: 50, borderRadius: 25, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '900', letterSpacing: -0.5 },
   notifBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   notifBadge: { 

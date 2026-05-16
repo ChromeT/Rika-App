@@ -196,7 +196,11 @@ const TransactionScreen = ({ navigation, route }) => {
     if (route?.params?.editingTransaction) {
       const tx = route.params.editingTransaction;
       const myName = user?.name || 'Saya';
-      if (tx.owner !== myName && tx.owner !== 'Bersama') {
+      const owner = (tx.owner || '').toLowerCase().trim();
+      const normMe = (myName || '').toLowerCase().trim();
+      const isMe = owner === normMe || owner.includes(normMe) || normMe.includes(owner);
+      
+      if (!isMe && tx.owner !== 'Bersama') {
         showAestheticAlert('Akses Dibatasi', 'Kamu hanya bisa mengedit transaksi milikmu sendiri untuk menjaga integritas data pribadi pasangan.', 'lock', theme.primary);
         setTimeout(() => navigation.goBack(), 2000);
         return;
@@ -233,7 +237,11 @@ const TransactionScreen = ({ navigation, route }) => {
 
   useEffect(() => {
     if (accounts.length > 0 && !selectedAccountId) {
-      const myAccounts = accounts.filter(a => a.owner === user?.name);
+      const myAccounts = accounts.filter(a => {
+        const owner = (a.owner || '').toLowerCase().trim();
+        const curName = (user?.name || '').toLowerCase().trim();
+        return owner === curName || owner.includes(curName) || curName.includes(owner) || owner === '' || owner === 'saya';
+      });
       if (myAccounts.length > 0) {
         setSelectedAccountId(myAccounts[0].id);
       }

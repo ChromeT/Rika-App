@@ -208,11 +208,16 @@ const MasonryItem = ({ item, index, onPress, theme }) => {
         <ExpoImage source={{ uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" />
         
         {/* Added By Badge */}
-        {item.addedBy && (
-          <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
-            <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>{item.addedBy}</Text>
-          </View>
-        )}
+        {item.addedBy && (() => {
+          const owner = (item.addedBy || '').toLowerCase().trim();
+          const curName = (user?.name || '').toLowerCase().trim();
+          const isMe = owner === curName || owner.includes(curName) || curName.includes(owner);
+          return (
+            <View style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+              <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>{isMe ? 'Kamu' : item.addedBy}</Text>
+            </View>
+          );
+        })()}
 
         {item.type === 'video' && (
           <View style={{ position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(0,0,0,0.6)', padding: 6, borderRadius: 12 }}>

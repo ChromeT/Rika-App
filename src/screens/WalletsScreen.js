@@ -17,7 +17,7 @@ const WalletsScreen = ({ route }) => {
   const { walletId } = route.params || {};
   const navigation = useNavigation();
   const { theme } = useContext(ThemeContext);
-  const { user } = useContext(AuthContext);
+   const { user, householdUsers } = useContext(AuthContext);
   const { accounts, deleteAccount, transactions } = useContext(DataContext);
 
   const [selectedAccount, setSelectedAccount] = useState(null);
@@ -100,8 +100,39 @@ const WalletsScreen = ({ route }) => {
 
   // Using global formatMoney from utils
 
-  const myAccounts = (accounts || []).filter(a => a.owner === user?.name);
-  const partnerAccounts = (accounts || []).filter(a => a.owner && a.owner !== user?.name);
+  const normalize = (s) => (s || '').toLowerCase().trim();
+  const myName = normalize(user?.name);
+  
+  // householdUsers bisa berupa array of strings atau array of objects
+  const partnerUser = (householdUsers || []).find(u => {
+    const uName = normalize(typeof u === 'string' ? u : u.name);
+    return uName !== myName && !uName.includes(myName) && !myName.includes(uName);
+  });
+  
+  const partnerNameString = typeof partnerUser === 'string' ? partnerUser : partnerUser?.name;
+  const normalizedPartnerName = normalize(partnerNameString);
+  
+  const myAccounts = (accounts || []).filter(a => {
+    const owner = normalize(a.owner);
+    if (owner === '' || owner === 'saya' || owner === 'me') return true;
+    
+    // Fuzzy matching: 'Ika' matches 'Ika Manis'
+    const isMe = owner === myName || owner.includes(myName) || myName.includes(owner);
+    const isPartner = normalizedPartnerName !== '' && (owner === normalizedPartnerName || owner.includes(normalizedPartnerName) || normalizedPartnerName.includes(owner));
+    
+    // Kalau dia lebih mirip ke User daripada ke Partner, berarti punya User
+    return isMe && !isPartner;
+  });
+  
+  const partnerAccounts = (accounts || []).filter(a => {
+    const owner = normalize(a.owner);
+    if (owner === '') return false;
+    
+    const isMe = owner === myName || owner.includes(myName) || myName.includes(owner);
+    const isPartner = normalizedPartnerName !== '' && (owner === normalizedPartnerName || owner.includes(normalizedPartnerName) || normalizedPartnerName.includes(owner));
+    
+    return isPartner && !isMe;
+  });
 
   const totalBalance = (accounts || []).reduce((sum, acc) => sum + (acc.balance || 0), 0);
 

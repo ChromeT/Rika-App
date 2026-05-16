@@ -195,9 +195,16 @@ const TransactionHistoryScreen = ({ navigation, route }) => {
       const monthMatch = txDate.getMonth() === filterMonth;
       const yearMatch = txDate.getFullYear() === filterYear;
       const isShared = tx.isPatungan || tx.isJoint;
+      const owner = (tx.owner || '').toLowerCase().trim();
+      const normMe = (myName || '').toLowerCase().trim();
+      const normPartner = (partnerName || '').toLowerCase().trim();
+      
+      const isMe = owner === normMe || owner.includes(normMe) || normMe.includes(owner);
+      const isPartner = normPartner !== '' && (owner === normPartner || owner.includes(normPartner) || normPartner.includes(owner));
+
       const ownerMatch = filterOwner === 'Semua' || 
-                         (filterOwner === 'Saya' && (tx.owner === myName || (isShared && (tx.myContrib || 0) > 0))) || 
-                         (filterOwner === 'Pasangan' && (tx.owner === partnerName || (isShared && (tx.partnerContrib || 0) > 0)));
+                         (filterOwner === 'Saya' && (isMe || (isShared && (tx.myContrib || 0) > 0))) || 
+                         (filterOwner === 'Pasangan' && (isPartner || (isShared && (tx.partnerContrib || 0) > 0)));
       const typeMatch = filterType === 'Semua' || tx.type === filterType;
       const searchMatch = !search || tx.name?.toLowerCase().includes(search.toLowerCase()) || tx.category?.toLowerCase().includes(search.toLowerCase());
       return monthMatch && yearMatch && ownerMatch && typeMatch && searchMatch;
