@@ -1,7 +1,7 @@
 import React, { useContext, useState, useMemo, useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
 import TextInput from '../components/ThemeTextInput';
-import { View, StyleSheet, Image, TouchableOpacity, Dimensions, ActivityIndicator, Alert, Modal, Animated, Platform } from 'react-native';
+import { View, StyleSheet, Image, TouchableOpacity, Dimensions, ActivityIndicator, Alert, Modal, Animated, Platform, KeyboardAvoidingView } from 'react-native';
 import Text from '../components/ThemeText';
 import { ScrollView, FlatList } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -145,12 +145,10 @@ const ActiveGoalItem = React.memo(({ item, index, navigation, safeTheme, formatM
 
 // --- [SUB-KOMPONEN: Goals Header] ---
 const GoalsHeader = ({ safeTheme, navigation, fadeAnim, slideAnim }) => (
-  <Animated.View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, paddingBottom: 12, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+  <Animated.View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
     <View>
       <Text style={{ fontSize: 28, fontWeight: '900', color: safeTheme.onSurface, letterSpacing: -1 }}>Goal Kita</Text>
-    </View><TouchableOpacity onPress={() => navigation.navigate('Couple')} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: safeTheme.surfaceContainerLow, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: safeTheme.outlineVariant + '22' }}>
-      <MaterialIcons name="favorite" size={24} color={safeTheme.primary} />
-    </TouchableOpacity>
+    </View>
   </Animated.View>
 );
 
@@ -305,6 +303,11 @@ const AchievedGoalItem = React.memo(({ item, index, navigation, safeTheme, forma
 
 // --- Add Goal Screen (Modal Style) ---
 export const AddGoalScreen = () => {
+  const navigation = useNavigation();
+  const { theme } = useContext(ThemeContext);
+  const { addGoal, addNotification, updateGoal } = useContext(DataContext);
+  const { user, householdUsers } = useContext(AuthContext);
+
   const partnerUser = (householdUsers || []).find(u => {
     const uName = typeof u === 'string' ? u : u.name;
     return uName !== user?.name;
@@ -323,10 +326,6 @@ export const AddGoalScreen = () => {
       createdAt: new Date().toISOString(),
     });
   };
-
-  const navigation = useNavigation();
-  const { theme } = useContext(ThemeContext);
-  const { addGoal, addNotification, updateGoal } = useContext(DataContext);
   
   // Animations
   const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
@@ -440,6 +439,7 @@ export const AddGoalScreen = () => {
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const progressAnim = useRef(new Animated.Value(0)).current;
   const [currentUploadIndex, setCurrentUploadIndex] = useState(0);
   const [loadingMsg, setLoadingMsg] = useState('');
 
@@ -506,9 +506,17 @@ export const AddGoalScreen = () => {
       // Upload media to Cloudinary if any
       if (mediaList.length > 0) {
         console.log('Mulai upload', mediaList.length, 'media');
+        progressAnim.setValue(0);
         const uploaded = await uploadMultipleToCloudinary(mediaList, (idx, percent) => {
           setCurrentUploadIndex(idx);
-          setUploadProgress(percent);
+          const overallPercent = Math.min(100, Math.round(((idx * 100) + percent) / mediaList.length));
+          console.log(`[GoalsScreen] idx: ${idx}, percent: ${percent}, overallPercent: ${overallPercent}`);
+          setUploadProgress(overallPercent);
+          Animated.timing(progressAnim, {
+            toValue: overallPercent,
+            duration: 300,
+            useNativeDriver: false
+          }).start();
         });
         console.log('Upload selesai, berhasil', uploaded.length, 'item');
         if (uploaded.length === 0 && mediaList.length > 0) {
@@ -604,22 +612,30 @@ export const AddGoalScreen = () => {
             
             {/* Progress Bar */}
             <View style={{ width: '100%', height: 12, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
-              <LinearGradient
-                colors={[safeTheme.primary, safeTheme.primary + '88']}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 0}}
-                style={{ height: '100%', width: `${uploadProgress}%`, borderRadius: 10 }}
-              />
+              <Animated.View style={{ 
+                height: '100%', 
+                width: progressAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'], extrapolate: 'clamp' }), 
+                borderRadius: 10,
+                overflow: 'hidden'
+              }}>
+                <LinearGradient
+                  colors={[safeTheme.primary, safeTheme.primary + '88']}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 0}}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </Animated.View>
             </View>
             
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 12 }}>
-              <Text style={{ color: safeTheme.primary, fontSize: 12, fontWeight: 'bold' }}>{uploadProgress}% Selesai</Text>
+              <Text style={{ color: safeTheme.primary, fontSize: 12, fontWeight: 'bold' }}>{Math.min(100, Math.max(0, uploadProgress))}% Selesai</Text>
               <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Sedang mengabadikan momen kita...</Text>
             </View>
           </View>
         </View>
       )}
-<ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+<KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 40}>
+<ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 150 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {/* Media Section */}
         <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
           {mediaList.map((m, i) => (
@@ -775,6 +791,7 @@ export const AddGoalScreen = () => {
         </Animated.View>
 
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
 
 
@@ -1113,7 +1130,8 @@ const GoalsScreen = ({ navigation, route }) => {
             </View>
           )}
 
-        <ScrollView style={{ flex: 1, marginTop: 100 }} contentContainerStyle={{ paddingBottom: 150 }}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 40}>
+        <ScrollView style={{ flex: 1, marginTop: 100 }} contentContainerStyle={{ paddingBottom: 250 }} keyboardShouldPersistTaps="handled">
           <View style={{ backgroundColor: safeTheme.surface, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, marginHorizontal: 16 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <Text style={{ fontSize: 20, fontWeight: 'bold', color: safeTheme.onSurface }}>
@@ -1270,6 +1288,7 @@ const GoalsScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
         </ScrollView>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -1358,6 +1377,37 @@ const GoalsScreen = ({ navigation, route }) => {
             <MaterialIcons name="check-circle" size={20} color={safeTheme.primary} />
             <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: 'bold' }}>{toastMsg}</Text>
           </View>
+        </Animated.View>
+      )}
+
+      {/* Floating Action Button */}
+      {activeTab === 'active' && (
+        <Animated.View style={{ 
+          position: 'absolute', 
+          bottom: 110, 
+          right: 20, 
+          opacity: fadeAnims[2], 
+          transform: [{ translateY: slideAnims[2] }],
+          zIndex: 99
+        }}>
+          <TouchableOpacity 
+            onPress={handleAddGoal}
+            activeOpacity={0.8}
+            style={{ 
+              width: 64, height: 64, borderRadius: 24, 
+              backgroundColor: safeTheme.primary, 
+              justifyContent: 'center', alignItems: 'center',
+              shadowColor: safeTheme.primary,
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.4,
+              shadowRadius: 16,
+              elevation: 8,
+              borderWidth: 2,
+              borderColor: safeTheme.surface
+            }}
+          >
+            <MaterialIcons name="add" size={32} color={safeTheme.onPrimary} />
+          </TouchableOpacity>
         </Animated.View>
       )}
 

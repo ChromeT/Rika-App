@@ -153,11 +153,11 @@ const WalletsScreen = ({ route }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       <Animated.View style={[styles.header, { backgroundColor: theme.background, opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }]}>
-        <TouchableOpacity onPress={handleBack} style={styles.headerBtn}>
+        <TouchableOpacity onPress={handleBack} style={[styles.headerBtn, { backgroundColor: theme.surfaceContainerLow }]}>
           <MaterialIcons name="arrow-back-ios-new" size={20} color={theme.onSurface} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.onSurface }]}>Sumber Dana</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('AddAccount')} style={styles.headerBtn}>
+        <TouchableOpacity onPress={() => navigation.navigate('AddAccount')} style={[styles.headerBtn, { backgroundColor: theme.surfaceContainerLow }]}>
           <MaterialIcons name="add" size={28} color={theme.primary} />
         </TouchableOpacity>
       </Animated.View>
@@ -335,8 +335,8 @@ const WalletsScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 20 },
-  headerBtn: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
+  headerBtn: { width: 44, height: 44, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
   content: { padding: 24, paddingBottom: 150 },
   summaryCard: { padding: 28, borderRadius: 36, marginBottom: 40, elevation: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.25, shadowRadius: 24 },
   summaryLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 'bold', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 },

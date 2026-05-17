@@ -107,11 +107,11 @@ const CoupleScreen = ({ navigation }) => {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       {/* Header */}
       <Animated.View style={[styles.header, { backgroundColor: theme.surface, opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }]}>
-        <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-          <MaterialIcons name="close" size={24} color={theme.onSurface} />
+        <TouchableOpacity onPress={handleBack} style={[styles.headerBtn, { backgroundColor: theme.surfaceContainerLow }]}>
+          <MaterialIcons name="arrow-back-ios-new" size={20} color={theme.onSurface} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.onSurface }]}>Ruang Kita</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 44 }} />
       </Animated.View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Couple Card */}
@@ -483,11 +483,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 20,
   },
-  headerTitle: { fontSize: 18, fontWeight: 'bold' },
-  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
+  headerBtn: { width: 44, height: 44, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   content: { padding: 20 },
   coupleCard: { borderRadius: 32, padding: 24, marginBottom: 24 },
   avatarsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

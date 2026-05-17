@@ -382,11 +382,9 @@ const TransactionScreen = ({ navigation, route }) => {
 
   const getStyles = (t) => StyleSheet.create({
     container: { flex: 1, backgroundColor: t.background },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 20, backgroundColor: t.surface, zIndex: 50 },
-    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    avatarWrapper: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', backgroundColor: t.surfaceContainer, borderWidth: 1, borderColor: t.outlineVariant + '33' },
-    avatar: { width: '100%', height: '100%' },
-    headerTitle: { fontSize: 20, fontWeight: 'bold', color: t.primary, letterSpacing: -0.5 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 20, backgroundColor: t.surface, zIndex: 50 },
+    headerTitle: { fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
+    headerBtn: { width: 44, height: 44, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
     main: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 150 },
     pageTitle: { fontSize: 24, fontWeight: 'bold', color: t.onSurface, letterSpacing: -0.5 },
     pageSubtitle: { fontSize: 14, color: t.onSurfaceVariant, marginTop: 4, marginBottom: 24 },
@@ -496,23 +494,11 @@ const TransactionScreen = ({ navigation, route }) => {
       </Modal>
 
       <Animated.View style={[styles.header, { opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }]}>
-        <View style={styles.headerLeft}>
-          <View style={styles.avatarWrapper}>
-            {avatar?.startsWith('file://') || avatar?.startsWith('data:image') ? (
-              <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />
-            ) : (
-              <MaterialIcons name={avatar || 'person'} size={24} color={theme.primary} />
-            )}
-          </View>
-          <Text style={styles.headerTitle}>{user?.name || 'Ayip'}</Text>
-        </View>
-        <TouchableOpacity
-          onPress={handleBack}
-          style={{ padding: 8, backgroundColor: theme.surfaceContainerHighest, borderRadius: 20 }}
-          activeOpacity={0.7}
-        >
-          <MaterialIcons name="close" size={20} color={theme.onSurfaceVariant} />
+        <TouchableOpacity onPress={handleBack} style={[styles.headerBtn, { backgroundColor: theme.surfaceContainerLow }]}>
+          <MaterialIcons name="arrow-back-ios-new" size={20} color={theme.onSurface} />
         </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.onSurface }]}>{isEditMode ? 'Edit Transaksi' : 'Catat Transaksi'}</Text>
+        <View style={{ width: 44 }} />
       </Animated.View>
 
       <ScrollView contentContainerStyle={styles.main} showsVerticalScrollIndicator={false}>

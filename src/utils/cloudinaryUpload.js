@@ -22,7 +22,8 @@ export const uploadToCloudinary = async (uri, mediaType, onProgress) => {
     if (onProgress) {
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100);
+          const progress = Math.min(100, Math.round((event.loaded / event.total) * 100));
+          console.log(`[Cloudinary XHR] loaded: ${event.loaded}, total: ${event.total}, calculated progress: ${progress}`);
           onProgress(progress);
         }
       };

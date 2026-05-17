@@ -13,15 +13,12 @@ import { exportToPDF, exportToXLS } from '../utils/exportUtils';
 // --- [SUB-KOMPONEN: Header] ---
 const HistoryHeader = ({ theme, avatar, navigation, fadeAnim, slideAnim }) => (
   <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-    <View style={styles.headerLeft}>
-      <TouchableOpacity onPress={() => navigation.goBack()}>
-        <MaterialIcons name="arrow-back-ios-new" size={24} color={theme.onSurface} />
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={[styles.headerBtn, { backgroundColor: theme.surfaceContainerLow }]}>
+        <MaterialIcons name="arrow-back-ios-new" size={20} color={theme.onSurface} />
       </TouchableOpacity>
       <Text style={[styles.headerTitle, { color: theme.onSurface }]}>Riwayat</Text>
     </View>
-    <TouchableOpacity onPress={() => navigation.navigate('Couple')} style={styles.avatarWrapper}>
-       <MaterialIcons name="account-circle" size={32} color={theme.onSurfaceVariant} />
-    </TouchableOpacity>
   </Animated.View>
 );
 
@@ -531,8 +528,9 @@ const LoadingOverlay = ({ theme }) => (
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 20 },
-  headerTitle: { fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16 },
+  headerTitle: { fontSize: 28, fontWeight: '900', letterSpacing: -1 },
+  headerBtn: { width: 44, height: 44, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   avatarWrapper: { width: 36, height: 36, borderRadius: 12, overflow: 'hidden', backgroundColor: 'rgba(0,0,0,0.05)', justifyContent: 'center', alignItems: 'center' },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   main: { paddingHorizontal: 20 },

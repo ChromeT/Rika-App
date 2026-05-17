@@ -4,7 +4,7 @@ if (typeof global.Buffer === 'undefined') {
   global.Buffer = Buffer;
 }
 import * as Print from 'expo-print';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { formatMoney as formatMoneyUtil } from './formatUtils';
 import * as Sharing from 'expo-sharing';
 import { Alert, Platform } from 'react-native';
@@ -120,7 +120,7 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
       const fileUri = `${FileSystem.documentDirectory}${sanitizedFilename}`;
       
       await FileSystem.writeAsStringAsync(fileUri, wbout, {
-        encoding: FileSystem.EncodingType.Base64
+        encoding: 'base64'
       });
 
       if (await Sharing.isAvailableAsync()) {

@@ -793,8 +793,8 @@ const SettingsScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24 },
-  headerMainTitle: { fontSize: 26, fontWeight: '900', letterSpacing: -1 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16 },
+  headerMainTitle: { fontSize: 28, fontWeight: '900', letterSpacing: -1 },
   headerBtn: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   main: { paddingHorizontal: 24, paddingBottom: 150 },
   

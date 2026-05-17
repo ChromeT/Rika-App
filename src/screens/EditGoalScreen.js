@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
 import TextInput from '../components/ThemeTextInput';
-import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Alert, Modal, ActivityIndicator, Animated, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Alert, Modal, ActivityIndicator, Animated, Platform, KeyboardAvoidingView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import Text from '../components/ThemeText';
@@ -367,7 +367,8 @@ export const EditGoalScreen = () => {
         </TouchableOpacity>
       </Animated.View>
 
-      <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 40}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 150 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {/* Nama & Deskripsi */}
         <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
           <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8 }}>NAMA GOAL</Text>
@@ -545,6 +546,7 @@ export const EditGoalScreen = () => {
           <View style={{ height: 40 }} />
         </Animated.View>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Custom Delete Confirmation Modal */}
       <Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => setDeleteModalVisible(false)}>

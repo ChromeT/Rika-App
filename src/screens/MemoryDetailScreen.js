@@ -416,7 +416,8 @@ const MemoryDetailScreen = ({ route }) => {
     
     try {
       const uploaded = await uploadMultipleToCloudinary(selectedUploads, (idx, percent) => {
-        setUploadProgress(percent);
+        const overallPercent = Math.min(100, Math.round(((idx * 100) + percent) / selectedUploads.length));
+        setUploadProgress(overallPercent);
       });
 
       if (uploaded.length > 0) {
@@ -741,7 +742,7 @@ const MemoryDetailScreen = ({ route }) => {
           {uploadingMedia && (
             <View style={{ backgroundColor: theme.primary + '15', borderRadius: 20, padding: 16, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <ActivityIndicator size="small" color={theme.primary} />
-              <Text style={{ color: theme.primary, fontWeight: 'bold', fontSize: 12 }}>Mengabadikan momen... {uploadProgress}%</Text>
+              <Text style={{ color: theme.primary, fontWeight: 'bold', fontSize: 12 }}>Mengabadikan momen... {Math.min(100, Math.max(0, uploadProgress))}%</Text>
             </View>
           )}
           {memories.length > 0 && (

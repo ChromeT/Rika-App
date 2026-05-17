@@ -184,10 +184,9 @@ const TransferScreen = ({ navigation, route }) => {
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.background },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16, backgroundColor: theme.surface },
-    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    avatarWrapper: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', backgroundColor: theme.surfaceContainer, borderWidth: 1, borderColor: theme.outlineVariant + '33' },
-    headerTitle: { fontSize: 20, fontWeight: 'bold', color: theme.primary },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 20, backgroundColor: theme.surface },
+    headerTitle: { fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
+    headerBtn: { width: 44, height: 44, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
     main: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 150 },
     card: { backgroundColor: theme.surfaceContainerLow, borderRadius: 32, padding: 24, borderWidth: 1, borderColor: theme.outlineVariant + '1A' },
     label: { fontSize: 10, fontWeight: 'bold', color: theme.onSurfaceVariant, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12, marginLeft: 4 },
@@ -243,19 +242,11 @@ const TransferScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <Animated.View style={[styles.header, { opacity: fadeAnims[0], transform: [{ translateY: slideAnims[0] }] }]}>
-        <View style={styles.headerLeft}>
-          <View style={styles.avatarWrapper}>
-            {avatar?.startsWith('file://') || avatar?.startsWith('data:image') ? (
-              <Image source={{ uri: avatar }} style={{ width: '100%', height: '100%' }} />
-            ) : (
-              <MaterialIcons name={avatar || 'person'} size={24} color={theme.primary} />
-            )}
-          </View>
-          <Text style={styles.headerTitle}>{isEditMode ? 'Edit Transfer' : 'Pindah Dana'}</Text>
-        </View>
-        <TouchableOpacity onPress={handleBack} style={{ padding: 8 }}>
-          <MaterialIcons name="close" size={24} color={theme.onSurfaceVariant} />
+        <TouchableOpacity onPress={handleBack} style={[styles.headerBtn, { backgroundColor: theme.surfaceContainerLow }]}>
+          <MaterialIcons name="arrow-back-ios-new" size={20} color={theme.onSurface} />
         </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.onSurface }]}>{isEditMode ? 'Edit Transfer' : 'Pindah Dana'}</Text>
+        <View style={{ width: 44 }} />
       </Animated.View>
 
       <ScrollView contentContainerStyle={styles.main}>

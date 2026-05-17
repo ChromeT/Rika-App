@@ -99,6 +99,7 @@ export const AchieveGoalScreen = () => {
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const progressAnim = useRef(new Animated.Value(0)).current;
   const [currentUploadIndex, setCurrentUploadIndex] = useState(0);
   
   // Animations
@@ -200,9 +201,16 @@ export const AchieveGoalScreen = () => {
     // Upload media to Cloudinary if any
     if (mediaList.length > 0) {
       try {
+        progressAnim.setValue(0);
         const uploaded = await uploadMultipleToCloudinary(mediaList, (idx, percent) => {
           setCurrentUploadIndex(idx);
-          setUploadProgress(percent);
+          const overallPercent = Math.min(100, Math.round(((idx * 100) + percent) / mediaList.length));
+          setUploadProgress(overallPercent);
+          Animated.timing(progressAnim, {
+            toValue: overallPercent,
+            duration: 300,
+            useNativeDriver: false
+          }).start();
         });
         
         if (uploaded.length === 0) {
@@ -280,16 +288,23 @@ export const AchieveGoalScreen = () => {
             
             {/* Progress Bar Container */}
             <View style={{ width: '100%', height: 12, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' }}>
-              <LinearGradient
-                colors={[theme.primary, theme.primary + '88']}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 0}}
-                style={{ height: '100%', width: `${uploadProgress}%`, borderRadius: 10 }}
-              />
+              <Animated.View style={{ 
+                height: '100%', 
+                width: progressAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'], extrapolate: 'clamp' }), 
+                borderRadius: 10,
+                overflow: 'hidden'
+              }}>
+                <LinearGradient
+                  colors={[theme.primary, theme.primary + '88']}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 0}}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              </Animated.View>
             </View>
             
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 12 }}>
-              <Text style={{ color: theme.primary, fontSize: 12, fontWeight: 'bold' }}>{uploadProgress}% Selesai</Text>
+              <Text style={{ color: theme.primary, fontSize: 12, fontWeight: 'bold' }}>{Math.min(100, Math.max(0, uploadProgress))}% Selesai</Text>
               <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>Sedang mengabadikan momen kita...</Text>
             </View>
           </View>
