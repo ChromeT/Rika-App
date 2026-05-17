@@ -224,6 +224,7 @@ const DashboardScreen = ({ navigation, route }) => {
     // Advanced routing based on notification payload
     if ((type === 'goal' || title.includes('goal') || title.includes('dana')) && targetId) {
       const goalData = Array.isArray(goals) ? goals.find(g => String(g.id) === targetId) : null;
+      if (!goalData) { showAestheticAlert('Goal Tidak Ditemukan', 'Sepertinya goal ini sudah dihapus.', 'info', theme.error); return; }
       if (goalData?.achieved || goalData?.status === 'achieved') {
         navigation.navigate('MemoryDetail', { goalId: targetId });
       } else {

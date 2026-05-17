@@ -232,16 +232,15 @@ export const EditGoalScreen = () => {
     );
   };
 
-  const handleSave = () => {
+    const handleSave = () => {
     if (!name.trim()) {
       Alert.alert('Error', 'Nama goal tidak boleh kosong');
       return;
     }
     
-    // Tutup halaman langsung dengan animasi agar interaktif
-    handleBack();
+    setUploading(true);
     
-    // Proses upload dan simpan di background
+    // Proses upload dan simpan
     (async () => {
       let finalMediaList = mediaList;
       
@@ -259,6 +258,8 @@ export const EditGoalScreen = () => {
           });
         } catch (e) {
           console.error('Upload error:', e);
+          setUploading(false);
+          Alert.alert('Gagal', 'Terjadi kesalahan saat mengunggah media.');
           return; // Batalkan update jika upload gagal
         }
       }
@@ -306,8 +307,13 @@ export const EditGoalScreen = () => {
             createdAt: new Date().toISOString(),
           });
         }
+        
+        setUploading(false);
+        handleBack();
       } catch (e) {
         console.error('Save error:', e);
+        setUploading(false);
+        Alert.alert('Gagal', 'Terjadi kesalahan saat menyimpan goal.');
       }
     })();
   };
