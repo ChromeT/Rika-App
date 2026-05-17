@@ -1,4 +1,8 @@
 import * as XLSX from 'xlsx';
+import { Buffer } from 'buffer';
+if (typeof global.Buffer === 'undefined') {
+  global.Buffer = Buffer;
+}
 import * as Print from 'expo-print';
 import * as FileSystem from 'expo-file-system';
 import { formatMoney as formatMoneyUtil } from './formatUtils';
@@ -113,7 +117,7 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
     } else {
       // Use type 'base64' but ensure we use global Buffer if available
       const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
-      const fileUri = `${FileSystem.cacheDirectory}${sanitizedFilename}`;
+      const fileUri = `${FileSystem.documentDirectory}${sanitizedFilename}`;
       
       await FileSystem.writeAsStringAsync(fileUri, wbout, {
         encoding: FileSystem.EncodingType.Base64
@@ -392,7 +396,16 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
         Alert.alert('Popup Blocked', 'Pastikan browser mengizinkan popup untuk mencetak PDF.');
       }
     } else {
-      await Print.printAsync({ html });
+      const { uri } = await Print.printToFileAsync({ html });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Simpan Laporan PDF Rika',
+          UTI: 'com.adobe.pdf'
+        });
+      } else {
+        Alert.alert('Gagal', 'Fitur berbagi tidak tersedia di perangkat ini.');
+      }
     }
   } catch (e) {
     console.error('PDF Error:', e);

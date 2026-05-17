@@ -50,8 +50,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "224f5215-8302-4d52-a53c-9a2f5b9ada0d"
+        "projectId": "125376b6-f1e1-46b7-ad0b-09b9a43c2b86"
       }
-    }
+    },
+    "owner": "chrometcrosley"
   }
 }
