@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, TouchableOpacity, Animated, Image, ScrollView, Platform, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Animated, Image, Platform, StyleSheet } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import Text from '../ThemeText';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';

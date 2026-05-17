@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useContext, useEffect, useRef } from 'react';
 import TextInput from '../components/ThemeTextInput';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Animated, Platform, Modal, Alert, ActivityIndicator, Dimensions } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Animated, Platform, Modal, Alert, ActivityIndicator, Dimensions } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import Text from '../components/ThemeText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
