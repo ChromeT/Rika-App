@@ -346,7 +346,7 @@ const DashboardScreen = ({ navigation, route }) => {
   expenseTx.forEach(tx => {
     const cat = tx.category || 'Lainnya';
     categoryMap[cat] = (categoryMap[cat] || 0) + (tx.myContrib + tx.partnerContrib);
-  });
+  });
   const sortedCategories = Object.entries(categoryMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   const RADIUS = 50;
@@ -377,6 +377,7 @@ const DashboardScreen = ({ navigation, route }) => {
       else if (action === 'transfer') navigation.navigate('Transfer');
       else if (action === 'goals') navigation.navigate('Goals');
       else if (action === 'tagihan') { resetBillForm(); setBillModalVisible(true); }
+      else if (action === 'budgets') navigation.navigate('Budgets');
     }, 200);
   };
 

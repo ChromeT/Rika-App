@@ -2,6 +2,7 @@ import { StyleSheet, Dimensions, Platform } from 'react-native';
 import { getShadow } from '../utils/styleUtils';
 
 export const fabActions = [
+  { key: 'budgets', icon: 'account-balance-wallet', label: 'Rencana keuangan', color: '#38BDF8' },
   { key: 'goals', icon: 'favorite', label: 'Goal baru', color: '#E879F9' },
   { key: 'transfer', icon: 'swap-horiz', label: 'Pindah dana', color: '#6366F1' },
   { key: 'tagihan', icon: 'receipt-long', label: 'Pengingat tagihan', color: '#F59E0B' },

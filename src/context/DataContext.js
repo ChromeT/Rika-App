@@ -23,6 +23,7 @@ export const DataProvider = ({ children }) => {
   const [accounts, setAccounts] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [categories, setCategories] = useState({ expense: [], income: [] });
+  const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Load & Sync Categories with Cloud
@@ -83,7 +84,7 @@ export const DataProvider = ({ children }) => {
   // Listen to Real-time Collections from Firebase
   useEffect(() => {
     let unsubs = [];
-    let dataLoaded = { tx: false, goals: false, bills: false, notif: false, accounts: false };
+    let dataLoaded = { tx: false, goals: false, bills: false, notif: false, accounts: false, budgets: false };
 
     // Fail-safe: Paksa loading berhenti setelah 5 detik biar nggak blank selamanya
     const failSafe = setTimeout(() => {
@@ -95,7 +96,7 @@ export const DataProvider = ({ children }) => {
       const houseRef = doc(db, 'households', user.householdId);
 
       const checkAllLoaded = () => {
-        if (dataLoaded.tx && dataLoaded.goals && dataLoaded.bills && dataLoaded.notif && dataLoaded.accounts) {
+        if (dataLoaded.tx && dataLoaded.goals && dataLoaded.bills && dataLoaded.notif && dataLoaded.accounts && dataLoaded.budgets) {
           setLoading(false);
           clearTimeout(failSafe);
         }
@@ -196,12 +197,29 @@ export const DataProvider = ({ children }) => {
       );
       unsubs.push(accountSub);
 
+      const budgetSub = onSnapshot(
+        collection(houseRef, 'budgets'),
+        (snapshot) => {
+          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setBudgets(data);
+          dataLoaded.budgets = true;
+          checkAllLoaded();
+        },
+        (error) => {
+          console.error('Firestore budgets error:', error);
+          dataLoaded.budgets = true;
+          checkAllLoaded();
+        }
+      );
+      unsubs.push(budgetSub);
+
     } else {
       setTransactions([]);
       setGoals([]);
       setBills([]);
       setNotifications([]);
       setAccounts([]);
+      setBudgets([]);
       setLoading(false);
     }
 
@@ -1044,12 +1062,49 @@ export const DataProvider = ({ children }) => {
     }
   };
 
+  // BUDGETING FUNCTIONS
+  const addBudget = async (budget) => {
+    if (!user || !user.householdId) return;
+    try {
+      const budgetRef = collection(db, 'households', user.householdId, 'budgets');
+      const cleanData = Object.fromEntries(Object.entries(budget).filter(([, v]) => v !== undefined));
+      const docRef = await addDoc(budgetRef, { ...cleanData, createdAt: new Date().toISOString() });
+      return docRef.id;
+    } catch (e) {
+      console.error('Failed to add budget', e);
+      throw e;
+    }
+  };
+
+  const updateBudget = async (budgetId, updateData) => {
+    if (!user || !user.householdId) return;
+    try {
+      const budgetRef = doc(db, 'households', user.householdId, 'budgets', budgetId);
+      const cleanData = Object.fromEntries(Object.entries(updateData).filter(([, v]) => v !== undefined));
+      await updateDoc(budgetRef, { ...cleanData, updatedAt: new Date().toISOString() });
+    } catch (e) {
+      console.error('Failed to update budget', e);
+      throw e;
+    }
+  };
+
+  const deleteBudget = async (budgetId) => {
+    if (!user || !user.householdId) return;
+    try {
+      await deleteDoc(doc(db, 'households', user.householdId, 'budgets', budgetId));
+    } catch (e) {
+      console.error('Failed to delete budget', e);
+      throw e;
+    }
+  };
+
   return (
     <DataContext.Provider value={{
       transactions, addTransaction, updateTransaction, deleteTransaction, addTransfer, getBalance, confirmSplitTransaction,
       goals, addGoal, updateGoal, deleteGoal, markGoalAchieved,
       bills, addBill, updateBill, deleteBill, payBill,
       accounts, addAccount, updateAccount, deleteAccount,
+      budgets, addBudget, updateBudget, deleteBudget,
       notifications, addNotification, sendPushNotification, markSingleNotifAsRead, markAllNotificationsAsRead,
       categories, addCategory, updateCategory, deleteCategory, migrateUserData, forceCleanHistoricalData,
       loading
