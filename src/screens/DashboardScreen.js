@@ -346,7 +346,7 @@ const DashboardScreen = ({ navigation, route }) => {
   expenseTx.forEach(tx => {
     const cat = tx.category || 'Lainnya';
     categoryMap[cat] = (categoryMap[cat] || 0) + (tx.myContrib + tx.partnerContrib);
-  });
+  });
   const sortedCategories = Object.entries(categoryMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   const RADIUS = 50;
@@ -377,7 +377,6 @@ const DashboardScreen = ({ navigation, route }) => {
       else if (action === 'transfer') navigation.navigate('Transfer');
       else if (action === 'goals') navigation.navigate('Goals');
       else if (action === 'tagihan') { resetBillForm(); setBillModalVisible(true); }
-      else if (action === 'budgets') navigation.navigate('Budgets');
     }, 200);
   };
 
@@ -429,7 +428,10 @@ const DashboardScreen = ({ navigation, route }) => {
   };
 
   const handleDeleteQuickEdit = () => {
-    setDeleteConfirmVisible(true);
+    setIsQuickEditVisible(false);
+    setTimeout(() => {
+      setDeleteConfirmVisible(true);
+    }, 300);
   };
 
   const confirmDelete = async () => {
@@ -636,7 +638,7 @@ const DashboardScreen = ({ navigation, route }) => {
 
   const handleMarkPaid = () => {
     setBillActionModalVisible(false);
-    setPayBillModalVisible(true);
+    setTimeout(() => setPayBillModalVisible(true), 300);
   };
 
   /**
@@ -1188,18 +1190,23 @@ const DashboardScreen = ({ navigation, route }) => {
       {/* Confirm Modal */}
       <Modal visible={confirmVisible} transparent animationType="fade" onRequestClose={() => setConfirmVisible(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setConfirmVisible(false)}>
-          <View style={[styles.modalContent, { backgroundColor: theme.surface, padding: 24 }]}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 12, textAlign: 'center' }}>{confirmConfig.title}</Text>
-            <Text style={{ fontSize: 14, color: theme.onSurfaceVariant, marginBottom: 24, textAlign: 'center', lineHeight: 20 }}>{confirmConfig.message}</Text>
-            <View style={{ flexDirection: 'row', gap: 12 }}>
-              <TouchableOpacity style={{ flex: 1, backgroundColor: theme.surfaceContainerLow, padding: 16, borderRadius: 16, alignItems: 'center' }} onPress={() => setConfirmVisible(false)}>
-                <Text style={{ color: theme.onSurfaceVariant, fontWeight: 'bold' }}>Batal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={{ flex: 1, backgroundColor: theme.primary, padding: 16, borderRadius: 16, alignItems: 'center' }} onPress={confirmConfig.onConfirm}>
-                <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>OK</Text>
-              </TouchableOpacity>
+          <TouchableOpacity activeOpacity={1} style={{ width: '100%', alignItems: 'center' }}>
+            <View style={[styles.modalContent, { backgroundColor: theme.surface, padding: 24, alignItems: 'center', borderColor: theme.outlineVariant + '15' }]}>
+              <View style={{ width: 72, height: 72, borderRadius: 24, backgroundColor: (confirmConfig.iconColor || theme.error) + '15', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+                <MaterialIcons name={confirmConfig.icon || "delete-sweep"} size={40} color={confirmConfig.iconColor || theme.error} />
+              </View>
+              <Text style={{ fontSize: 20, fontWeight: '900', color: theme.onSurface, marginBottom: 12, textAlign: 'center', letterSpacing: -0.5 }}>{confirmConfig.title}</Text>
+              <Text style={{ fontSize: 13, color: theme.onSurfaceVariant, marginBottom: 24, textAlign: 'center', lineHeight: 20, paddingHorizontal: 4 }}>{confirmConfig.message}</Text>
+              <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+                <TouchableOpacity style={{ flex: 1, backgroundColor: theme.surfaceContainerHighest || 'rgba(255,255,255,0.1)', paddingVertical: 14, borderRadius: 20, alignItems: 'center', justifyContent: 'center' }} onPress={() => setConfirmVisible(false)}>
+                  <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 15 }}>Batal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ flex: 1, backgroundColor: theme.primary, paddingVertical: 14, borderRadius: 20, alignItems: 'center', justifyContent: 'center' }} onPress={confirmConfig.onConfirm}>
+                  <Text style={{ color: theme.onPrimary || '#fff', fontWeight: 'bold', fontSize: 15 }}>OK</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
 
@@ -1253,33 +1260,35 @@ const DashboardScreen = ({ navigation, route }) => {
 
       {/* Custom Delete Confirmation Modal */}
       <Modal visible={deleteConfirmVisible} transparent animationType="fade" onRequestClose={() => setDeleteConfirmVisible(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-          <View style={{ backgroundColor: theme.surface, borderRadius: 32, padding: 32, width: '100%', maxWidth: 400, alignItems: 'center' }}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setDeleteConfirmVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={{ width: '100%', alignItems: 'center' }}>
+            <View style={[styles.modalContent, { backgroundColor: theme.surface, padding: 24, alignItems: 'center', borderColor: theme.outlineVariant + '15' }]}>
             <View style={{ width: 72, height: 72, borderRadius: 24, backgroundColor: theme.error + '15', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
               <MaterialIcons name="delete-sweep" size={40} color={theme.error} />
             </View>
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: theme.onSurface, marginBottom: 8, textAlign: 'center' }}>Hapus Transaksi?</Text>
-            <Text style={{ fontSize: 14, color: theme.onSurfaceVariant, textAlign: 'center', marginBottom: 32, lineHeight: 20 }}>
+              <Text style={{ fontSize: 20, fontWeight: '900', color: theme.onSurface, marginBottom: 12, textAlign: 'center', letterSpacing: -0.5 }}>Hapus Transaksi?</Text>
+              <Text style={{ fontSize: 13, color: theme.onSurfaceVariant, textAlign: 'center', marginBottom: 24, lineHeight: 20, paddingHorizontal: 4 }}>
               Transaksi "{quickEditTx?.name}" akan dihapus secara permanen.
             </Text>
             <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
               <TouchableOpacity 
                 onPress={() => setDeleteConfirmVisible(false)} 
                 disabled={loading}
-                style={{ flex: 1, height: 56, borderRadius: 20, backgroundColor: theme.surfaceContainerHighest, justifyContent: 'center', alignItems: 'center' }}
+                style={{ flex: 1, backgroundColor: theme.surfaceContainerHighest || 'rgba(255,255,255,0.1)', paddingVertical: 14, borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}
               >
-                <Text style={{ color: theme.onSurface, fontWeight: 'bold' }}>Batal</Text>
+                  <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 15 }}>Batal</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 onPress={confirmDelete} 
                 disabled={loading}
-                style={{ flex: 1, height: 56, borderRadius: 20, backgroundColor: theme.error, justifyContent: 'center', alignItems: 'center', opacity: loading ? 0.6 : 1 }}
+                style={{ flex: 1, backgroundColor: theme.error, paddingVertical: 14, borderRadius: 20, alignItems: 'center', justifyContent: 'center', opacity: loading ? 0.6 : 1 }}
               >
-                <Text style={{ color: theme.onError, fontWeight: 'bold' }}>{loading ? 'Menghapus...' : 'Hapus'}</Text>
+                  <Text style={{ color: theme.onError || '#fff', fontWeight: 'bold', fontSize: 15 }}>{loading ? 'Menghapus...' : 'Hapus'}</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       {/* Split Confirmation Modal */}

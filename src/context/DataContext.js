@@ -1,10 +1,11 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { AuthContext } from './AuthContext';
 import { db } from '../config/firebase';
-import { collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, getDoc, deleteField, arrayUnion, query, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, getDoc, deleteField, arrayUnion, query, orderBy, limit, serverTimestamp } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import { formatMoney } from '../utils/formatUtils';
+import dayjs from 'dayjs';
 
 // Helper to safely parse dates
 const safeDate = (dateStr) => {
@@ -24,6 +25,7 @@ export const DataProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [categories, setCategories] = useState({ expense: [], income: [] });
   const [budgets, setBudgets] = useState([]);
+  const [installments, setInstallments] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Load & Sync Categories with Cloud
@@ -84,7 +86,7 @@ export const DataProvider = ({ children }) => {
   // Listen to Real-time Collections from Firebase
   useEffect(() => {
     let unsubs = [];
-    let dataLoaded = { tx: false, goals: false, bills: false, notif: false, accounts: false, budgets: false };
+    let dataLoaded = { tx: false, goals: false, bills: false, notif: false, accounts: false, budgets: false, installments: false };
 
     // Fail-safe: Paksa loading berhenti setelah 5 detik biar nggak blank selamanya
     const failSafe = setTimeout(() => {
@@ -96,7 +98,7 @@ export const DataProvider = ({ children }) => {
       const houseRef = doc(db, 'households', user.householdId);
 
       const checkAllLoaded = () => {
-        if (dataLoaded.tx && dataLoaded.goals && dataLoaded.bills && dataLoaded.notif && dataLoaded.accounts && dataLoaded.budgets) {
+        if (dataLoaded.tx && dataLoaded.goals && dataLoaded.bills && dataLoaded.notif && dataLoaded.accounts && dataLoaded.budgets && dataLoaded.installments) {
           setLoading(false);
           clearTimeout(failSafe);
         }
@@ -197,10 +199,11 @@ export const DataProvider = ({ children }) => {
       );
       unsubs.push(accountSub);
 
+      // Budgets listener
       const budgetSub = onSnapshot(
         collection(houseRef, 'budgets'),
         (snapshot) => {
-          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
           setBudgets(data);
           dataLoaded.budgets = true;
           checkAllLoaded();
@@ -213,6 +216,23 @@ export const DataProvider = ({ children }) => {
       );
       unsubs.push(budgetSub);
 
+      // Installments listener
+      const installmentSub = onSnapshot(
+        collection(houseRef, 'installments'),
+        (snapshot) => {
+          const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+          setInstallments(data);
+          dataLoaded.installments = true;
+          checkAllLoaded();
+        },
+        (error) => {
+          console.error('Firestore installments error:', error);
+          dataLoaded.installments = true;
+          checkAllLoaded();
+        }
+      );
+      unsubs.push(installmentSub);
+
     } else {
       setTransactions([]);
       setGoals([]);
@@ -220,6 +240,7 @@ export const DataProvider = ({ children }) => {
       setNotifications([]);
       setAccounts([]);
       setBudgets([]);
+      setInstallments([]);
       setLoading(false);
     }
 
@@ -1062,41 +1083,208 @@ export const DataProvider = ({ children }) => {
     }
   };
 
-  // BUDGETING FUNCTIONS
-  const addBudget = async (budget) => {
-    if (!user || !user.householdId) return;
+  // ─────────────────────────────────────────────
+  // BUDGETS CRUD
+  // ─────────────────────────────────────────────
+  const addBudget = async (data) => {
+    if (!user || !user.householdId) return null;
     try {
-      const budgetRef = collection(db, 'households', user.householdId, 'budgets');
-      const cleanData = Object.fromEntries(Object.entries(budget).filter(([, v]) => v !== undefined));
-      const docRef = await addDoc(budgetRef, { ...cleanData, createdAt: new Date().toISOString() });
+      const ref = collection(db, 'households', user.householdId, 'budgets');
+      const docRef = await addDoc(ref, {
+        ...data,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
       return docRef.id;
     } catch (e) {
       console.error('Failed to add budget', e);
-      throw e;
+      return null;
     }
   };
 
-  const updateBudget = async (budgetId, updateData) => {
+  const updateBudget = async (id, data) => {
     if (!user || !user.householdId) return;
     try {
-      const budgetRef = doc(db, 'households', user.householdId, 'budgets', budgetId);
-      const cleanData = Object.fromEntries(Object.entries(updateData).filter(([, v]) => v !== undefined));
-      await updateDoc(budgetRef, { ...cleanData, updatedAt: new Date().toISOString() });
+      const ref = doc(db, 'households', user.householdId, 'budgets', id);
+      await updateDoc(ref, { ...data, updatedAt: new Date().toISOString() });
     } catch (e) {
       console.error('Failed to update budget', e);
-      throw e;
     }
   };
 
-  const deleteBudget = async (budgetId) => {
+  const deleteBudget = async (id) => {
     if (!user || !user.householdId) return;
     try {
-      await deleteDoc(doc(db, 'households', user.householdId, 'budgets', budgetId));
+      await deleteDoc(doc(db, 'households', user.householdId, 'budgets', id));
     } catch (e) {
       console.error('Failed to delete budget', e);
-      throw e;
     }
   };
+
+  // ─────────────────────────────────────────────
+  // INSTALLMENTS CRUD
+  // ─────────────────────────────────────────────
+  const addInstallment = async (data) => {
+    if (!user || !user.householdId) return null;
+    try {
+      const ref = collection(db, 'households', user.householdId, 'installments');
+      const docRef = await addDoc(ref, {
+        ...data,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      return docRef.id;
+    } catch (e) {
+      console.error('Failed to add installment', e);
+      return null;
+    }
+  };
+
+  const updateInstallment = async (id, data) => {
+    if (!user || !user.householdId) return;
+    try {
+      const ref = doc(db, 'households', user.householdId, 'installments', id);
+      await updateDoc(ref, { ...data, updatedAt: new Date().toISOString() });
+    } catch (e) {
+      console.error('Failed to update installment', e);
+    }
+  };
+
+  const deleteInstallment = async (id) => {
+    if (!user || !user.householdId) return;
+    try {
+      await deleteDoc(doc(db, 'households', user.householdId, 'installments', id));
+    } catch (e) {
+      console.error('Failed to delete installment', e);
+    }
+  };
+
+  // ─────────────────────────────────────────────
+  // HELPER KALKULASI PLANNING
+  // ─────────────────────────────────────────────
+
+  /** Total estimasi bulanan dari semua budget aktif */
+  const calculateMonthlyBudget = () => {
+    const currentMonthDays = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+    return budgets
+      .filter(b => b.isActive)
+      .reduce((total, b) => {
+        if (b.type === 'daily') return total + (Number(b.estimatedAmount) * Number(b.daysPerMonth || currentMonthDays));
+        if (b.type === 'monthly') return total + Number(b.estimatedAmount);
+        return total; // 'once' tidak masuk estimasi bulanan
+      }, 0);
+  };
+
+  /** Helper: map SEMUA bills ke format installment */
+  const _billsAsInstallments = () => bills.map(b => {
+    if (b.type === 'installment') {
+      const total = Number(b.totalTenor || 1);
+      const current = Number(b.currentTenor || 1);
+      const remaining = Math.max(total - current + 1, 0);
+      return {
+        id: b.id, name: b.name,
+        monthlyAmount: Number(b.amount || 0),
+        totalMonths: total, remainingMonths: remaining,
+        dueDate: b.dueDate ? new Date(b.dueDate).getDate() : 1,
+        isActive: remaining > 0,
+        owner: b.owner || 'Kita', icon: b.icon || 'credit-card',
+        _isBill: true, _billType: 'installment',
+      };
+    } else if (b.type === 'recurring') {
+      return {
+        id: b.id, name: b.name,
+        monthlyAmount: Number(b.amount || 0),
+        totalMonths: 0, remainingMonths: 999,
+        dueDate: b.dueDate ? new Date(b.dueDate).getDate() : 1,
+        isActive: true,
+        owner: b.owner || 'Kita', icon: b.icon || 'repeat',
+        _isBill: true, _billType: 'recurring',
+      };
+    } else {
+      // one-time
+      return {
+        id: b.id, name: b.name,
+        monthlyAmount: Number(b.amount || 0),
+        totalMonths: 1, remainingMonths: 1,
+        dueDate: b.dueDate ? new Date(b.dueDate).getDate() : 1,
+        isActive: true,
+        owner: b.owner || 'Kita', icon: b.icon || 'receipt',
+        _isBill: true, _billType: 'once',
+      };
+    }
+  });
+
+  /** Total cicilan bulan ini — dari installments + bills[installment] */
+  const getTotalInstallmentsThisMonth = () => {
+    return [...installments, ..._billsAsInstallments()]
+      .filter(i => i.isActive && i.remainingMonths > 0)
+      .reduce((total, i) => total + Number(i.monthlyAmount || 0), 0);
+  };
+
+  /** Cicilan jatuh tempo dalam X hari — dari kedua sumber */
+  const getUpcomingInstallments = (daysAhead = 7) => {
+    const today = dayjs().date();
+    const getDaysUntil = (due) => {
+      const d = Number(due);
+      return d >= today ? d - today : (dayjs().daysInMonth() - today) + d;
+    };
+    return [...installments, ..._billsAsInstallments()]
+      .filter(i => i.isActive && i.remainingMonths > 0)
+      .filter(i => getDaysUntil(i.dueDate) <= daysAhead)
+      .sort((a, b) => Number(a.dueDate) - Number(b.dueDate));
+  };
+
+  /** Total pengeluaran bulan ini per kategori dari transactions */
+  const getRealizationByCategory = (month, year) => {
+    const normalizeCategory = (str) => str?.toLowerCase().trim() ?? '';
+    const m = month !== undefined ? month : dayjs().month();
+    const y = year !== undefined ? year : dayjs().year();
+    return transactions
+      .filter(t => {
+        const d = dayjs(t.date?.toDate ? t.date.toDate() : t.date);
+        return d.month() === m && d.year() === y && t.type === 'expense';
+      })
+      .reduce((acc, t) => {
+        const key = normalizeCategory(t.category);
+        // Transaksi di Rika pakai myContrib + partnerContrib, bukan t.amount
+        const total = (Number(t.myContrib) || 0) + (Number(t.partnerContrib) || 0);
+        acc[key] = (acc[key] || 0) + total;
+        return acc;
+      }, {});
+  };
+
+  /** Kirim notifikasi cicilan jatuh tempo ke Firestore (cegah duplikat per bulan) */
+  const scheduleInstallmentNotifications = async () => {
+    if (!user || !user.householdId) return;
+    const upcoming = getUpcomingInstallments(7);
+    const currentMonth = dayjs().format('YYYY-MM');
+    for (const inst of upcoming) {
+      // Cek duplikat: notif dengan relatedId + month yang sama
+      const alreadyExists = notifications.some(n =>
+        n.relatedId === inst.id &&
+        n.type === 'installment_reminder' &&
+        n.month === currentMonth
+      );
+      if (alreadyExists) continue;
+      try {
+        await addDoc(collection(db, 'households', user.householdId, 'notifications'), {
+          message: `💳 Cicilan ${inst.name} jatuh tempo tgl ${inst.dueDate} (Rp ${formatMoney(inst.monthlyAmount)})`,
+          createdAt: new Date().toISOString(),
+          type: 'installment_reminder',
+          relatedId: inst.id,
+          month: currentMonth,
+          readBy: [],
+        });
+      } catch (e) {
+        console.error('Failed to schedule installment notification', e);
+      }
+    }
+  };
+
+  // Installments gabungan: koleksi baru + bills[type=installment]
+  const allInstallments = [...installments, ..._billsAsInstallments()];
 
   return (
     <DataContext.Provider value={{
@@ -1104,9 +1292,13 @@ export const DataProvider = ({ children }) => {
       goals, addGoal, updateGoal, deleteGoal, markGoalAchieved,
       bills, addBill, updateBill, deleteBill, payBill,
       accounts, addAccount, updateAccount, deleteAccount,
-      budgets, addBudget, updateBudget, deleteBudget,
       notifications, addNotification, sendPushNotification, markSingleNotifAsRead, markAllNotificationsAsRead,
       categories, addCategory, updateCategory, deleteCategory, migrateUserData, forceCleanHistoricalData,
+      // Financial Planning
+      budgets, addBudget, updateBudget, deleteBudget,
+      installments, allInstallments, addInstallment, updateInstallment, deleteInstallment,
+      calculateMonthlyBudget, getTotalInstallmentsThisMonth, getUpcomingInstallments,
+      getRealizationByCategory, scheduleInstallmentNotifications,
       loading
     }}>
       {children}

@@ -25,8 +25,11 @@ import WalletsScreen from '../screens/WalletsScreen';
 import AddAccountScreen from '../screens/AddAccountScreen';
 import TransferScreen from '../screens/TransferScreen';
 import CoupleScreen from '../screens/CoupleScreen';
-import BudgetsScreen from '../screens/BudgetsScreen';
-import AddBudgetScreen from '../screens/AddBudgetScreen';
+import PlanningScreen from '../screens/PlanningScreen';
+import BudgetSetupScreen from '../screens/BudgetSetupScreen';
+import AddEditBudgetScreen from '../screens/AddEditBudgetScreen';
+import InstallmentsScreen from '../screens/InstallmentsScreen';
+import AddEditInstallmentScreen from '../screens/AddEditInstallmentScreen';
 
 const Tab = createMaterialTopTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -49,6 +52,7 @@ const MainTabs = () => {
     Beranda: 'home-filled',
     Riwayat: 'receipt-long',
     Goals: 'favorite',
+    Rencana: 'event-note',
     Pengaturan: 'tune',
   };
 
@@ -134,6 +138,13 @@ const MainTabs = () => {
         }}
       />
       <Tab.Screen
+        name="Rencana"
+        component={PlanningScreen}
+        options={{
+          tabBarIcon: ({ color }) => renderTabIcon('Rencana', color),
+        }}
+      />
+      <Tab.Screen
         name="Pengaturan"
         component={SettingsScreen}
         options={{
@@ -208,12 +219,21 @@ const MainStack = () => {
         options={{ presentation: 'card', animation: 'slide_from_right' }}
       />
       <Stack.Screen
-        name="Budgets"
-        component={BudgetsScreen}
+        name="BudgetSetup"
+        component={BudgetSetupScreen}
       />
       <Stack.Screen
-        name="AddBudget"
-        component={AddBudgetScreen}
+        name="AddEditBudget"
+        component={AddEditBudgetScreen}
+        options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen
+        name="InstallmentsList"
+        component={InstallmentsScreen}
+      />
+      <Stack.Screen
+        name="AddEditInstallment"
+        component={AddEditInstallmentScreen}
         options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
       />
     </Stack.Navigator>

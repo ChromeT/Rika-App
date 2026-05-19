@@ -95,7 +95,7 @@ const ExportTools = ({ theme, handleExportPDF, handleExportExcel, loading }) => 
 const TransactionHistoryScreen = ({ navigation, route }) => {
   const { highlightId, highlightName } = route.params || {};
   const { theme } = useContext(ThemeContext);
-  const { transactions, accounts, deleteTransaction, updateTransaction } = useContext(DataContext);
+  const { transactions, accounts, deleteTransaction, updateTransaction, budgets = [], calculateMonthlyBudget, getRealizationByCategory } = useContext(DataContext);
   const { user, householdUsers, avatar } = useContext(AuthContext);
 
   const scrollRef = useRef(null);
@@ -227,18 +227,22 @@ const TransactionHistoryScreen = ({ navigation, route }) => {
   const handleExportPDF = async () => {
     const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     const period = `${monthNames[filterMonth]} ${filterYear}`;
+    const realization = getRealizationByCategory ? getRealizationByCategory(filterMonth, filterYear) : {};
+    const budgetData = budgets.length > 0 ? { budgets, realization, calculateMonthlyBudget } : null;
     setLoading(true);
     try {
-      await exportToPDF(filtered, period, myName, { user: filterOwner, type: filterType === 'income' ? 'Pemasukan' : filterType === 'expense' ? 'Pengeluaran' : 'Semua' }, accounts, householdUsers);
+      await exportToPDF(filtered, period, myName, { user: filterOwner, type: filterType === 'income' ? 'Pemasukan' : filterType === 'expense' ? 'Pengeluaran' : 'Semua' }, accounts, householdUsers, budgetData);
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
   const handleExportExcel = async () => {
     const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     const period = `${monthNames[filterMonth]} ${filterYear}`;
+    const realization = getRealizationByCategory ? getRealizationByCategory(filterMonth, filterYear) : {};
+    const budgetData = budgets.length > 0 ? { budgets, realization, calculateMonthlyBudget } : null;
     setLoading(true);
     try {
-      await exportToXLS(filtered, period, myName, { user: filterOwner, type: filterType === 'income' ? 'Pemasukan' : filterType === 'expense' ? 'Pengeluaran' : 'Semua' }, accounts);
+      await exportToXLS(filtered, period, myName, { user: filterOwner, type: filterType === 'income' ? 'Pemasukan' : filterType === 'expense' ? 'Pengeluaran' : 'Semua' }, accounts, budgetData);
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 

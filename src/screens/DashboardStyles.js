@@ -2,7 +2,6 @@ import { StyleSheet, Dimensions, Platform } from 'react-native';
 import { getShadow } from '../utils/styleUtils';
 
 export const fabActions = [
-  { key: 'budgets', icon: 'account-balance-wallet', label: 'Rencana keuangan', color: '#38BDF8' },
   { key: 'goals', icon: 'favorite', label: 'Goal baru', color: '#E879F9' },
   { key: 'transfer', icon: 'swap-horiz', label: 'Pindah dana', color: '#6366F1' },
   { key: 'tagihan', icon: 'receipt-long', label: 'Pengingat tagihan', color: '#F59E0B' },
@@ -85,7 +84,7 @@ export const styles = StyleSheet.create({
   toastText: { fontSize: 13, fontWeight: 'bold' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { 
-    borderRadius: 32, padding: 24, width: '90%', elevation: 10, borderWidth: 1,
+    borderRadius: 32, padding: 24, width: '85%', maxWidth: 340, elevation: 10, borderWidth: 1,
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20 },
       android: { shadowColor: '#000' },

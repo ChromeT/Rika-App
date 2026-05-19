@@ -16,7 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 const SettingsScreen = ({ navigation }) => {
-  const { getBalance, transactions, accounts } = useContext(DataContext);
+  const { getBalance, transactions, accounts, budgets = [], calculateMonthlyBudget, getRealizationByCategory } = useContext(DataContext);
   const { user, householdUsers, householdAvatars, householdData, customColors, addCustomColor, logout, avatar, updateAvatar, updateProfile } = useContext(AuthContext);
   const { migrateUserData, forceCleanHistoricalData } = useContext(DataContext);
   const { theme, isDarkMode, toggleTheme, changeAccent, accentColor, fontFamily, changeFont, customFonts, uploadFont, deleteFont } = useContext(ThemeContext);
@@ -205,10 +205,17 @@ const SettingsScreen = ({ navigation }) => {
       ? `${dayjs(startDate).format('DD MMM')} - ${dayjs(endDate).format('DD MMM')}`
       : exportPeriod.charAt(0).toUpperCase() + exportPeriod.slice(1);
 
+    const realization = getRealizationByCategory
+      ? getRealizationByCategory(new Date().getMonth(), new Date().getFullYear())
+      : {};
+    const budgetData = budgets.length > 0
+      ? { budgets, realization, calculateMonthlyBudget }
+      : null;
+
     if (format === 'PDF') {
-      exportToPDF(filtered, periodLabel, user?.name || 'User', exportFilters, accounts || []);
+      exportToPDF(filtered, periodLabel, user?.name || 'User', exportFilters, accounts || [], householdUsers || [], budgetData);
     } else {
-      exportToXLS(filtered, periodLabel, user?.name || 'User', exportFilters, accounts || []);
+      exportToXLS(filtered, periodLabel, user?.name || 'User', exportFilters, accounts || [], budgetData);
     }
     setExportModalVisible(false);
   };

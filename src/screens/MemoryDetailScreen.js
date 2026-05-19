@@ -874,26 +874,27 @@ const MemoryDetailScreen = ({ route }) => {
 
       {/* Custom Delete Confirmation Modal */}
       <Modal visible={deleteModalVisible} transparent animationType="fade" onRequestClose={() => setDeleteModalVisible(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <View style={{ backgroundColor: theme.surface, borderRadius: 24, padding: 24, width: '100%', maxWidth: 400, alignItems: 'center' }}>
+        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }} activeOpacity={1} onPress={() => setDeleteModalVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={{ width: '100%', alignItems: 'center' }}>
+            <View style={{ backgroundColor: theme.surface, borderRadius: 32, padding: 24, width: '85%', maxWidth: 340, alignItems: 'center', borderWidth: 1, borderColor: theme.outlineVariant + '15' }}>
             <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: theme.error + '1A', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
               <MaterialIcons name="delete-sweep" size={40} color={theme.error} />
             </View>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.onSurface, marginBottom: 8, textAlign: 'center' }}>Hapus Goal</Text>
-            <Text style={{ fontSize: 14, color: theme.onSurfaceVariant, textAlign: 'center', marginBottom: 24 }}>
+              <Text style={{ fontSize: 20, fontWeight: '900', color: theme.onSurface, marginBottom: 12, textAlign: 'center', letterSpacing: -0.5 }}>Hapus Goal</Text>
+              <Text style={{ fontSize: 13, color: theme.onSurfaceVariant, textAlign: 'center', marginBottom: 24, lineHeight: 20, paddingHorizontal: 4 }}>
               Apakah kamu yakin ingin menghapus goal "{goal?.name}"? Tindakan ini tidak dapat dibatalkan.
             </Text>
             <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
-              <TouchableOpacity onPress={() => setDeleteModalVisible(false)} style={{ flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: theme.surfaceContainerHighest, alignItems: 'center' }}>
-                <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 16 }}>Batal</Text>
+              <TouchableOpacity onPress={() => setDeleteModalVisible(false)} style={{ flex: 1, backgroundColor: theme.surfaceContainerHighest || 'rgba(255,255,255,0.1)', paddingVertical: 14, borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: theme.onSurface, fontWeight: 'bold', fontSize: 15 }}>Batal</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleDeleteConfirm} style={{ flex: 1, paddingVertical: 14, borderRadius: 16, backgroundColor: theme.error, alignItems: 'center' }}>
-                <Text style={{ color: theme.onError, fontWeight: 'bold', fontSize: 16 }}>Hapus</Text>
-
+              <TouchableOpacity onPress={handleDeleteConfirm} style={{ flex: 1, backgroundColor: theme.error, paddingVertical: 14, borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: theme.onError || '#fff', fontWeight: 'bold', fontSize: 15 }}>Hapus</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </View>
   );

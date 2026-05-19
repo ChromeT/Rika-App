@@ -15,7 +15,7 @@ const CHART_COLORS = [
   '#FF6B6B', '#4D96FF', '#6BCB77', '#FFD93D', '#9D84B7', '#FF9F43', '#00D2D3', '#54A0FF', '#5F27CD'
 ];
 
-export const exportToXLS = async (transactions, period = 'Laporan', userName = 'User', filters = { user: 'Kita', type: 'Semua' }, accounts = []) => {
+export const exportToXLS = async (transactions, period = 'Laporan', userName = 'User', filters = { user: 'Kita', type: 'Semua' }, accounts = [], budgetData = null) => {
   try {
     const { user: filterUser, type: filterType } = filters;
     
@@ -108,6 +108,40 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Laporan Rika');
 
+    // ─── Budget Plan Sheet ───
+    if (budgetData && budgetData.budgets && budgetData.budgets.length > 0) {
+      const { budgets, realization = {}, calculateMonthlyBudget } = budgetData;
+      const normalizeCategory = (str) => str?.toLowerCase().trim() ?? '';
+      const totalMonthly = calculateMonthlyBudget ? calculateMonthlyBudget() : 0;
+      const totalReal = Object.values(realization).reduce((a, b) => a + b, 0);
+      const currentMonthDays = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+      const budgetRows = [
+        ['RENCANA BUDGET BULAN INI'],
+        ['Kategori', 'Icon', 'Tipe', 'Estimasi/Bulan (Rp)', 'Realisasi Bulan Ini (Rp)', 'Selisih (Rp)', 'Status', 'Milik'],
+        ...budgets.map(b => {
+          const monthly = b.type === 'daily'
+            ? Number(b.estimatedAmount) * Number(b.daysPerMonth || currentMonthDays)
+            : Number(b.estimatedAmount);
+          const real = realization[normalizeCategory(b.category)] || 0;
+          const diff = monthly - real;
+          return [
+            b.category,
+            b.icon || '',
+            b.type === 'daily' ? 'Harian' : b.type === 'monthly' ? 'Bulanan' : 'Sekali',
+            monthly,
+            real,
+            diff,
+            diff >= 0 ? 'Aman' : 'Over Budget',
+            b.owner || 'Kita',
+          ];
+        }),
+        [],
+        ['TOTAL', '', '', totalMonthly, totalReal, totalMonthly - totalReal, totalMonthly - totalReal >= 0 ? 'Surplus' : 'Defisit', ''],
+      ];
+      const wsBudget = XLSX.utils.aoa_to_sheet(budgetRows);
+      XLSX.utils.book_append_sheet(wb, wsBudget, 'Budget Plan');
+    }
+
     const timestamp = Date.now();
     const filename = `Rika_Report_${timestamp}.xlsx`;
     const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -139,7 +173,7 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
   }
 };
 
-export const exportToPDF = async (transactions, period = 'Laporan', userName = 'User', filters = { user: 'Kita', type: 'Semua' }, accounts = [], householdUsers = []) => {
+export const exportToPDF = async (transactions, period = 'Laporan', userName = 'User', filters = { user: 'Kita', type: 'Semua' }, accounts = [], householdUsers = [], budgetData = null) => {
   try {
     const { user: filterUser, type: filterType } = filters;
     
@@ -201,6 +235,113 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
         `;
       });
       svgContent += `</svg>`;
+    }
+
+    // ─── Precompute Budget Section ───
+    const ICON_EMOJI_MAP = {
+      'restaurant': '🍽️', 'receipt': '🧾', 'shopping-bag': '🛍️',
+      'directions-car': '🚗', 'movie': '🎬', 'medical-services': '💊',
+      'savings': '💰', 'home': '🏠', 'credit-card': '💳',
+      'two-wheeler': '🏍️', 'phone-iphone': '📱', 'school': '🎓',
+      'flight': '✈️', 'work': '💼', 'label': '🏷️', 'more-horiz': '📌',
+    };
+    let budgetSectionHtml = '';
+    let budgetNarrative = '';
+    if (budgetData && budgetData.budgets && budgetData.budgets.length > 0) {
+      const { budgets: bArr, realization: real = {}, calculateMonthlyBudget: calcFn } = budgetData;
+      const normCat = (str) => str?.toLowerCase().trim() ?? '';
+      // Fuzzy match: coba exact dulu, lalu partial (contains)
+      const getRealAmt = (budgetCat) => {
+        const key = normCat(budgetCat);
+        if (real[key] !== undefined) return real[key];
+        for (const [txCat, amt] of Object.entries(real)) {
+          if (txCat.includes(key) || key.includes(txCat)) return amt;
+        }
+        return 0;
+      };
+      const currentMonthDays = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+      const budgetMonthly = calcFn
+        ? calcFn()
+        : bArr.reduce((sum, b) => sum + (b.type === 'daily'
+            ? Number(b.estimatedAmount) * Number(b.daysPerMonth || currentMonthDays)
+            : Number(b.estimatedAmount)), 0);
+      // Total realisasi = sum per-baris (konsisten dengan tampilan tabel)
+      const budgetReal = bArr.reduce((sum, b) => sum + getRealAmt(b.category), 0);
+      const totalExpenseThisMonth = Object.values(real).reduce((a, v) => a + v, 0);
+      const budgetDiff = budgetMonthly - budgetReal;
+      const budgetOk = budgetDiff >= 0;
+
+      const bRowsHtml = bArr.map(b => {
+        const monthly = b.type === 'daily'
+          ? Number(b.estimatedAmount) * Number(b.daysPerMonth || currentMonthDays)
+          : Number(b.estimatedAmount);
+        const realAmt = getRealAmt(b.category);
+        const diff = monthly - realAmt;
+        const isOver = diff < 0;
+        const emoji = ICON_EMOJI_MAP[b.icon] || '📌';
+        const catLabel = b.category || b.name || 'Lainnya';
+        return `<tr style="border-bottom:1px solid #F1F5F9">
+          <td style="padding:12px 16px;vertical-align:middle">
+            <span style="margin-right:6px;font-size:16px">${emoji}</span>
+            <span style="font-weight:600;color:#0F172A">${catLabel}</span>
+            <span style="margin-left:6px;font-size:10px;color:#94A3B8;background:#F1F5F9;border-radius:4px;padding:2px 6px;font-weight:600">${b.owner || 'Kita'}</span>
+          </td>
+          <td style="text-align:right;padding:12px 16px;color:#475569;font-weight:600">Rp ${formatMoney(monthly)}</td>
+          <td style="text-align:right;padding:12px 16px;color:#475569;font-weight:600">Rp ${formatMoney(realAmt)}</td>
+          <td style="text-align:right;padding:12px 16px;font-weight:700;color:${isOver ? '#DC2626' : '#059669'}">${diff >= 0 ? '+' : '-'}Rp ${formatMoney(Math.abs(diff))}</td>
+          <td style="text-align:center;padding:12px 16px">
+            <span style="display:inline-block;background:${isOver ? '#FEE2E2' : '#D1FAE5'};color:${isOver ? '#DC2626' : '#059669'};border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;letter-spacing:0.3px">
+              ${isOver ? '&#9679; Over Budget' : '&#9679; Aman'}
+            </span>
+          </td>
+        </tr>`;
+      }).join('');
+
+      budgetNarrative = `<br/><br/>Untuk rencana budget bulan ini, estimasi pengeluaran total <b>Rp ${formatMoney(budgetMonthly)}</b> dengan realisasi saat ini <b>Rp ${formatMoney(budgetReal)}</b> — ${budgetOk ? `masih ada ruang <b style="color:#FFD93D">Rp ${formatMoney(Math.abs(budgetDiff))}</b> sebelum batas budget tercapai.` : `budget sudah melebihi rencana sebesar <b style="color:#FFD93D">Rp ${formatMoney(Math.abs(budgetDiff))}</b>. Perlu perhatian lebih!`}`;
+
+      budgetSectionHtml = `
+        <div class="section-header">RENCANA BUDGET BULAN INI</div>
+        <div style="background:white;border-radius:28px;border:1px solid #E2E8F0;margin-bottom:40px;box-shadow:0 2px 12px rgba(0,0,0,0.04);overflow:hidden">
+          <div style="display:flex;border-bottom:1px solid #F1F5F9">
+            <div style="flex:1;padding:20px 24px;border-right:1px solid #F1F5F9">
+              <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">ESTIMASI / BULAN</div>
+              <div style="font-size:22px;font-weight:800;color:#0F172A">Rp ${formatMoney(budgetMonthly)}</div>
+            </div>
+            <div style="flex:1;padding:20px 24px;border-right:1px solid #F1F5F9">
+              <div style="font-size:10px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">REALISASI BULAN INI</div>
+              <div style="font-size:22px;font-weight:800;color:#0F172A">Rp ${formatMoney(budgetReal)}</div>
+            </div>
+            <div style="flex:1;padding:20px 24px;background:${budgetOk ? '#F0FDF4' : '#FEF2F2'}">
+              <div style="font-size:10px;color:${budgetOk ? '#059669' : '#DC2626'};font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">${budgetOk ? 'SURPLUS BUDGET' : 'DEFISIT BUDGET'}</div>
+              <div style="font-size:22px;font-weight:800;color:${budgetOk ? '#059669' : '#DC2626'}">${budgetOk ? '+' : '-'}Rp ${formatMoney(Math.abs(budgetDiff))}</div>
+            </div>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="background:#F8FAFC">
+                <th style="text-align:left;padding:12px 16px;color:#64748B;font-size:10px;letter-spacing:1.5px;font-weight:700;text-transform:uppercase">KATEGORI</th>
+                <th style="text-align:right;padding:12px 16px;color:#64748B;font-size:10px;letter-spacing:1.5px;font-weight:700;text-transform:uppercase">ESTIMASI</th>
+                <th style="text-align:right;padding:12px 16px;color:#64748B;font-size:10px;letter-spacing:1.5px;font-weight:700;text-transform:uppercase">REALISASI</th>
+                <th style="text-align:right;padding:12px 16px;color:#64748B;font-size:10px;letter-spacing:1.5px;font-weight:700;text-transform:uppercase">SELISIH</th>
+                <th style="text-align:center;padding:12px 16px;color:#64748B;font-size:10px;letter-spacing:1.5px;font-weight:700;text-transform:uppercase">STATUS</th>
+              </tr>
+            </thead>
+            <tbody>${bRowsHtml}</tbody>
+            <tfoot>
+              <tr style="font-weight:800;background:#F8FAFC;border-top:2px solid #E2E8F0">
+                <td style="padding:14px 16px;font-size:13px;color:#0F172A;font-weight:800">TOTAL</td>
+                <td style="text-align:right;padding:14px 16px;color:#0F172A;font-weight:800">Rp ${formatMoney(budgetMonthly)}</td>
+                <td style="text-align:right;padding:14px 16px;color:#0F172A;font-weight:800">Rp ${formatMoney(budgetReal)}</td>
+                <td style="text-align:right;padding:14px 16px;font-weight:800;font-size:15px;color:${budgetOk ? '#059669' : '#DC2626'}">${budgetOk ? '+' : '-'}Rp ${formatMoney(Math.abs(budgetDiff))}</td>
+                <td style="text-align:center;padding:14px 16px">
+                  <span style="display:inline-block;background:${budgetOk ? '#D1FAE5' : '#FEE2E2'};color:${budgetOk ? '#059669' : '#DC2626'};border-radius:10px;padding:7px 18px;font-size:12px;font-weight:800;letter-spacing:0.5px">
+                    &#9679; ${budgetOk ? 'Surplus' : 'Defisit'}
+                  </span>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>`;
     }
 
     let txRows = '';
@@ -354,9 +495,12 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
                 ? `<br/><br/>Kabar baik! Kita memiliki surplus sebesar <b>Rp ${formatMoney(netBalance)}</b>. Yuk, tabung sisanya buat goal kita!` 
                 : `<br/><br/>Perhatian: Pengeluaran kita sedikit lebih besar dari pemasukan (selisih Rp ${formatMoney(Math.abs(netBalance))}). Yuk, lebih bijak lagi di periode depan.`
               ) : ''}
+              ${budgetNarrative}
             </div>
         </div>
 
+
+        ${budgetSectionHtml}
 
         ${totalExpense > 0 ? `
         <div class="section-header">ANALISA PENGELUARAN</div>
@@ -374,6 +518,8 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
         <div class="transactions-list">
           ${txRows}
         </div>
+
+
 
         <div class="footer">
           <div class="footer-text">

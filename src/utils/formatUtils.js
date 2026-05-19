@@ -9,3 +9,13 @@ export const formatMoney = (val) => {
   // Regex to add thousands separator (.)
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 };
+
+/**
+ * Format angka ke format Rupiah dengan prefix "Rp "
+ * Dipakai di fitur Rencana (budget & cicilan)
+ * @param {number|string} amount
+ * @returns {string} contoh: "Rp 1.500.000"
+ */
+export const formatRupiah = (amount) => {
+  return 'Rp ' + formatMoney(amount);
+};
