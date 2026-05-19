@@ -34,6 +34,13 @@ export default function BudgetSetupScreen({ navigation, route }) {
     ]).start();
   }, []);
 
+  const handleBack = () => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 0, duration: 250, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(slideAnim, { toValue: 20, duration: 250, useNativeDriver: Platform.OS !== 'web' }),
+    ]).start(() => navigation.goBack());
+  };
+
   const totalMonthly = calculateMonthlyBudget();
 
   const confirmDelete = (budget) => {
@@ -144,7 +151,7 @@ export default function BudgetSetupScreen({ navigation, route }) {
     <SafeAreaView style={s.container} edges={['top']}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={[s.headerBtn, { backgroundColor: theme.surfaceContainerLow || theme.surface }]}>
+        <TouchableOpacity onPress={handleBack} style={[s.headerBtn, { backgroundColor: theme.surfaceContainerLow || theme.surface }]}>
           <MaterialIcons name="arrow-back-ios-new" size={20} color={theme.onSurface} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>Atur Budget</Text>

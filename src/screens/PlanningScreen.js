@@ -63,15 +63,33 @@ export default function PlanningScreen({ navigation }) {
   const fadeAnims = useRef([0,0,0,0,0].map(() => new Animated.Value(0))).current;
   const slideAnims = useRef([0,0,0,0,0].map(() => new Animated.Value(20))).current;
 
+  const handleTransition = (screenName, params = {}) => {
+    Animated.parallel(
+      fadeAnims.map((f, i) =>
+        Animated.parallel([
+          Animated.timing(f, { toValue: 0, duration: 250, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.timing(slideAnims[i], { toValue: -20, duration: 250, useNativeDriver: Platform.OS !== 'web' }),
+        ])
+      )
+    ).start(() => {
+      navigation.navigate(screenName, params);
+    });
+  };
+
   useEffect(() => {
     scheduleInstallmentNotifications();
-    Animated.stagger(100, fadeAnims.map((f, i) =>
-      Animated.parallel([
-        Animated.timing(f, { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
-        Animated.spring(slideAnims[i], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' }),
-      ])
-    )).start();
-  }, []);
+    const unsubscribe = navigation.addListener('focus', () => {
+      fadeAnims.forEach(f => f.setValue(0));
+      slideAnims.forEach(s => s.setValue(20));
+      Animated.stagger(100, fadeAnims.map((f, i) =>
+        Animated.parallel([
+          Animated.timing(f, { toValue: 1, duration: 600, useNativeDriver: Platform.OS !== 'web' }),
+          Animated.spring(slideAnims[i], { toValue: 0, tension: 50, friction: 7, useNativeDriver: Platform.OS !== 'web' }),
+        ])
+      )).start();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const s = makeStyles(theme);
 
@@ -162,7 +180,7 @@ export default function PlanningScreen({ navigation }) {
                 </View>
               )}
             </View>
-            <TouchableOpacity style={s.seeAllBtn} onPress={() => navigation.navigate('InstallmentsList', { partnerName })}>
+            <TouchableOpacity style={s.seeAllBtn} onPress={() => handleTransition('InstallmentsList', { partnerName })}>
               <Text style={s.seeAllText}>Lihat Semua</Text>
               <MaterialIcons name="chevron-right" size={16} color={theme.primary} />
             </TouchableOpacity>
@@ -214,14 +232,14 @@ export default function PlanningScreen({ navigation }) {
         <Animated.View style={[s.section, { opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }]}>
           <View style={s.sectionHeader}>
             <Text style={s.sectionTitle}>Budget per Kategori</Text>
-            <TouchableOpacity style={s.seeAllBtn} onPress={() => navigation.navigate('BudgetSetup', { partnerName })}>
+            <TouchableOpacity style={s.seeAllBtn} onPress={() => handleTransition('BudgetSetup', { partnerName })}>
               <Text style={s.seeAllText}>Atur</Text>
               <MaterialIcons name="chevron-right" size={16} color={theme.primary} />
             </TouchableOpacity>
           </View>
 
           {budgets.filter(b => b.isActive).length === 0 ? (
-            <TouchableOpacity style={[s.card, s.emptyCard]} onPress={() => navigation.navigate('BudgetSetup', { partnerName })}>
+            <TouchableOpacity style={[s.card, s.emptyCard]} onPress={() => handleTransition('BudgetSetup', { partnerName })}>
               <View style={s.emptyIconWrap}>
                 <MaterialIcons name="playlist-add-check" size={36} color={theme.primary + '55'} />
               </View>
@@ -242,7 +260,7 @@ export default function PlanningScreen({ navigation }) {
       <Animated.View style={[s.fab, { opacity: fadeAnims[4] }]}>
         <TouchableOpacity
           style={s.fabBtn}
-          onPress={() => navigation.navigate('BudgetSetup', { partnerName })}
+          onPress={() => handleTransition('BudgetSetup', { partnerName })}
           activeOpacity={0.85}
         >
           <LinearGradient
