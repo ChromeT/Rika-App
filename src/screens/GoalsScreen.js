@@ -668,7 +668,7 @@ export const AddGoalScreen = () => {
             <Text style={{ color: safeTheme.primary, fontWeight: '700', fontSize: 13 }}>+ Tambah Foto/Video ({mediaList.length})</Text>
           </TouchableOpacity>
 
-          <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>LINK GAMBAR (PASTI BERFUNGSI)</Text>
+          <Text style={{ fontSize: 12, fontWeight: 'bold', color: safeTheme.onSurfaceVariant, marginBottom: 8 }}>LINK GAMBAR</Text>
           <Text style={{ fontSize: 10, color: safeTheme.onSurfaceVariant, marginBottom: 12 }}>Copy link gambar dari Google Images, Unsplash, dll.</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
             <View style={{ flex: 1, backgroundColor: safeTheme.surfaceContainerLow, borderRadius: 12, padding: 12, marginRight: 8 }}>

@@ -940,7 +940,7 @@ const DashboardScreen = ({ navigation, route }) => {
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setBillModalVisible(false)} />
           <View style={[styles.modalContent, { backgroundColor: theme.surface, maxHeight: '90%', padding: 0, overflow: 'hidden', borderBottomLeftRadius: 0, borderBottomRightRadius: 0, opacity: 1 }]}>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <View style={{ padding: 24, paddingBottom: 150 }}>
+              <View style={{ padding: 24, paddingBottom: 32 }}>
                 <Text style={{ fontSize: 22, fontWeight: '900', color: theme.onSurface, marginBottom: 24 }}>{isEditingBill ? 'Edit Tagihan' : 'Tambah Tagihan'}</Text>
                 
                 <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.onSurfaceVariant, marginBottom: 8, marginLeft: 4 }}>TIPE TAGIHAN</Text>
