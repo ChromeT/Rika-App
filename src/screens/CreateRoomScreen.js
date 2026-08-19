@@ -127,9 +127,9 @@ const CreateRoomScreen = ({ navigation }) => {
           </>
         ) : (
           <Animated.View style={[styles.codeContainer, { opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }]}>
-            <Text style={styles.codeLabel}>KODE BUAT RIKA</Text>
+            <Text style={styles.codeLabel}>KODE UNTUK DIA</Text>
             <Text style={styles.codeValue}>{generatedCode}</Text>
-            <Text style={styles.codeDesc}>Berikan kode ini kepada Rika agar dia bisa bergabung ke dalam ruang finansial ini.</Text>
+            <Text style={styles.codeDesc}>Berikan kode ini kepadanya agar dia bisa bergabung ke dalam ruang finansial ini.</Text>
             <TouchableOpacity style={[styles.btnPrimary, { marginTop: 32 }]} onPress={handleLogin}>
               <LinearGradient colors={[theme.primary, theme.primaryContainer]} style={styles.gradientPrimary} start={{x:0, y:0}} end={{x:1, y:1}}>
                 <Text style={styles.btnPrimaryText}>Masuk ke Dashboard</Text>
