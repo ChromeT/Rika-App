@@ -936,9 +936,9 @@ const DashboardScreen = ({ navigation, route }) => {
 
       {/* Full Add/Edit Bill Modal */}
       <Modal visible={billModalVisible} transparent animationType="slide" onRequestClose={() => setBillModalVisible(false)}>
-        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }]}>
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center' }]}>
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setBillModalVisible(false)} />
-          <View style={[styles.modalContent, { backgroundColor: theme.surface, maxHeight: '90%', padding: 0, overflow: 'hidden', borderBottomLeftRadius: 0, borderBottomRightRadius: 0, opacity: 1 }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface, maxHeight: '90%', padding: 0, overflow: 'hidden', opacity: 1 }]}>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={{ padding: 24, paddingBottom: 32 }}>
                 <Text style={{ fontSize: 22, fontWeight: '900', color: theme.onSurface, marginBottom: 24 }}>{isEditingBill ? 'Edit Tagihan' : 'Tambah Tagihan'}</Text>
@@ -1139,9 +1139,9 @@ const DashboardScreen = ({ navigation, route }) => {
 
       {/* Pay Bill Modal (Wallet Selection) */}
       <Modal visible={payBillModalVisible} transparent animationType="fade" onRequestClose={() => setPayBillModalVisible(false)}>
-        <View style={[styles.modalOverlay, { justifyContent: 'flex-end' }]}>
+        <View style={[styles.modalOverlay, { justifyContent: 'center' }]}>
           <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} activeOpacity={1} onPress={() => setPayBillModalVisible(false)} />
-          <View style={[styles.modalContent, { backgroundColor: theme.surface, padding: 0, overflow: 'hidden', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface, padding: 0, overflow: 'hidden' }]}>
             <View style={{ padding: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant + '33' }}>
               <Text style={{ fontSize: 20, fontWeight: '900', color: theme.onSurface, marginBottom: 4 }}>Pilih Pembayaran</Text>
               <Text style={{ fontSize: 13, color: theme.onSurfaceVariant }}>Bayar "{selectedBill?.name}" sebesar Rp {formatMoney(selectedBill?.amount)}</Text>
