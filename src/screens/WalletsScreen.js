@@ -106,7 +106,7 @@ const WalletsScreen = ({ route }) => {
   const partnerName = (householdUsers || []).find(u => {
     const uName = normalize(typeof u === 'string' ? u : u.name);
     return uName !== myNameNorm && !uName.includes(myNameNorm) && !myNameNorm.includes(uName);
-  }) || 'Rika';
+  }) || 'Pasangan';
 
   const myAccounts = (accounts || []).filter(a => a.owner === user?.name);
   const partnerAccounts = (accounts || []).filter(a => a.owner !== user?.name && a.owner !== 'Bersama');
@@ -212,7 +212,7 @@ const WalletsScreen = ({ route }) => {
           {partnerAccounts.length > 0 && (
             <>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Dompet Rika</Text>
+                <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Dompet Pasangan</Text>
                 <Text style={{ color: theme.onSurfaceVariant, fontSize: 12 }}>Pantauan</Text>
               </View>
               <View style={styles.accountList}>

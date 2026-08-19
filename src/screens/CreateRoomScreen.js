@@ -130,6 +130,7 @@ const CreateRoomScreen = ({ navigation }) => {
             <Text style={styles.codeLabel}>KODE UNTUK DIA</Text>
             <Text style={styles.codeValue}>{generatedCode}</Text>
             <Text style={styles.codeDesc}>Berikan kode ini kepadanya agar dia bisa bergabung ke dalam ruang finansial ini.</Text>
+            <Text style={[styles.codeDesc, { color: theme.error, marginTop: 12, fontWeight: 'bold' }]}>PENTING: Simpan atau catat kode ini di luar aplikasi. Jika kamu keluar akun sebelum pasangan bergabung, kamu akan membutuhkan kode ini untuk masuk kembali!</Text>
             <TouchableOpacity style={[styles.btnPrimary, { marginTop: 32 }]} onPress={handleLogin}>
               <LinearGradient colors={[theme.primary, theme.primaryContainer]} style={styles.gradientPrimary} start={{x:0, y:0}} end={{x:1, y:1}}>
                 <Text style={styles.btnPrimaryText}>Masuk ke Dashboard</Text>

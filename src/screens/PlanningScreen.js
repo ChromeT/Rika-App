@@ -145,7 +145,7 @@ export default function PlanningScreen({ navigation }) {
         {/* Summary Gradient Card */}
         <Animated.View style={{ opacity: fadeAnims[1], transform: [{ translateY: slideAnims[1] }] }}>
           <LinearGradient
-            colors={isSurplus ? [theme.primary, (theme.primaryContainer || theme.primary) + 'CC'] : ['#EF4444', '#DC2626']}
+            colors={isSurplus ? [theme.primary, (theme.primaryContainer || theme.primary)] : ['#EF4444', '#DC2626']}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={s.summaryCard}
           >

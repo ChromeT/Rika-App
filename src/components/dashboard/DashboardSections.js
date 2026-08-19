@@ -205,7 +205,7 @@ export const ExpenseAnalysisSection = ({
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <Text style={[styles.sectionTitle, { color: theme.onSurface }]}>Pengeluaran</Text>
         <View style={{ flexDirection: 'row', backgroundColor: theme.surfaceContainerHighest + '66', padding: 3, borderRadius: 12, borderWidth: 1, borderColor: theme.outlineVariant + '11' }}>
-          {['Kita', myName, (partnerName || 'Rika')].map(f => (
+          {['Kita', myName, (partnerName || 'Pasangan')].map(f => (
             <TouchableOpacity key={f} onPress={() => setFilter(f)} style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9, backgroundColor: filter === f ? theme.primary : 'transparent' }}>
               <Text style={{ fontSize: 10, fontWeight: '900', color: filter === f ? theme.onPrimary : theme.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.5 }}>{f}</Text>
             </TouchableOpacity>
@@ -441,11 +441,7 @@ export const GoalsSection = ({ goals, hasPartner, theme, formatMoney, navigation
       </TouchableOpacity>
     </View>
 
-    {!hasPartner ? (
-      <View style={{ backgroundColor: theme.surface, borderRadius: 32, padding: 24, borderWidth: 1, borderColor: theme.primary + '33' }}>
-        <Text style={{ color: theme.onSurfaceVariant, fontSize: 13, textAlign: 'center', lineHeight: 20 }}>Menunggu Rika bergabung sebelum memulai goal bersama.</Text>
-      </View>
-    ) : goals.filter(g => !g.achieved).length === 0 ? (
+    {goals.filter(g => !g.achieved).length === 0 ? (
       <TouchableOpacity 
         onPress={() => navigation.navigate('Goals')}
         style={{ backgroundColor: theme.surface, borderRadius: 32, padding: 24, alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: theme.outlineVariant + '44' }}

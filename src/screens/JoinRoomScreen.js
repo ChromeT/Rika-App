@@ -100,7 +100,7 @@ const JoinRoomScreen = ({ navigation }) => {
         </Animated.View>
 
         <Animated.View style={{ opacity: fadeAnims[2], transform: [{ translateY: slideAnims[2] }] }}>
-          <Text style={styles.label}>Kode Rika</Text>
+          <Text style={styles.label}>Kode Pasangan</Text>
           <TextInput 
             style={[styles.input, styles.codeInput]} 
             placeholder="X8P2K9" 

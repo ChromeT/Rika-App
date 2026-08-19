@@ -170,7 +170,16 @@ const GoalTabs = ({ safeTheme, activeTab, setActiveTab, activeCount, achievedCou
 );
 
 // --- [SUB-KOMPONEN: Empty State] ---
-const EmptyGoalsState = ({ safeTheme, activeTab, navigation }) => (
+const EmptyGoalsState = ({ safeTheme, activeTab, navigation }) => {
+  const { user, householdUsers } = useContext(AuthContext);
+  const partnerUser = (householdUsers || []).find(u => {
+    const uName = typeof u === 'string' ? u : u.name;
+    return uName !== user?.name;
+  });
+  const partnerName = (typeof partnerUser === 'string' ? partnerUser : partnerUser?.name);
+  const displayName = partnerName ? `${user?.name || 'Kamu'} & ${partnerName}` : (user?.name || 'Kamu');
+
+  return (
   <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 100 }}>
     <View style={{ marginBottom: 32 }}>
       <View style={{ 
@@ -178,11 +187,6 @@ const EmptyGoalsState = ({ safeTheme, activeTab, navigation }) => (
         backgroundColor: safeTheme.primary + '15', 
         justifyContent: 'center', alignItems: 'center',
         borderWidth: 1, borderColor: safeTheme.primary + '33',
-        shadowColor: safeTheme.primary,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 20,
-        elevation: 10,
         overflow: 'hidden' // Biar gradasinya ga kotak
       }}>
         <LinearGradient
@@ -204,8 +208,8 @@ const EmptyGoalsState = ({ safeTheme, activeTab, navigation }) => (
       </View>
     </View>
 
-    <Text style={{ fontSize: 22, fontWeight: '900', color: safeTheme.onSurface, marginBottom: 12, letterSpacing: -0.5 }}>
-      {activeTab === 'active' ? 'Mulai Impian Ayip & Rika' : 'Belum Ada Kenangan'}
+    <Text style={{ fontSize: 22, fontWeight: '900', color: safeTheme.onSurface, marginBottom: 12, letterSpacing: -0.5, textAlign: 'center' }}>
+      {activeTab === 'active' ? `Mulai Impian ${displayName}` : 'Belum Ada Kenangan'}
     </Text>
     
     <Text style={{ 
@@ -237,7 +241,8 @@ const EmptyGoalsState = ({ safeTheme, activeTab, navigation }) => (
       </TouchableOpacity>
     )}
   </View>
-);
+  );
+};
 
 
 const AchievedGoalItem = React.memo(({ item, index, navigation, safeTheme, formatMoney }) => {
@@ -312,8 +317,8 @@ export const AddGoalScreen = () => {
     const uName = typeof u === 'string' ? u : u.name;
     return uName !== user?.name;
   });
-  const partnerName = (typeof partnerUser === 'string' ? partnerUser : partnerUser?.name) || 'Rika';
-  const hasPartner = !!partnerUser;
+  const partnerName = (typeof partnerUser === 'string' ? partnerUser : partnerUser?.name) || 'Pasangan';
+  const hasPartner = !!partnerUser && partnerName !== 'Pasangan';
   const sendGoalNotification = async ({ title, body, goalId }) => {
     if (!hasPartner) return;
     await addNotification({
@@ -322,7 +327,7 @@ export const AddGoalScreen = () => {
       icon: 'stars',
       targetType: 'goal',
       targetId: goalId,
-      sender: user?.name || 'Ayip',
+      sender: user?.name || 'Kamu',
       createdAt: new Date().toISOString(),
     });
   };
@@ -530,7 +535,7 @@ export const AddGoalScreen = () => {
       setLoadingMsg('Menyimpan goal...');
       console.log('Menyimpan ke Firestore...');
       
-      const ownerName = user?.name || 'Ayip';
+      const ownerName = user?.name || 'Kamu';
       const firstMedia = finalMediaList.length > 0 ? finalMediaList[0] : null;
       const previewImage = firstMedia?.type === 'image' ? (firstMedia.url || firstMedia.uri) : null;
       
@@ -561,7 +566,7 @@ export const AddGoalScreen = () => {
         setLoadingMsg('Mengirim notifikasi...');
         await sendGoalNotification({
           title: 'Goal baru',
-          body: `${user?.name || 'Ayip'} menambahkan goal “${name.trim()}”.`,
+          body: `${user?.name || 'Kamu'} menambahkan goal “${name.trim()}”.`,
           goalId: newGoalId,
         });
       }

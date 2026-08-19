@@ -395,7 +395,7 @@ const MemoryDetailScreen = ({ route }) => {
           uri: asset.uri,
           type: asset.type === 'video' ? 'video' : 'image',
           caption: '',
-          addedBy: user?.name || 'Ayip',
+          addedBy: user?.name || 'Kamu',
           addedAt: new Date().toISOString(),
         }));
         setSelectedUploads(newUploads);
@@ -439,9 +439,9 @@ const MemoryDetailScreen = ({ route }) => {
         
         if (hasPartner) {
           addNotification({
-            title: 'Foto Kenangan Baru',
-          body: `${user?.name || 'Rika'} menambahkan ${uploaded.length} foto baru di album "${goal.name}".`,
-            icon: 'add-a-photo',
+            title: 'Momen Baru Ditambahkan',
+            body: `${user?.name || 'Pasangan'} menambahkan ${uploaded.length} foto baru di album "${goal.name}".`,
+            icon: 'photo-library',
             targetType: 'goal',
             targetId: goal.id,
             sender: user?.name || 'Sistem',
@@ -464,8 +464,8 @@ const MemoryDetailScreen = ({ route }) => {
       await deleteDoc(doc(db, 'households', householdId, 'goals', goal.id));
       if (hasPartner) {
         addNotification({
-          title: 'Goal dihapus',
-          body: `${user?.name || 'Rika'} telah menghapus goal kenangan "${goal.name}".`,
+          title: 'Goal Kenangan Dihapus',
+          body: `${user?.name || 'Pasangan'} telah menghapus goal kenangan "${goal.name}".`,
           icon: 'delete',
           targetType: 'goal',
           targetId: goal.id,

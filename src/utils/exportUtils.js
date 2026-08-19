@@ -20,8 +20,8 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
     const { user: filterUser, type: filterType } = filters;
     
     let filtered = transactions || [];
-    if (filterUser === 'Ayip') filtered = filtered.filter(tx => tx?.owner === userName);
-    else if (filterUser === 'Rika') filtered = filtered.filter(tx => tx?.owner !== userName);
+    if (filterUser === 'Kamu') filtered = filtered.filter(tx => tx?.owner === userName);
+    else if (filterUser === 'Pasangan') filtered = filtered.filter(tx => tx?.owner !== userName);
     
     if (filterType === 'Pengeluaran') filtered = filtered.filter(tx => tx?.type === 'expense');
     else if (filterType === 'Pemasukan') filtered = filtered.filter(tx => tx?.type === 'income');
@@ -73,7 +73,12 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
     if (filterType === 'Semua' && (totalIncome > 0 || totalExpense > 0)) rows.push(['Saldo Akhir (Net)', totalIncome - totalExpense]);
 
     rows.push([], ['DETAIL RIWAYAT TRANSAKSI']);
-    rows.push(['TANGGAL', 'KETERANGAN', 'KATEGORI', 'DOMPET/SUMBER', 'TIPE', 'METODE', 'OLEH', 'PORSI AYIP', 'PORSI RIKA', 'TOTAL NOMINAL']);
+    const headerRow = ['TANGGAL', 'KETERANGAN', 'KATEGORI', 'DOMPET/SUMBER', 'TIPE', 'METODE', 'OLEH'];
+    if (filterUser === 'Kita') {
+      headerRow.push('PORSI KAMU', 'PORSI PASANGAN');
+    }
+    headerRow.push('TOTAL NOMINAL');
+    rows.push(headerRow);
 
     filtered.forEach(tx => {
       if (!tx) return;
@@ -82,7 +87,8 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
       const total = myP + parP;
       const d = new Date(tx.date);
       const dateStr = !isNaN(d.getTime()) ? d.toLocaleDateString('id-ID') : '-';
-      rows.push([
+      
+      const rowData = [
         dateStr,
         tx.name || '-',
         tx.category || '-',
@@ -93,10 +99,13 @@ export const exportToXLS = async (transactions, period = 'Laporan', userName = '
         tx.type === 'income' ? 'Pemasukan' : tx.type === 'transfer' ? 'Transfer' : 'Pengeluaran',
         tx.isJoint ? 'Uang Bersama' : (tx.isPatungan ? 'Patungan' : 'Pribadi'),
         tx.isJoint || tx.isPatungan ? 'Bersama' : (tx.owner || '-'),
-        myP,
-        parP,
-        total
-      ]);
+      ];
+
+      if (filterUser === 'Kita') {
+        rowData.push(myP, parP);
+      }
+      rowData.push(total);
+      rows.push(rowData);
     });
 
     // Sanitize rows to ensure no null/undefined values reach XLSX
@@ -178,8 +187,8 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
     const { user: filterUser, type: filterType } = filters;
     
     let filtered = transactions || [];
-    if (filterUser === 'Ayip') filtered = filtered.filter(tx => tx?.owner === userName);
-    else if (filterUser === 'Rika') filtered = filtered.filter(tx => tx?.owner !== userName);
+    if (filterUser === 'Kamu') filtered = filtered.filter(tx => tx?.owner === userName);
+    else if (filterUser === 'Pasangan') filtered = filtered.filter(tx => tx?.owner !== userName);
     
     if (filterType === 'Pengeluaran') filtered = filtered.filter(tx => tx?.type === 'expense');
     else if (filterType === 'Pemasukan') filtered = filtered.filter(tx => tx?.type === 'income');
@@ -365,7 +374,7 @@ export const exportToPDF = async (transactions, period = 'Laporan', userName = '
                 ${tx.category || '-'} • ${walletName} • Oleh: ${tx.isJoint || tx.isPatungan ? 'Kita' : (tx.owner || '-')}
                 ${(tx.isJoint || tx.isPatungan) ? `
                   <div style="margin-top: 4px; font-size: 10px; color: #64748B;">
-                    Porsi: ${userName} (Rp ${formatMoney(tx.myContrib)}) • ${tx.owner === userName ? (householdUsers.find(u => u !== userName) || 'Rika') : tx.owner} (Rp ${formatMoney(tx.partnerContrib)})
+                    Porsi: ${userName} (Rp ${formatMoney(tx.myContrib)}) • ${tx.owner === userName ? (householdUsers.find(u => u !== userName) || 'Pasangan') : tx.owner} (Rp ${formatMoney(tx.partnerContrib)})
                   </div>
                 ` : ''}
               </div>

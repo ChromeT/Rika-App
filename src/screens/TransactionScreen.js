@@ -196,13 +196,13 @@ const TransactionScreen = ({ navigation, route }) => {
     }
     if (route?.params?.editingTransaction) {
       const tx = route.params.editingTransaction;
-      const myName = user?.name || 'Ayip';
+      const myName = user?.name || 'Kamu';
       const owner = (tx.owner || '').toLowerCase().trim();
       const normMe = (myName || '').toLowerCase().trim();
       const isMe = owner === normMe || owner.includes(normMe) || normMe.includes(owner);
       
       if (!isMe || tx.owner !== user.name) {
-        showAestheticAlert('Akses Dibatasi', 'Kamu hanya bisa mengedit transaksi milikmu sendiri untuk menjaga integritas data pribadi Rika.', 'lock', theme.primary);
+        showAestheticAlert('Akses Dibatasi', 'Kamu hanya bisa mengedit transaksi milikmu sendiri untuk menjaga integritas data pribadi Pasangan.', 'lock', theme.primary);
         setTimeout(() => navigation.goBack(), 2000);
         return;
       }
@@ -241,7 +241,7 @@ const TransactionScreen = ({ navigation, route }) => {
       const myAccounts = accounts.filter(a => {
         const owner = (a.owner || '').toLowerCase().trim();
         const curName = (user?.name || '').toLowerCase().trim();
-        return owner === curName || owner.includes(curName) || curName.includes(owner) || owner === '' || owner === 'ayip';
+        return owner === curName || owner.includes(curName) || curName.includes(owner) || owner === '' || owner === 'kamu';
       });
       if (myAccounts.length > 0) {
         setSelectedAccountId(myAccounts[0].id);
@@ -338,7 +338,7 @@ const TransactionScreen = ({ navigation, route }) => {
           type,
           category: finalCategoryName,
           icon: finalIcon || (type === 'income' ? 'payments' : 'receipt'),
-          owner: user?.name || 'Ayip',
+          owner: user?.name || 'Kamu',
           isJoint: isKonta,
           isPatungan: type === 'expense' ? (!isKonta && isPatungan) : false,
           myContrib: fMy,
@@ -351,10 +351,10 @@ const TransactionScreen = ({ navigation, route }) => {
       if (!isPatungan && !isKonta) {
         await addNotification({
           title: isEditMode ? 'Transaksi Diubah' : 'Transaksi Baru',
-          body: `${user?.name || 'Ayip'} baru saja ${isEditMode ? 'mengubah' : 'mencatat'} ${type === 'income' ? 'pemasukan' : 'pengeluaran'} "${finalTxName}" sebesar Rp ${formatMoney(numAmount)}.`,
+          body: `${user?.name || 'Kamu'} baru saja ${isEditMode ? 'mengubah' : 'mencatat'} ${type === 'income' ? 'pemasukan' : 'pengeluaran'} "${finalTxName}" sebesar Rp ${formatMoney(numAmount)}.`,
           icon: isEditMode ? 'edit' : (type === 'income' ? 'trending-up' : 'trending-down'),
           color: type === 'income' ? 'success' : 'error',
-          sender: user?.name || 'Ayip',
+          sender: user?.name || 'Kamu',
           targetType: 'transaction',
           targetId: newId,
           targetName: finalTxName,
@@ -582,7 +582,10 @@ const TransactionScreen = ({ navigation, route }) => {
                 ))}
               </ScrollView>
             </View>
-          )}<Text style={styles.label}>Tanggal Transaksi</Text><TouchableOpacity 
+          )}
+          
+          <Text style={styles.label}>Tanggal Transaksi</Text>
+          <TouchableOpacity 
             activeOpacity={0.7}
             onPress={() => {
               if (Platform.OS === 'web') {
@@ -649,7 +652,7 @@ const TransactionScreen = ({ navigation, route }) => {
               </View>
               <View>
                 <Text style={styles.switchTitle}>Bagi Rata 50:50? (Uang Bersama)</Text>
-                <Text style={styles.switchSubtitle}>Beban dibagi dua sama rata dengan Rika</Text>
+                <Text style={styles.switchSubtitle}>Beban dibagi dua sama rata dengan Pasangan</Text>
               </View>
             </View>
             <Switch
@@ -693,7 +696,7 @@ const TransactionScreen = ({ navigation, route }) => {
                   ) : (
                     <>
                       <View style={styles.pCol}>
-                        <Text style={styles.pLabel}>Kontribusi Ayip</Text>
+                        <Text style={styles.pLabel}>Kontribusi Kamu</Text>
                         <View style={styles.pInputWrapper}>
                           <Text style={styles.pCurrency}>IDR</Text>
                           <TextInput
@@ -713,7 +716,7 @@ const TransactionScreen = ({ navigation, route }) => {
                         </View>
                       </View>
                       <View style={styles.pCol}>
-                        <Text style={styles.pLabel}>Beban Rika</Text>
+                        <Text style={styles.pLabel}>Beban Pasangan</Text>
                         <View style={styles.pInputWrapper}>
                           <Text style={styles.pCurrencyDisabled}>IDR</Text>
                           <TextInput
@@ -732,10 +735,10 @@ const TransactionScreen = ({ navigation, route }) => {
                 <MaterialIcons name="info" size={16} color={theme.primary} />
                 <Text style={styles.pInfoText}>
                   {isKonta
-                    ? 'Saldo kamu & Rika akan terpotong otomatis 50:50.'
+                    ? 'Saldo kamu & pasangan akan terpotong otomatis 50:50.'
                     : (isPatungan
-                      ? 'Porsi Rika akan ditagihkan untuk konfirmasi.'
-                      : 'Nyalakan fitur ini jika ingin beban dibagi dengan Rika.')}
+                      ? 'Porsi pasangan akan ditagihkan untuk konfirmasi.'
+                      : 'Nyalakan fitur ini jika ingin beban dibagi dengan Pasangan.')}
                 </Text>
               </View>
             </View>
@@ -811,7 +814,7 @@ const TransactionScreen = ({ navigation, route }) => {
 
         <Animated.View style={{ opacity: fadeAnims[3], transform: [{ translateY: slideAnims[3] }] }}>
           <View style={styles.recentHeader}>
-            <Text style={styles.recentTitle}>Riwayat Ayip</Text>
+            <Text style={styles.recentTitle}>Riwayat Kamu</Text>
           </View>
 
           {(transactions || []).slice(0, 5).map(tx => (

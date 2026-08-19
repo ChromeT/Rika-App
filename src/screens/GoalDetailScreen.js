@@ -153,7 +153,7 @@ const GoalDetailScreen = ({ route }) => {
     const uName = normalize(typeof u === 'string' ? u : u.name);
     return uName !== myNameNorm && !uName.includes(myNameNorm) && !myNameNorm.includes(uName);
   });
-  const partnerName = (typeof partnerUser === 'string' ? partnerUser : partnerUser?.name) || 'Rika';
+  const partnerName = (typeof partnerUser === 'string' ? partnerUser : partnerUser?.name) || 'Pasangan';
   const hasPartner = !!partnerUser;
 
   const goal = goals.find(g => g.id === goalId);
@@ -227,7 +227,7 @@ const GoalDetailScreen = ({ route }) => {
       const now = new Date().toISOString();
       const newEntry = {
         amount,
-        user: user?.name || 'Ayip',
+        user: user?.name || 'Kamu',
         date: now,
       };
       
@@ -241,10 +241,10 @@ const GoalDetailScreen = ({ route }) => {
 
       await addNotification({
         title: 'Dana Ditambahkan!',
-        body: `${user?.name || 'Ayip'} baru saja menambah Rp ${formatMoney(amount)} untuk goal "${goal.name}".`,
+        body: `${user?.name || 'Kamu'} baru saja menambah Rp ${formatMoney(amount)} untuk goal "${goal.name}".`,
         icon: 'favorite',
         color: 'primary',
-        sender: user?.name || 'Ayip',
+        sender: user?.name || 'Kamu',
         targetType: 'goal',
         targetId: goal.id,
       });
@@ -268,11 +268,11 @@ const GoalDetailScreen = ({ route }) => {
       if (hasPartner) {
         await addNotification({
           title: 'Goal dihapus',
-          body: `${user?.name || 'Ayip'} telah menghapus goal "${goal.name}".`,
+          body: `${user?.name || 'Kamu'} telah menghapus goal "${goal.name}".`,
           icon: 'delete',
           targetType: 'goal',
           targetId: goal.id,
-          sender: user?.name || 'Ayip',
+          sender: user?.name || 'Kamu',
           createdAt: new Date().toISOString(),
         });
       }

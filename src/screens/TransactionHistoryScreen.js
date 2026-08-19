@@ -60,8 +60,10 @@ const FilterSection = ({ theme, search, setSearch, setDateModalVisible, filterMo
            <Text style={[styles.pillText, { color: theme.onSurface }]}>{months[filterMonth]} {filterYear}</Text>
         </TouchableOpacity>
         
-        {['Semua', 'Ayip', 'Rika'].map(opt => (
-          <TouchableOpacity key={opt} onPress={() => setFilterOwner(opt)} style={[styles.pill, { marginRight: 10, backgroundColor: filterOwner === opt ? theme.primary : theme.surfaceContainerLow, borderColor: filterOwner === opt ? theme.primary : theme.outlineVariant + '22' }]}>
+        {['Semua', 'Kamu', 'Pasangan'].map(opt => (
+          <TouchableOpacity 
+            key={opt} 
+            onPress={() => setFilterOwner(opt)} style={[styles.pill, { marginRight: 10, backgroundColor: filterOwner === opt ? theme.primary : theme.surfaceContainerLow, borderColor: filterOwner === opt ? theme.primary : theme.outlineVariant + '22' }]}>
             <Text style={[styles.pillText, { color: filterOwner === opt ? theme.onPrimary : theme.onSurfaceVariant }]}>{opt}</Text>
           </TouchableOpacity>
         ))}
@@ -137,8 +139,8 @@ const TransactionHistoryScreen = ({ navigation, route }) => {
     }
   }, [highlightId, highlightName, transactions]);
 
-  const myName = user?.name || 'Ayip';
-  const partnerName = householdUsers?.find(u => u !== myName) || 'Rika';
+  const myName = user?.name || 'Kamu';
+  const partnerName = householdUsers?.find(u => u !== myName) || 'Pasangan';
 
   const [filterOwner, setFilterOwner] = useState('Semua'); 
   const [filterType, setFilterType] = useState('Semua');   
@@ -201,9 +203,9 @@ const TransactionHistoryScreen = ({ navigation, route }) => {
       const isMe = tx.owner === myName;
       const isPartner = tx.owner === partnerName;
 
-      const ownerMatch = filterOwner === 'Semua' || 
-                         (filterOwner === 'Ayip' && (isMe || (isShared && (tx.myContrib || 0) > 0))) || 
-                         (filterOwner === 'Rika' && (isPartner || (isShared && (tx.partnerContrib || 0) > 0)));
+      const ownerMatch = (filterOwner === 'Semua') ||
+                         (filterOwner === 'Kamu' && (isMe || (isShared && (tx.myContrib || 0) > 0))) || 
+                         (filterOwner === 'Pasangan' && (isPartner || (isShared && (tx.partnerContrib || 0) > 0)));
       const typeMatch = filterType === 'Semua' || tx.type === filterType;
       const searchMatch = !search || tx.name?.toLowerCase().includes(search.toLowerCase()) || tx.category?.toLowerCase().includes(search.toLowerCase());
       return monthMatch && yearMatch && ownerMatch && typeMatch && searchMatch;
@@ -268,8 +270,8 @@ const TransactionHistoryScreen = ({ navigation, route }) => {
               <TransactionCard 
                 key={item.id} tx={item} index={index} theme={theme} myName={myName} partnerName={partnerName} accounts={accounts} formatMoney={formatMoney} filterOwner={filterOwner}
                 onEdit={() => { 
-                  if (item.owner !== myName && item.owner !== 'Bersama') {
-                    showAestheticAlert('Akses Terbatas', `Transaksi ini dicatat oleh ${item.owner}. Kamu hanya bisa mengedit transaksi milikmu sendiri untuk menjaga integritas data pribadi Rika.`, 'lock', theme.primary);
+                  if (item.owner !== myName) {
+                    showAestheticAlert('Akses Terbatas', `Transaksi ini dicatat oleh ${item.owner}. Kamu hanya bisa mengedit transaksi milikmu sendiri untuk menjaga integritas data pribadi pasangan.`, 'lock', theme.primary);
                     return;
                   }
                   setSelectedTx(item); 

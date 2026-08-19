@@ -36,9 +36,9 @@ const CoupleScreen = ({ navigation }) => {
     animateOut(() => navigation.goBack());
   };
 
-  const myName = user?.name || 'Ayip';
-  const partnerName = (householdUsers || []).find(u => u !== myName) || 'Rika';
-  const hasPartner = !!partnerName;
+  const myName = user?.name || 'Kamu';
+  const partnerName = (householdUsers || []).find(u => u !== myName) || 'Pasangan';
+  const hasPartner = !!partnerName && partnerName !== 'Pasangan';
 
   const getDurationText = (startDate) => {
     const start = dayjs(startDate);
@@ -188,7 +188,7 @@ const CoupleScreen = ({ navigation }) => {
                 {partnerName || 'Belum Ada'}
               </Text>
               <View style={[styles.roleBadge, { backgroundColor: hasPartner ? theme.primaryContainer + '15' : theme.surfaceContainerHighest }]}>
-                <Text style={[styles.roleText, { color: hasPartner ? theme.primaryContainer : theme.onSurfaceVariant }]}>RIKA</Text>
+                <Text style={[styles.roleText, { color: hasPartner ? theme.primaryContainer : theme.onSurfaceVariant }]}>PASANGAN</Text>
               </View>
             </View>
           </View>
@@ -197,7 +197,7 @@ const CoupleScreen = ({ navigation }) => {
             <TouchableOpacity style={[styles.inviteBanner, { backgroundColor: theme.primary + '0D', marginTop: 16 }]} onPress={copyToClipboard}>
               <MaterialIcons name="auto-fix-high" size={16} color={theme.primary} />
               <Text style={[styles.inviteText, { color: theme.onSurfaceVariant, fontSize: 11 }]}>
-                Berikan kode rumah tangga ke Rika untuk terhubung.
+                Berikan kode rumah tangga ke pasangan untuk terhubung.
               </Text>
             </TouchableOpacity>
           )}
@@ -270,7 +270,7 @@ const CoupleScreen = ({ navigation }) => {
                   <Text style={[styles.infoLabel, { color: theme.onSurfaceVariant, fontSize: 10, letterSpacing: 0.5 }]}>STATUS KONEKSI</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={[styles.infoValue, { color: hasPartner ? '#10B981' : theme.error, fontSize: 15, fontWeight: '700' }]}>
-                      {hasPartner ? 'Terhubung Aktif' : 'Menunggu Rika'}
+                      {hasPartner ? 'Terhubung Aktif' : 'Menunggu Pasangan'}
                     </Text>
                     {hasPartner && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981' }} />}
                   </View>

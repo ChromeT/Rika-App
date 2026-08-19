@@ -283,7 +283,7 @@ const DashboardScreen = ({ navigation, route }) => {
   }, []);
 
 
-  const myName = user?.name || 'Ayip';
+  const myName = user?.name || 'Kamu';
   const partnerName = householdUsers?.find(u => u !== myName);
   const hasPartner = !!partnerName;
 
@@ -323,7 +323,7 @@ const DashboardScreen = ({ navigation, route }) => {
       // Muncul jika owner transaksi adalah filter (Saya/Pasangan)
       // ATAU jika itu transaksi patungan/uang bersama (isPatungan/isJoint)
       const isShared = tx.isPatungan || tx.isJoint;
-      if (filter === 'Ayip' || filter === myName) {
+      if (filter === 'Kamu' || filter === myName) {
         const owner = (tx.owner || '').toLowerCase().trim();
         const normMe = (myName || '').toLowerCase().trim();
         const isMe = owner === normMe || owner.includes(normMe) || normMe.includes(owner);
@@ -384,7 +384,7 @@ const DashboardScreen = ({ navigation, route }) => {
     // PROTEKSI: Cek kepemilikan transaksi
     if (tx.owner !== user.name) {
       showAestheticAlert('Akses Terbatas', 
-        `Transaksi ini dicatat oleh ${tx.owner}. Kamu hanya bisa mengedit transaksi milikmu sendiri untuk menjaga integritas data pribadi Rika.` ,
+        `Transaksi ini dicatat oleh ${tx.owner}. Kamu hanya bisa mengedit transaksi milikmu sendiri untuk menjaga integritas data pribadi Pasangan.` ,
         'lock', theme.primary);
       return;
     }

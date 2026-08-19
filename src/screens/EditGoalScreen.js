@@ -299,7 +299,7 @@ export const EditGoalScreen = () => {
         if (hasPartner) {
           addNotification({
             title: 'Goal diubah',
-            body: `${user?.name || 'Rika'} telah mengubah detail goal "${goal.name}".`,
+            body: `${user?.name || 'Pasangan'} telah mengubah detail goal "${goal.name}".`,
             icon: 'edit',
             targetType: 'goal',
             targetId: goalId,
@@ -330,7 +330,7 @@ export const EditGoalScreen = () => {
         if (hasPartner) {
           addNotification({
             title: 'Goal dihapus',
-            body: `${user?.name || 'Rika'} telah menghapus goal "${goal.name}".`,
+            body: `${user?.name || 'Pasangan'} telah menghapus goal "${goal.name}".`,
             icon: 'delete',
             targetType: 'goal',
             targetId: goalId,

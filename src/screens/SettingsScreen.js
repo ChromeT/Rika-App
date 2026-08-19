@@ -29,6 +29,7 @@ const SettingsScreen = ({ navigation }) => {
   const [customHexInput, setCustomHexInput] = useState('');
   const [fontModalVisible, setFontModalVisible] = useState(false);
   const [fontLoading, setFontLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Animations
   const fadeAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
@@ -79,12 +80,12 @@ const SettingsScreen = ({ navigation }) => {
     ]).start(() => logout());
   };
 
-  const myName = user?.name || 'Ayip';
+  const myName = user?.name || 'Kamu';
   const partnerUser = (householdUsers || []).find(u => {
     const uName = typeof u === 'string' ? u : u.name;
-    return uName !== myName;
+    return uName !== user?.name;
   });
-  const partnerName = (typeof partnerUser === 'string' ? partnerUser : partnerUser?.name) || 'Rika';
+  const partnerName = (typeof partnerUser === 'string' ? partnerUser : partnerUser?.name) || 'Pasangan';
   const hasPartner = !!partnerUser;
 
   const formatMoney = (val) => formatMoneyUtil(val);
@@ -310,7 +311,7 @@ const SettingsScreen = ({ navigation }) => {
                   </>
                 ) : (
                   <View style={styles.inviteBox}>
-                     <Text style={[styles.inviteText, { color: theme.onSurfaceVariant }]}>Ajak Rika bergabung!</Text>
+                     <Text style={[styles.inviteText, { color: theme.onSurfaceVariant }]}>Ajak {partnerName} bergabung!</Text>
                      <View style={[styles.codeBadge, { backgroundColor: theme.primary + '15' }]}>
                         <Text style={[styles.codeText, { color: theme.primary }]}>{user?.householdId}</Text>
                      </View>
@@ -459,7 +460,7 @@ const SettingsScreen = ({ navigation }) => {
           <SectionHeader title="Kustomisasi" />
           <View style={styles.settingGroup}>
 
-            <SettingRow icon="favorite-border" title="Ruang Kita" desc={`Ruang spesial ${user?.name || 'Ayip'} & ${partnerName || 'Rika'}`} onPress={() => navigation.navigate("Couple")} />
+            <SettingRow icon="favorite-border" title="Ruang Kita" desc={`Ruang spesial ${user?.name || 'Kamu'} & ${partnerName || 'Pasangan'}`} onPress={() => navigation.navigate("Couple")} />
             <SettingRow icon="category" title="Kelola Kategori" desc="Susun kategori agar sesuai dengan gaya hidup kita" onPress={() => navigation.navigate("Categories")} />
 
             <SettingRow icon="dark-mode" title="Mode Gelap" desc="Agar mata tetap nyaman saat kita bercerita di malam hari">
@@ -584,7 +585,8 @@ const SettingsScreen = ({ navigation }) => {
             </View>
 
             <TouchableOpacity 
-              style={[styles.modalActionBtn, { backgroundColor: theme.primary, marginTop: 24 }]} 
+              style={[styles.modalActionBtn, { backgroundColor: loading ? theme.outlineVariant : theme.primary, marginTop: 24 }]} 
+              disabled={loading}
               onPress={async () => {
                 if (editName.trim() === '') {
                   Alert.alert('Error', 'Nama tidak boleh kosong');
@@ -609,7 +611,7 @@ const SettingsScreen = ({ navigation }) => {
                 }
               }}
             >
-               <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Simpan Profil</Text>
+               {loading ? <ActivityIndicator size="small" color={theme.onPrimary} /> : <Text style={{ color: theme.onPrimary, fontWeight: 'bold' }}>Simpan Profil</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setProfileModalVisible(false)}>
@@ -649,7 +651,7 @@ const SettingsScreen = ({ navigation }) => {
             <View style={{ marginBottom: 24 }}>
                <Text style={{ color: theme.onSurfaceVariant, fontSize: 13, marginBottom: 12 }}>Filter Data:</Text>
                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {['Ayip', 'Rika', 'Kita'].map(f => (
+                  {['Kamu', 'Pasangan', 'Kita'].map(f => (
                     <TouchableOpacity key={f} onPress={() => setExportFilters({...exportFilters, user: f})} style={{ flex: 1, padding: 12, borderRadius: 12, backgroundColor: exportFilters.user === f ? theme.primary : theme.surfaceContainerLow, alignItems: 'center' }}>
                        <Text style={{ color: exportFilters.user === f ? theme.onPrimary : theme.onSurface, fontWeight: 'bold', fontSize: 12 }}>{f}</Text>
                     </TouchableOpacity>
