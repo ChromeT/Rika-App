@@ -18,3 +18,33 @@ Thumbs.db
 # Firebase
 # google-services.json  <- sementara di-comment biar EAS Build bisa baca
 # GoogleService-Info.plist
+
+# Secrets (jaga-jaga, jangan pernah commit ini)
+*.pem
+*.key
+serviceAccountKey*.json
+firebase-adminsdk*.json
+
+# AI coding assistant workspace/config (bisa berisi info personal/path lokal)
+.claude/
+claude-context/
+claude-sync-master/
+directives/
+AGENTS.md
+CLAUDE.md
+.easignore
+
+# Dev logs & scratch files
+*_logs.txt
+expo_logs.txt
+expo_new_logs.txt
+expo_local_logs.txt
+expo_tunnel_logs.txt
+scratch/
+
+# Local scripts specific to one machine
+*.ps1
+
+# Exported reports/presentations (biasanya bukan untuk source control)
+*.pptx
+*.xlsx
