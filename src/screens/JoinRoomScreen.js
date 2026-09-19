@@ -7,6 +7,7 @@ import { ThemeContext } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { sanitizeInput, isValidRoomCode, isValidUserName, checkJoinRateLimit, recordFailedJoinAttempt, resetJoinRateLimit } from '../utils/security';
 
 const JoinRoomScreen = ({ navigation }) => {
   const { theme } = useContext(ThemeContext);
@@ -54,12 +55,33 @@ const JoinRoomScreen = ({ navigation }) => {
   };
 
   const handleJoin = async () => {
-    if (!name.trim() || !code.trim()) return Alert.alert('Error', 'Nama dan Kode harus diisi');
+    const rateLimit = await checkJoinRateLimit();
+    if (!rateLimit.allowed) {
+      return Alert.alert(
+        'Terlalu Banyak Percobaan',
+        `Demi keamanan, silakan tunggu ${rateLimit.remainingSeconds} detik lagi sebelum mencoba kembali.`
+      );
+    }
+
+    const cleanName = sanitizeInput(name, 30);
+    const cleanCode = code.trim().toUpperCase();
+
+    if (!isValidUserName(cleanName)) {
+      return Alert.alert('Error', 'Nama panggilan minimal 2 karakter dan tidak boleh menggunakan simbol khusus.');
+    }
+    if (!isValidRoomCode(cleanCode)) {
+      return Alert.alert('Error', 'Format kode pasangan harus berupa 6 karakter alfanumerik.');
+    }
+
     setLoading(true);
-    const result = await joinHousehold(name, code);
+    const result = await joinHousehold(cleanName, cleanCode);
     setLoading(false);
-    if (!result.success) {
-      Alert.alert('Gagal', result.message);
+
+    if (result.success) {
+      await resetJoinRateLimit();
+    } else {
+      await recordFailedJoinAttempt();
+      Alert.alert('Gagal', result.message || 'Kode ruangan tidak ditemukan.');
     }
   };
 

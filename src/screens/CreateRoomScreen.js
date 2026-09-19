@@ -7,6 +7,7 @@ import { ThemeContext } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { sanitizeInput, isValidUserName } from '../utils/security';
 
 const CreateRoomScreen = ({ navigation }) => {
   const { theme } = useContext(ThemeContext);
@@ -55,9 +56,12 @@ const CreateRoomScreen = ({ navigation }) => {
   };
 
   const handleCreate = async () => {
-    if (!name.trim()) return Alert.alert('Error', 'Nama harus diisi');
+    const cleanName = sanitizeInput(name, 30);
+    if (!isValidUserName(cleanName)) {
+      return Alert.alert('Error', 'Nama panggilan minimal 2 karakter dan tidak boleh menggunakan karakter berbahaya.');
+    }
     setLoading(true);
-    const result = await createHousehold(name);
+    const result = await createHousehold(cleanName);
     setLoading(false);
     if (result.success) {
       setGeneratedCode(result.code);

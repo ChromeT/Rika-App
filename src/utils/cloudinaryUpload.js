@@ -1,8 +1,13 @@
 import { Platform } from 'react-native';
 import { CLOUDINARY_UPLOAD_PRESET, CLOUDINARY_BASE_URL } from '../config/cloudinary';
 
-export const uploadToCloudinary = async (uri, mediaType, onProgress) => {
-  if (!mediaType) mediaType = 'image';
+const ALLOWED_MEDIA_TYPES = ['image', 'video'];
+const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // Maksimal 25MB
+
+export const uploadToCloudinary = async (uri, mediaType = 'image', onProgress) => {
+  if (!ALLOWED_MEDIA_TYPES.includes(mediaType)) {
+    throw new Error(`Tipe media tidak diizinkan: ${mediaType}. Hanya gambar dan video yang diperbolehkan.`);
+  }
   console.log('=== CLOUDINARY UPLOAD START ===');
   
   return new Promise((resolve, reject) => {

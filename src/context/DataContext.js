@@ -938,11 +938,13 @@ export const DataProvider = ({ children }) => {
     try {
       // Panggil API Route Vercel kita
       // PENTING: Pake URL absolut kalau buat aplikasi native/Android
-      const API_URL = 'https://rika-app-omega.vercel.app'; 
+      const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://rikapp.vercel.app'; 
+      const PUSH_SECRET = process.env.EXPO_PUBLIC_INTERNAL_PUSH_SECRET || 'rika-internal-push-secret-2026';
       const response = await fetch(`${API_URL}/api/send-push`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-app-secret': PUSH_SECRET,
         },
         body: JSON.stringify({
           token: targetToken,

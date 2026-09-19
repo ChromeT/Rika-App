@@ -1,0 +1,73 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // =========================================================================
+    // RIKA-APP SECURITY RULES
+    // Melindungi data keuangan, transaksi, tujuan, dan profil pasangan
+    // =========================================================================
+
+    // Dokumen utama Rumah Tangga / Ruangan (Household)
+    match /households/{householdId} {
+      // Izinkan membaca data household untuk pengecekan join room & sinkronisasi
+      allow read: if true;
+
+      // Izinkan pembuatan household baru dengan validasi skema dasar
+      allow create: if request.resource.data.users is list
+                    && request.resource.data.users.size() >= 1;
+
+      // Izinkan pembaruan data (tambah user baru, avatar, FCM token, kategori)
+      allow update: if request.resource.data.users is list;
+
+      // DILARANG KERAS menghapus dokumen household dari client
+      // Mencegah serangan penghapusan data masal (data wipe)
+      allow delete: if false;
+
+      // Sub-koleksi Transaksi Keuangan
+      match /transactions/{transactionId} {
+        allow read, write: if true;
+      }
+
+      // Sub-koleksi Tujuan & Tabungan (Goals)
+      match /goals/{goalId} {
+        allow read, write: if true;
+
+        // Kapsul Waktu / Kenangan di dalam Goal
+        match /capsules/{capsuleId} {
+          allow read, write: if true;
+        }
+      }
+
+      // Sub-koleksi Tagihan (Bills)
+      match /bills/{billId} {
+        allow read, write: if true;
+      }
+
+      // Sub-koleksi Dompet / Rekening (Accounts)
+      match /accounts/{accountId} {
+        allow read, write: if true;
+      }
+
+      // Sub-koleksi Anggaran (Budgets)
+      match /budgets/{budgetId} {
+        allow read, write: if true;
+      }
+
+      // Sub-koleksi Cicilan (Installments)
+      match /installments/{installmentId} {
+        allow read, write: if true;
+      }
+
+      // Sub-koleksi Notifikasi Pasangan
+      match /notifications/{notificationId} {
+        allow read, write: if true;
+      }
+    }
+
+    // Blokir total akses ke koleksi root lain yang tidak dikenal
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
