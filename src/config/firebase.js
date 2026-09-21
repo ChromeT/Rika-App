@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getMessaging } from 'firebase/messaging';
 import { Platform } from 'react-native';
@@ -14,7 +14,11 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+export const db = Platform.OS === 'web'
+  ? initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: true,
+    })
+  : getFirestore(app);
 export const storage = getStorage(app);
 
 // Hanya inisialisasi Messaging kalau di Web

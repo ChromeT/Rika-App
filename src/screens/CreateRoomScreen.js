@@ -61,13 +61,20 @@ const CreateRoomScreen = ({ navigation }) => {
       return Alert.alert('Error', 'Nama panggilan minimal 2 karakter dan tidak boleh menggunakan karakter berbahaya.');
     }
     setLoading(true);
-    const result = await createHousehold(cleanName);
-    setLoading(false);
-    if (result.success) {
-      setGeneratedCode(result.code);
-      setUserData(result.userData);
-    } else {
-      Alert.alert('Gagal', result.message);
+    try {
+      const result = await createHousehold(cleanName);
+      setLoading(false);
+      if (result.success) {
+        setGeneratedCode(result.code);
+        setUserData(result.userData);
+      } else {
+        console.error('Gagal membuat ruangan:', result.message);
+        Alert.alert('Gagal Membuat Ruang', result.message || 'Terjadi kesalahan saat menghubungi database. Periksa koneksi internet Anda.');
+      }
+    } catch (err) {
+      setLoading(false);
+      console.error('Unexpected error creating room:', err);
+      Alert.alert('Error', err.message || 'Terjadi kesalahan internal.');
     }
   };
 

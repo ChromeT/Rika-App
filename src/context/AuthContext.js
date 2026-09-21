@@ -174,7 +174,12 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   const generateCode = () => {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
+    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
   };
 
   const createHousehold = async (userName) => {
