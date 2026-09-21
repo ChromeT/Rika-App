@@ -17,12 +17,12 @@ export const sanitizeInput = (str, maxLength = 100) => {
 };
 
 /**
- * Validasi format kode ruangan (tepat 6 karakter alfanumerik A-Z, 0-9).
+ * Validasi format kode ruangan (3-12 karakter alfanumerik A-Z, 0-9).
  */
 export const isValidRoomCode = (code) => {
   if (!code || typeof code !== 'string') return false;
   const cleanCode = code.trim().toUpperCase();
-  return /^[A-Z0-9]{6}$/.test(cleanCode);
+  return /^[A-Z0-9]{3,12}$/.test(cleanCode);
 };
 
 /**

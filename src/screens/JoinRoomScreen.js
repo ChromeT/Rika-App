@@ -70,7 +70,7 @@ const JoinRoomScreen = ({ navigation }) => {
       return Alert.alert('Error', 'Nama panggilan minimal 2 karakter dan tidak boleh menggunakan simbol khusus.');
     }
     if (!isValidRoomCode(cleanCode)) {
-      return Alert.alert('Error', 'Format kode pasangan harus berupa 6 karakter alfanumerik.');
+      return Alert.alert('Error', 'Format kode pasangan harus berupa 3-12 karakter alfanumerik.');
     }
 
     setLoading(true);
